@@ -1,0 +1,22 @@
+{
+    "translations": {
+        "de": {
+            "Current temperature": "Isttemperatur",
+            "Target temperature": "Solltemperatur",
+            "Battery level": "Batteriestand",
+            "Battery low": "Batterie schwach",
+            "OK": "In Ordnung",
+            "WiFi signal strength": "WLAN-Signalstärke",
+            "Reachable": "Erreichbar",
+            "Last message": "Letzte Meldung",
+            "Raw value": "Rohwert",
+            "Yes": "Ja",
+            "No": "Nein",
+            "Unknown Ident: ": "Unbekannter Ident: ",
+            "Module version: ": "Modulversion: ",
+            "Base topic: ": "Basis-Topic: ",
+            "Base topic: (please enter MAC address and MQTT user)": "Basis-Topic: (bitte MAC-Adresse und MQTT-Benutzer eintragen)",
+            "Expected client ID of the device: ": "Erwartete Client-ID des Geräts: "
+        }
+    }
+}

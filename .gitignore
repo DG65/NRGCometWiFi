@@ -1,0 +1,6 @@
+.DS_Store
+*.log
+*.pcap
+.idea/
+.vscode/
+docs/anlage-dietmar.md

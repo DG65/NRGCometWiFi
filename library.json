@@ -1,0 +1,12 @@
+{
+  "id": "{E59960CB-28E9-4071-9347-47BB9F527407}",
+  "author": "DG65",
+  "name": "NRG-Stack CometWiFi",
+  "url": "https://github.com/DG65/NRGCometWiFi",
+  "compatibility": {
+    "version": "9.0"
+  },
+  "version": "0.1.0",
+  "build": 1,
+  "date": 0
+}

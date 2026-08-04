@@ -1,0 +1,21 @@
+{
+    "id": "{0F552C16-D685-4C9F-86C0-8D89E4BFD158}",
+    "name": "CometWiFiThermostat",
+    "type": 3,
+    "vendor": "Eurotronic",
+    "aliases": [
+        "Comet WiFi",
+        "Eurotronic Comet WiFi",
+        "NRG-Stack Comet WiFi Thermostat",
+        "Heizkörperthermostat"
+    ],
+    "parentRequirements": [
+        "{043EA491-0325-4ADD-8FC2-A30C8EEB4D3F}"
+    ],
+    "childRequirements": [],
+    "implemented": [
+        "{7F7632D9-FA40-4F38-8DEA-C83CD4325A32}"
+    ],
+    "prefix": "CWIFI",
+    "url": "https://github.com/DG65/NRGCometWiFi"
+}

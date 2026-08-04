@@ -1,0 +1,276 @@
+{
+    "elements": [
+        {
+            "type": "ExpansionPanel",
+            "name": "DocsPanel",
+            "caption": "📖  Dokumentation & Hilfe",
+            "expanded": false,
+            "items": [
+                {
+                    "type": "Label",
+                    "name": "VersionLabel",
+                    "caption": " "
+                },
+                {
+                    "type": "Label",
+                    "caption": "Diese Instanz bildet EIN Comet-WiFi-Thermostat ab. Zugeordnet wird es über seine MAC-Adresse; die Topics leiten sich daraus ab und müssen nicht eingetragen werden."
+                },
+                {
+                    "type": "Label",
+                    "caption": "Die Werte erscheinen, sobald sich das Gerät von selbst meldet. Das kann nach dem Anlegen einige Minuten bis Stunden dauern — die Thermostate senden im Sparbetrieb nur selten."
+                },
+                {
+                    "type": "Label",
+                    "caption": "⚠️  Ein hier gesetzter Sollwert gilt nicht dauerhaft: Das Wochenprogramm im Gerät läuft weiter und überschreibt ihn beim nächsten Schaltpunkt — ebenso die Hersteller-App. Das ist Verhalten des Geräts, kein Fehler des Moduls."
+                },
+                {
+                    "type": "Label",
+                    "caption": "Nur Register mit belegter Bedeutung werden als Variable geführt. Wochenprogramm, Fenster-offen-Erkennung, Tastensperre und Temperatur-Offset sind noch nicht entschlüsselt und bleiben deshalb bewusst außen vor. Wer die Rohdatenerfassung einschaltet und archiviert, hilft beim Entschlüsseln."
+                }
+            ]
+        },
+        {
+            "type": "ExpansionPanel",
+            "caption": "🔌  Verbindung",
+            "expanded": true,
+            "items": [
+                {
+                    "type": "Label",
+                    "caption": "Diese Instanz muss unter einem MQTT Client (oder MQTT Server) hängen, der mit dem Broker der Thermostate verbunden ist."
+                },
+                {
+                    "type": "RowLayout",
+                    "items": [
+                        {
+                            "type": "ValidationTextBox",
+                            "name": "MAC",
+                            "caption": "MAC-Adresse",
+                            "width": "260px",
+                            "validate": "^[0-9A-Fa-f]{12}$",
+                            "onChange": "CWIFI_UpdateTopicPreview($id, $MAC, $MQTTUser, $TopicPrefix);"
+                        },
+                        {
+                            "type": "PopupButton",
+                            "caption": "?",
+                            "width": "70px",
+                            "popup": {
+                                "caption": "MAC-Adresse",
+                                "items": [
+                                    {
+                                        "type": "Label",
+                                        "caption": "Zwölf Hex-Zeichen ohne Trennzeichen, z. B. A1B2C3D4E5F6. Der Konfigurator trägt sie beim Anlegen automatisch ein."
+                                    },
+                                    {
+                                        "type": "Label",
+                                        "caption": "Von Hand findet man sie im Protokoll des Brokers: In der Client-ID des Geräts (Aufbau da16x02 + Benutzername + letzte drei MAC-Bytes) stehen die letzten sechs Zeichen."
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "type": "RowLayout",
+                    "items": [
+                        {
+                            "type": "ValidationTextBox",
+                            "name": "MQTTUser",
+                            "caption": "MQTT-Benutzer",
+                            "width": "260px",
+                            "onChange": "CWIFI_UpdateTopicPreview($id, $MAC, $MQTTUser, $TopicPrefix);"
+                        },
+                        {
+                            "type": "PopupButton",
+                            "caption": "?",
+                            "width": "70px",
+                            "popup": {
+                                "caption": "MQTT-Benutzer",
+                                "items": [
+                                    {
+                                        "type": "Label",
+                                        "caption": "Die achtstellige Kontokennung, die alle Comet-WiFi-Geräte eines Kontos gemeinsam benutzen. Sie ist bei jedem Nutzer anders — die Vorbelegung ist nur ein Beispiel."
+                                    },
+                                    {
+                                        "type": "Label",
+                                        "caption": "Auslesbar aus dem MQTT-Verbindungsaufbau eines Geräts (Port 1883 ist unverschlüsselt), siehe README."
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "type": "ValidationTextBox",
+                    "name": "TopicPrefix",
+                    "caption": "Topic-Präfix",
+                    "width": "260px",
+                    "onChange": "CWIFI_UpdateTopicPreview($id, $MAC, $MQTTUser, $TopicPrefix);"
+                },
+                {
+                    "type": "Label",
+                    "name": "TopicPreview",
+                    "caption": " "
+                },
+                {
+                    "type": "Label",
+                    "name": "ClientIdPreview",
+                    "caption": " "
+                }
+            ]
+        },
+        {
+            "type": "ExpansionPanel",
+            "caption": "🌡️  Solltemperatur",
+            "expanded": true,
+            "items": [
+                {
+                    "type": "Label",
+                    "caption": "Grenzen des Schiebereglers. Der tatsächlich vom Gerät akzeptierte Bereich ist nicht dokumentiert; 28,5 °C wurden bereits beobachtet."
+                },
+                {
+                    "type": "NumberSpinner",
+                    "name": "SetpointMin",
+                    "caption": "Minimum",
+                    "suffix": "°C",
+                    "digits": 1,
+                    "minimum": 0,
+                    "maximum": 30,
+                    "width": "200px"
+                },
+                {
+                    "type": "NumberSpinner",
+                    "name": "SetpointMax",
+                    "caption": "Maximum",
+                    "suffix": "°C",
+                    "digits": 1,
+                    "minimum": 5,
+                    "maximum": 40,
+                    "width": "200px"
+                }
+            ]
+        },
+        {
+            "type": "ExpansionPanel",
+            "caption": "🔋  Batterie & Abfrage",
+            "expanded": true,
+            "items": [
+                {
+                    "type": "NumberSpinner",
+                    "name": "BatteryLowThreshold",
+                    "caption": "Warnschwelle „Batterie schwach\"",
+                    "suffix": "%",
+                    "minimum": 0,
+                    "maximum": 100,
+                    "width": "200px"
+                },
+                {
+                    "type": "Select",
+                    "name": "BatteryDecode",
+                    "caption": "Batteriewert lesen als",
+                    "width": "260px",
+                    "options": [
+                        { "caption": "Hexadezimal (Standard)", "value": 0 },
+                        { "caption": "Dezimal", "value": 1 }
+                    ]
+                },
+                {
+                    "type": "Label",
+                    "caption": "Die Kodierung des Batteriewerts ist nicht belegt. Zeigt die Anzeige unplausible Werte, hier umschalten."
+                },
+                {
+                    "type": "Label",
+                    "caption": "⚠️  Comet WiFi läuft auf Batterien. Jede Abfrage weckt das Gerät. Nach einer vergleichbaren Umleitung wurde im ioBroker-Umfeld Batterieausfall binnen etwa zwei Wochen berichtet. Im Zweifel bei 0 (aus) belassen — die Geräte melden sich von selbst."
+                },
+                {
+                    "type": "NumberSpinner",
+                    "name": "PollInterval",
+                    "caption": "Aktive Abfrage alle … Minuten (0 = aus)",
+                    "minimum": 0,
+                    "maximum": 1440,
+                    "width": "260px"
+                },
+                {
+                    "type": "NumberSpinner",
+                    "name": "TimeoutMinutes",
+                    "caption": "Als nicht erreichbar melden nach … Minuten ohne Meldung",
+                    "minimum": 15,
+                    "maximum": 10080,
+                    "width": "260px"
+                }
+            ]
+        },
+        {
+            "type": "ExpansionPanel",
+            "caption": "🧪  Experten",
+            "expanded": false,
+            "items": [
+                {
+                    "type": "Label",
+                    "caption": "Für die Weiterentwicklung des Protokolls. Im Alltag nicht nötig."
+                },
+                {
+                    "type": "CheckBox",
+                    "name": "RawRegisters",
+                    "caption": "Rohdaten aller unbekannten Register als Variable führen"
+                },
+                {
+                    "type": "Label",
+                    "caption": "Legt je unbekanntem Register eine Textvariable an. Wer diese archiviert, liefert das Material, mit dem sich Wochenprogramm, Fenstererkennung und Optionen-Bitfeld nachträglich entschlüsseln lassen."
+                },
+                {
+                    "type": "CheckBox",
+                    "name": "DebugUnknown",
+                    "caption": "Unbekannte Register ins Debug-Fenster schreiben"
+                }
+            ]
+        }
+    ],
+    "actions": [
+        {
+            "type": "Button",
+            "caption": "🔄  Jetzt aktualisieren",
+            "onClick": "CWIFI_RequestUpdate($id);"
+        },
+        {
+            "type": "Button",
+            "caption": "Alle Felder anfordern",
+            "confirm": "Fordert sämtliche Register des Geräts an. Das weckt das Thermostat spürbar und geht auf die Batterie. Wirklich ausführen?",
+            "onClick": "CWIFI_RequestAllFields($id);"
+        },
+        {
+            "type": "TestCenter"
+        }
+    ],
+    "status": [
+        {
+            "code": 201,
+            "icon": "error",
+            "caption": "Ungültige MAC-Adresse – bitte zwölf Hex-Zeichen ohne Trennzeichen eintragen (z. B. A1B2C3D4E5F6)."
+        },
+        {
+            "code": 202,
+            "icon": "error",
+            "caption": "MQTT-Benutzer fehlt – ohne ihn lässt sich das Topic nicht bilden."
+        },
+        {
+            "code": 203,
+            "icon": "error",
+            "caption": "Keine aktive MQTT-Instanz darüber – bitte MQTT Client einrichten und verbinden."
+        },
+        {
+            "code": 204,
+            "icon": "error",
+            "caption": "Thermostat hat sich beim Broker abgemeldet – Funkverbindung und Batterien prüfen."
+        },
+        {
+            "code": 205,
+            "icon": "inactive",
+            "caption": "Noch keine Daten empfangen – das Thermostat meldet sich nur sporadisch, bitte etwas Geduld."
+        },
+        {
+            "code": 206,
+            "icon": "inactive",
+            "caption": "Seit längerer Zeit keine Meldung – siehe Variable „Letzte Meldung\"."
+        }
+    ]
+}

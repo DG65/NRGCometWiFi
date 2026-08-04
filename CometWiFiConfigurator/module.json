@@ -1,0 +1,19 @@
+{
+    "id": "{E34378B1-6F33-41F9-8D3E-EA246CB2213D}",
+    "name": "CometWiFiConfigurator",
+    "type": 4,
+    "vendor": "Eurotronic",
+    "aliases": [
+        "Comet WiFi Konfigurator",
+        "NRG-Stack Comet WiFi Konfigurator"
+    ],
+    "parentRequirements": [
+        "{043EA491-0325-4ADD-8FC2-A30C8EEB4D3F}"
+    ],
+    "childRequirements": [],
+    "implemented": [
+        "{7F7632D9-FA40-4F38-8DEA-C83CD4325A32}"
+    ],
+    "prefix": "CWIFIC",
+    "url": "https://github.com/DG65/NRGCometWiFi"
+}

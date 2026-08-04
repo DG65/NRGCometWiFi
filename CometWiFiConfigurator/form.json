@@ -1,0 +1,192 @@
+{
+    "elements": [
+        {
+            "type": "ExpansionPanel",
+            "name": "DocsPanel",
+            "caption": "📖  Dokumentation & Hilfe",
+            "expanded": false,
+            "items": [
+                {
+                    "type": "Label",
+                    "name": "VersionLabel",
+                    "caption": " "
+                },
+                {
+                    "type": "Label",
+                    "caption": "Diese Instanz hört den Datenverkehr aller Comet-WiFi-Thermostate mit und sammelt, welche Geräte sich melden. Aus der Liste unten lässt sich je Gerät eine Instanz anlegen."
+                },
+                {
+                    "type": "Label",
+                    "caption": "⏳  Geräte erscheinen erst, wenn sie von sich aus senden — das kann Minuten bis Stunden dauern. Der Konfigurator fragt bewusst nichts aktiv ab, um die Batterien zu schonen. Wer nicht warten möchte, macht das betreffende Thermostat kurz stromlos (Batterie heraus und wieder hinein); danach meldet es sich sofort."
+                },
+                {
+                    "type": "Label",
+                    "caption": "Die Zuordnung zu bereits angelegten Instanzen erfolgt über die MAC-Adresse, nicht über den Namen. Umbenannte Instanzen werden also weiterhin korrekt erkannt."
+                }
+            ]
+        },
+        {
+            "type": "ExpansionPanel",
+            "caption": "🔌  Verbindung",
+            "expanded": true,
+            "items": [
+                {
+                    "type": "Label",
+                    "caption": "Diese Instanz muss unter einem MQTT Client (oder MQTT Server) hängen, der mit dem Broker der Thermostate verbunden ist."
+                },
+                {
+                    "type": "RowLayout",
+                    "items": [
+                        {
+                            "type": "ValidationTextBox",
+                            "name": "MQTTUser",
+                            "caption": "MQTT-Benutzer",
+                            "width": "260px"
+                        },
+                        {
+                            "type": "PopupButton",
+                            "caption": "?",
+                            "width": "70px",
+                            "popup": {
+                                "caption": "MQTT-Benutzer",
+                                "items": [
+                                    {
+                                        "type": "Label",
+                                        "caption": "Die achtstellige Kontokennung, die alle Comet-WiFi-Geräte eines Kontos gemeinsam benutzen. Sie ist bei jedem Nutzer anders — es gibt keine sinnvolle Vorbelegung."
+                                    },
+                                    {
+                                        "type": "Label",
+                                        "caption": "Auslesbar aus dem MQTT-Verbindungsaufbau eines Geräts (Port 1883 ist unverschlüsselt), siehe README."
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "type": "ValidationTextBox",
+                    "name": "TopicPrefix",
+                    "caption": "Topic-Präfix",
+                    "width": "260px"
+                },
+                {
+                    "type": "NumberSpinner",
+                    "name": "RetentionHours",
+                    "caption": "Geräte aus der Liste entfernen nach … Stunden ohne Meldung",
+                    "minimum": 1,
+                    "maximum": 8760,
+                    "width": "300px"
+                }
+            ]
+        },
+        {
+            "type": "ExpansionPanel",
+            "caption": "🕐  Zeitsynchronisation (optional)",
+            "expanded": false,
+            "items": [
+                {
+                    "type": "Label",
+                    "caption": "Die Thermostate beziehen ihre Uhrzeit normalerweise über die Hersteller-Cloud. Ohne sie driften die Uhren und das Wochenprogramm läuft zur falschen Zeit."
+                },
+                {
+                    "type": "Label",
+                    "caption": "⚠️  Diese Funktion wirkt auf ALLE Comet-WiFi-Geräte im Netz, nicht nur auf die hier angelegten — der Zeitkanal ist ein Rundruf. Nur einschalten, wenn die Verbindung zur Hersteller-Cloud dauerhaft entfällt."
+                },
+                {
+                    "type": "CheckBox",
+                    "name": "ProvideTimeSync",
+                    "caption": "Uhrzeit selbst senden"
+                },
+                {
+                    "type": "NumberSpinner",
+                    "name": "TimeSyncHours",
+                    "caption": "Alle … Stunden",
+                    "minimum": 1,
+                    "maximum": 168,
+                    "width": "200px"
+                }
+            ]
+        }
+    ],
+    "actions": [
+        {
+            "type": "Configurator",
+            "name": "Devices",
+            "caption": "Gefundene Comet-WiFi-Thermostate",
+            "rowCount": 15,
+            "delete": false,
+            "sort": {
+                "column": "MACFormatted",
+                "direction": "ascending"
+            },
+            "columns": [
+                {
+                    "caption": "MAC-Adresse",
+                    "name": "MACFormatted",
+                    "width": "180px"
+                },
+                {
+                    "caption": "Isttemperatur",
+                    "name": "TemperatureText",
+                    "width": "130px"
+                },
+                {
+                    "caption": "Solltemperatur",
+                    "name": "SetpointText",
+                    "width": "140px"
+                },
+                {
+                    "caption": "Batterie",
+                    "name": "BatteryText",
+                    "width": "110px"
+                },
+                {
+                    "caption": "Signal",
+                    "name": "RSSIText",
+                    "width": "110px"
+                },
+                {
+                    "caption": "Zuletzt gesehen",
+                    "name": "LastSeenText",
+                    "width": "170px"
+                },
+                {
+                    "caption": "Client-ID",
+                    "name": "ClientID",
+                    "width": "230px",
+                    "visible": false
+                },
+                {
+                    "caption": "MAC",
+                    "name": "MAC",
+                    "width": "auto",
+                    "visible": false
+                }
+            ],
+            "values": []
+        },
+        {
+            "type": "Button",
+            "caption": "🗑️  Liste leeren",
+            "confirm": "Die gesammelten Fundstellen werden verworfen. Bereits angelegte Instanzen bleiben unberührt. Fortfahren?",
+            "onClick": "CWIFIC_ClearDiscovery($id);"
+        }
+    ],
+    "status": [
+        {
+            "code": 201,
+            "icon": "error",
+            "caption": "MQTT-Benutzer fehlt – ohne ihn lässt sich nicht erkennen, welche Nachrichten zu den Thermostaten gehören."
+        },
+        {
+            "code": 202,
+            "icon": "error",
+            "caption": "Keine aktive MQTT-Instanz darüber – bitte MQTT Client einrichten und verbinden."
+        },
+        {
+            "code": 203,
+            "icon": "inactive",
+            "caption": "Noch keine Thermostate gesehen – die Geräte melden sich von selbst, das kann dauern."
+        }
+    ]
+}
