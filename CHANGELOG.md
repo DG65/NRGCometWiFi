@@ -2,6 +2,17 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.7.1] – Das Stellen ist belegt
+
+### Bestätigt
+- **`S/A4` wird vom Gerät angenommen.** Am WC-Thermostat durchgeführt: Der geschriebene Wert
+  `#3A1505081A` kam unverändert als `V/A4` zurück, und die Uhrabweichung fiel von +43 Minuten
+  auf null. Der Vorbehalt aus 0.7.0 ist damit erledigt und der Hinweis im Formular ersetzt.
+- **Auch das Datum ist belegt.** Es stand auf allen zehn Geräten unbewegt auf `01 01 14` und
+  galt als ungedeutet. Der geschriebene Wert endet auf `05 08 1A` und kommt so zurück —
+  Tag 5, Monat 8, Jahr 2026. Die Reihenfolge `MM HH TT MM JJ` ist damit vollständig
+  nachgewiesen.
+
 ## [0.7.0] – Die Uhr stellen
 
 ### Neu

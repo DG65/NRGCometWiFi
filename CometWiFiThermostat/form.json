@@ -250,7 +250,7 @@
                 },
                 {
                     "type": "Label",
-                    "caption": "⚠️  Ob sich die Uhr überhaupt stellen lässt, ist nicht gesichert. Das Register ist beim Lesen belegt, beim Schreiben nicht. Nach dem Stellen wird die Uhr zurückgelesen — bleibt die Abweichung stehen, nimmt das Gerät den Befehl nicht an."
+                    "caption": "Das Stellen ist am Gerät belegt: Der geschriebene Wert kommt unverändert zurück, und die Abweichung fällt auf null. Übernommen wird auch das Datum. Nach dem Stellen wird die Uhr zurückgelesen — die Anzeige aktualisiert sich also von selbst."
                 },
                 {
                     "type": "NumberSpinner",
