@@ -2,6 +2,27 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.9.0] – AF, BD und BE geklärt, soweit es geht
+
+### Erkannt
+- **`V/AF` trägt keine Information.** `#0014` auf allen zehn Geräten. Es wandert damit zu den
+  nicht mehr angelegten Registern. **`S/AF` bleibt davon unberührt** — als Kommando ist es die
+  Registermaske und das meistgenutzte Register überhaupt; der Prüfstand hält ausdrücklich
+  fest, dass die eine Richtung die andere nicht mit abschaltet.
+- **Die Registermaske deckt alle vier Byte ab.** Byte 1 = `A0`–`A7`, Byte 2 = `A8`–`AF`,
+  Byte 3 = `B0`–`B7`, Byte 4 = `B8`–`BF`. Am Gerät geprüft: `#00000040` fordert gezielt `BE`
+  an und liefert genau dieses eine Register. Die bislang nur für `A0`–`A7` belegte Regel gilt
+  damit über den gesamten Bereich — nützlich für alles, was künftig gezielt ein einzelnes
+  Register aus dem oberen Bereich braucht, statt einen Voll-Dump anzustoßen.
+- **`BE` ist ein langsam wandernder Messwert**, kein Kennwert: Über fünf Stunden bewegte er
+  sich bei mehreren Geräten um ein bis zwei Zähler im Bereich 97–100.
+  - **Als Ventilstellung widerlegt.** Sollwert am WC auf „Aus", 75 Sekunden gewartet, `BE`
+    gezielt angefordert: Änderung um eins statt eines Einbruchs. Die Aussage „eine
+    Ventilstellung gibt es nicht" bleibt bestehen.
+  - **Als Batteriestand widerlegt.** Das Gerät mit 20 % Restladung zeigt den höchsten Wert.
+- **`BD`** ist auf allen zehn Geräten `#0800`, solange die Tastensperre überall aus ist. Ob es
+  mit ihr wechselt, ist weiterhin nur vermutet.
+
 ## [0.8.1] – Rohwerte aufräumen
 
 ### Behoben

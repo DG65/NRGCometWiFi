@@ -654,7 +654,7 @@ checkTrue('Schwelle 0 meldet nichts', $device->GetStatus() !== 207);
 
 // Die nachweislich leeren Register entstehen gar nicht erst.
 $device = makeDevice(['RawRegisters' => true]);
-foreach (['B4', 'B5', 'B7', 'BB', 'BC'] as $reg) {
+foreach (['AF', 'B4', 'B5', 'B7', 'BB', 'BC'] as $reg) {
     deliver($device, BASE . '/V/' . $reg, '#00');
     checkTrue('Leeres Register ' . $reg . ' wird nicht angelegt', !isset($device->variables['RAW_' . $reg]));
 }
@@ -697,6 +697,13 @@ check('A5 heisst nach seinem Zweck',
 deliver($device, BASE . '/V/BE', '#FF6300');
 check('Ohne bekannten Zweck bleibt es beim Rohwert',
     $device->variables['RAW_BE']['caption'], 'Rohwert BE');
+
+/* S/AF bleibt das wichtigste Kommando ueberhaupt — nur was auf V/AF zurueckkommt, ist
+   wertlos. Das eine darf das andere nicht mit abschalten. */
+$device = makeDevice();
+IPSTestState::$sentPackets = [];
+$device->RequestUpdate();
+check('S/AF wird weiterhin gesendet', IPSTestState::$sentPackets[0]['Topic'], BASE . '/S/AF');
 
 /* ------------------------------------------------------------------ Ergebnis */
 

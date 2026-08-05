@@ -100,14 +100,19 @@ class CWIFI_Registers
     /**
      * Register ohne Informationsgehalt.
      *
-     * Über zehn Geräte hinweg tragen sie alle denselben Wert (`#00000000`, `#FF`, `#00`,
-     * `#00`, `#FF`) — sie können damit weder einen Gerätezustand noch eine Einstellung
-     * abbilden. Die Client-ID der Geräte beginnt mit `da16x`, dem Renesas DA16200; die
-     * Diagnoseregister sehen durchweg nach durchgereichten Antworten dieses WLAN-Chips aus.
+     * Über zehn Geräte hinweg tragen sie alle denselben Wert (`AF` = `#0014`, dazu
+     * `#00000000`, `#FF`, `#00`, `#00`, `#FF`) — sie können damit weder einen Gerätezustand
+     * noch eine Einstellung abbilden. Die Client-ID der Geräte beginnt mit `da16x`, dem
+     * Renesas DA16200; die Diagnoseregister sehen durchweg nach durchgereichten Antworten
+     * dieses WLAN-Chips aus.
+     *
+     * `AF` ist ein Sonderfall: Als Kommando (`S/AF`) ist es die Registermaske und damit das
+     * meistgenutzte Register überhaupt. Was das Gerät auf `V/AF` zurückmeldet, ist davon
+     * unabhängig und auf allen Geräten gleich.
      *
      * Sie werden deshalb nicht als Rohwert geführt, außer man verlangt es ausdrücklich.
      */
-    public const SILENT_REGISTERS = ['B4', 'B5', 'B7', 'BB', 'BC'];
+    public const SILENT_REGISTERS = ['AF', 'B4', 'B5', 'B7', 'BB', 'BC'];
 
     /**
      * Register, deren Zweck bekannt ist, deren Nutzdaten aber nicht.
@@ -116,8 +121,7 @@ class CWIFI_Registers
      * keine Deutung: Was in den Bytes steht, behauptet hier niemand.
      */
     public const NAMED_RAW = [
-        'A5' => 'Ventilation detection (undecoded)',
-        'AF' => 'Register request (undecoded)'
+        'A5' => 'Ventilation detection (undecoded)'
     ];
 
     public const REG_GROUP    = 'B0';

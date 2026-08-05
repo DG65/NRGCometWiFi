@@ -178,12 +178,23 @@ sie kommen nur bei einem ohnehin stattfindenden Voll-Dump mit und kosten keine B
 | `BA` | `24:f5:a2:74:7b:ab` | MAC des WLAN-Zugangspunkts | ✅ |
 | `BF` | `#5B575041322D50534B2D43434D505D5B4553535D` | ASCII „[WPA2-PSK-CCMP][ESS]" | ✅ |
 | `B0` | `#U000000000000` / `#S<MAC>` | Gruppenzuordnung, siehe eigener Abschnitt | ✅ |
-| `B4` `B5` `B7` `BB` `BC` | `#00000000` `#FF` `#00` `#00` `#FF` | Konstanten, siehe unten | ❓ |
-| `BE` | `#FF6300` / `#FF6400` / `#FF6100` | unbekannt, variiert leicht je Gerät | ❓ |
+| `AF` `B4` `B5` `B7` `BB` `BC` | `#0014` `#00000000` `#FF` `#00` `#00` `#FF` | Konstanten, siehe unten | ❓ |
+| `BE` | `#FF6300` / `#FF6400` / `#FF6200` | unbekannt, langsam wandernder Messwert — siehe unten | ❓ |
 | `BD` | `#0800` (alle zehn Geräte) | unbekannt. Eine fremde Umsetzung deutet Byte 1 als Batterie (Skala 0–8) — hier widerlegt, siehe Abgleich | ❓ |
 
-**Bestandsaufnahme über zehn Geräte (05.08.2026).** `B4`, `B5`, `B7`, `BB` und `BC` tragen auf
-allen zehn Geräten denselben Wert. Das Modul legt sie ab 0.8.1 nicht mehr als Rohwert an. Sie können damit weder einen Gerätezustand noch eine
+**Bestandsaufnahme über zehn Geräte (05.08.2026).** `AF`, `B4`, `B5`, `B7`, `BB` und `BC`
+tragen auf allen zehn Geräten denselben Wert. Das Modul legt sie ab 0.8.1 bzw. 0.9.0 nicht
+mehr als Rohwert an.
+
+**`AF` ist dabei ein Sonderfall.** Als Kommando (`S/AF`) ist es die Registermaske und damit das
+meistgenutzte Register überhaupt — was das Gerät auf `V/AF` zurückmeldet, hat damit nichts zu
+tun und ist überall `#0014`. Die eine Richtung abzuschalten darf die andere nicht berühren;
+der Prüfstand hält das ausdrücklich fest.
+
+**Die Maske deckt alle vier Byte ab.** Byte 1 steht für `A0`–`A7`, Byte 2 für `A8`–`AF`,
+Byte 3 für `B0`–`B7`, Byte 4 für `B8`–`BF` — jeweils Bit n für das n-te Register. Am Gerät
+geprüft: `#00000040` fordert gezielt `BE` an und liefert genau dieses eine Register. Damit ist
+die aus `#48000000` = `A6｜A3` hergeleitete Regel über den gesamten Bereich bestätigt. Sie können damit weder einen Gerätezustand noch eine
 Einstellung abbilden — was immer sie bedeuten, sie sind für dieses Modul wertlos. Nicht
 weiter verfolgen. `BE` variiert dagegen leicht (Byte 2 zwischen `0x61` und `0x64`), ist also
 gerätespezifisch und bleibt einen Blick wert.
@@ -249,6 +260,34 @@ ist erwünscht — verloren ist besser als veraltet.
 Die letzten drei Byte standen auf allen Geräten unbewegt auf `01 01 14` — der 1. Januar 2020,
 der Ruhestand einer nie gestellten Uhr. Dass sich das Datum trotz überschrittener Mitternacht
 nie weiterbewegte, spricht dafür, dass die Geräte es ohne äußeres Stellen gar nicht führen.
+
+### `BE` — langsam wandernder Messwert ❓
+
+Aufbau `FF <Byte> 00`. Das mittlere Byte liegt bei allen zehn Geräten zwischen `0x61` und
+`0x64` (97–100) und **wandert über Stunden um ein bis zwei Zähler** — beobachtet am
+05.08.2026 zwischen 17:40 und 22:37:
+
+| Gerät | 17:40 | 22:37 |
+|---|---|---|
+| WC | `FF63` | `FF64` |
+| Wohnzimmer Links | `FF64` | `FF63` |
+| Schlafzimmer Links | `FF61` | `FF62` |
+
+Es ist also kein fester Kennwert, sondern etwas Gemessenes.
+
+**Als Ventilstellung widerlegt.** Naheliegende Vermutung, weil alle Geräte auf „An" standen
+und dort 97–100 anzeigten. Gegenprobe am WC: Sollwert auf „Aus", 75 Sekunden gewartet, `BE`
+gezielt angefordert (`S/AF #00000040`). Ergebnis `FF63` statt `FF64` — eine Änderung um
+**eins**, während ein schließendes Ventil einen Einbruch bis nahe null zeigen müsste. Die
+Abweichung liegt im Bereich der natürlichen Wanderung. Die Aussage „eine Ventilstellung gibt
+es nicht" bleibt damit bestehen.
+
+**Als Batteriestand widerlegt.** Das Gerät mit 20 % Restladung zeigt `FF64` — den höchsten
+Wert überhaupt.
+
+Was es dann ist, bleibt offen. Ein Wert nahe 100, der langsam wandert und je Gerät leicht
+abweicht, passt zu einer internen Messgröße (Taktgeber, Versorgungsspannung, Referenz) —
+belegt ist davon nichts.
 
 ### `A5` — Empfindlichkeit der Lüftungserkennung 🟡
 

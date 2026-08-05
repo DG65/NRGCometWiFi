@@ -498,7 +498,7 @@ class CometWiFiThermostat extends IPSModule
 
         if (!$this->ReadPropertyBoolean('RawRegisters')) {
             foreach (array_merge(CWIFI_Registers::SILENT_REGISTERS,
-                     array_keys(CWIFI_Registers::NAMED_RAW), ['BD', 'BE']) as $reg) {
+                     array_keys(CWIFI_Registers::NAMED_RAW), ['AF', 'BD', 'BE']) as $reg) {
                 $this->MaintainVariable('RAW_' . $reg, '', VARIABLETYPE_STRING, '', 0, false);
             }
         }
