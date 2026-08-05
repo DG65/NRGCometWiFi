@@ -70,6 +70,113 @@ class CWIFI_Registers
     public const IDENT_HOLIDAY_TEMP = 'HolidayTemperature';
     public const IDENT_SCHEDULE     = 'Schedule';
 
+    /* ------------------------------------------------------------- Geräteauskunft
+     *
+     * Register, die das Gerät über sich selbst führt. Sie ändern sich praktisch nie und
+     * kommen nur bei einem Voll-Dump mit — deshalb kosten sie keine zusätzliche Batterie,
+     * sie fallen bei ohnehin stattfindenden Abrufen mit ab.
+     */
+    public const REG_GROUP    = 'B0';
+    public const REG_MODEL    = 'B1';
+    public const REG_FIRMWARE = 'B2';
+    public const REG_IP       = 'B6';
+    public const REG_AP       = 'BA';
+    public const REG_SECURITY = 'BF';
+
+    public const IDENT_GROUP    = 'Group';
+    public const IDENT_MODEL    = 'Model';
+    public const IDENT_FIRMWARE = 'Firmware';
+    public const IDENT_IP       = 'IPAddress';
+    public const IDENT_AP       = 'AccessPoint';
+    public const IDENT_SECURITY = 'WifiSecurity';
+
+    /** Register → [Ident, englischer Quellstring für Translate()]. */
+    public const INFO_REGISTERS = [
+        self::REG_GROUP    => [self::IDENT_GROUP,    'Group'],
+        self::REG_MODEL    => [self::IDENT_MODEL,    'Model'],
+        self::REG_FIRMWARE => [self::IDENT_FIRMWARE, 'Firmware'],
+        self::REG_IP       => [self::IDENT_IP,       'IP address'],
+        self::REG_AP       => [self::IDENT_AP,       'Wi-Fi access point'],
+        self::REG_SECURITY => [self::IDENT_SECURITY, 'Wi-Fi encryption']
+    ];
+
+    /**
+     * Wandelt eine Geräteauskunft in lesbaren Text.
+     *
+     * Gibt `null` zurück, wenn sich nichts Sinnvolles ergibt — dann bleibt die Variable
+     * unverändert, statt eine halbgare Zeichenkette anzuzeigen. Nichts hier ist geraten:
+     * Jede Zuordnung stammt aus einem Voll-Dump und ist in `.docs/protokoll.md` belegt.
+     */
+    public static function decodeInfo(string $register, string $payload): ?string
+    {
+        $body = ltrim($payload, '#');
+        if ($body === '') {
+            return null;
+        }
+
+        switch (strtoupper($register)) {
+            case self::REG_GROUP:
+                // 'U' + Nullen = Einzelgerät, 'S' + MAC = an einen Gruppenkopf gekoppelt.
+                $kopf = strtoupper(substr($body, 0, 1));
+                $mac  = substr($body, 1);
+                if ($kopf === 'U' || trim($mac, '0') === '') {
+                    return 'Einzelgerät';
+                }
+                return 'Gruppe ' . self::formatMac($mac);
+
+            case self::REG_MODEL:
+            case self::REG_FIRMWARE:
+            case self::REG_SECURITY:
+                return self::hexToText($body);
+
+            case self::REG_IP:
+                // Aufbau #00 <IP: 4 Byte> <Rest, ungedeutet>. Nur die IP wird gelesen.
+                if (strlen($body) < 10) {
+                    return null;
+                }
+                $teile = [];
+                for ($i = 0; $i < 4; $i++) {
+                    $teile[] = hexdec(substr($body, 2 + $i * 2, 2));
+                }
+                return implode('.', $teile);
+
+            case self::REG_AP:
+                // Kommt bereits als Klartext-MAC, nur das Rautezeichen fällt weg.
+                return strtolower($body);
+        }
+        return null;
+    }
+
+    /**
+     * Hex-Ziffernpaare als ASCII lesen.
+     *
+     * Bricht ab, sobald ein Byte auftaucht, das kein druckbares Zeichen ist: Ein Register,
+     * das wider Erwarten binär ist, soll als unlesbar auffallen und nicht als Buchstabensalat
+     * durchgehen.
+     */
+    public static function hexToText(string $hex): ?string
+    {
+        if ($hex === '' || strlen($hex) % 2 !== 0 || !ctype_xdigit($hex)) {
+            return null;
+        }
+        $text = '';
+        foreach (str_split($hex, 2) as $paar) {
+            $code = hexdec($paar);
+            if ($code < 0x20 || $code > 0x7E) {
+                return null;
+            }
+            $text .= chr($code);
+        }
+        return trim($text);
+    }
+
+    /** MAC in die übliche Doppelpunktschreibweise bringen. */
+    public static function formatMac(string $mac): string
+    {
+        $mac = strtoupper(preg_replace('/[^0-9A-Fa-f]/', '', $mac));
+        return strlen($mac) === 12 ? implode(':', str_split($mac, 2)) : $mac;
+    }
+
     /* --------------------------------------------------------- Sollwertskala
      *
      * Das Gerät kennt keine reine Temperaturskala: Unterhalb von 8,0 °C rastet es auf

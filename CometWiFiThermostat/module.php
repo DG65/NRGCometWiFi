@@ -190,6 +190,11 @@ class CometWiFiThermostat extends IPSModule
             return;
         }
 
+        if (isset(CWIFI_Registers::INFO_REGISTERS[strtoupper($register)])) {
+            $this->handleInfo(strtoupper($register), $payload);
+            return;
+        }
+
         $definition = CWIFI_Registers::byRegister($register);
         if ($definition === null) {
             $this->handleUnknownRegister($register, $payload);
@@ -271,6 +276,42 @@ class CometWiFiThermostat extends IPSModule
             $zeilen[] = $name . ': ' . ($days[$i] ?? '–');
         }
         $this->SetValue(CWIFI_Registers::IDENT_SCHEDULE, implode("\n", $zeilen));
+    }
+
+    /**
+     * Geräteauskunft: Modell, Firmware, IP, Zugangspunkt, Verschlüsselung, Gruppe.
+     *
+     * Die Variable entsteht erst, wenn das Register das erste Mal ankommt — sonst stünde in
+     * einer frisch angelegten Instanz eine Reihe leerer Felder, die nach einem Fehler
+     * aussieht. Diese Register kommen nur bei einem Voll-Dump mit und kosten deshalb keine
+     * zusätzliche Batterie.
+     */
+    private function handleInfo(string $register, string $payload): void
+    {
+        [$ident, $quelle] = CWIFI_Registers::INFO_REGISTERS[$register];
+
+        $text = CWIFI_Registers::decodeInfo($register, $payload);
+        if ($text === null) {
+            // Lässt sich das Register wider Erwarten nicht lesen, geht es in den Rohpfad,
+            // statt eine leere oder verstümmelte Auskunft anzuzeigen.
+            $this->SendDebug('Geräteauskunft', $register . ' nicht lesbar: ' . $payload, 0);
+            $this->handleUnknownRegister($register, $payload);
+            return;
+        }
+
+        $this->MaintainVariable(
+            $ident,
+            $this->Translate($quelle),
+            VARIABLETYPE_STRING,
+            ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION],
+            90,
+            true
+        );
+        $this->SetValue($ident, $text);
+
+        // Die Rohfassung desselben Registers ist damit überflüssig. Sie wird entfernt,
+        // damit nicht beide nebeneinander stehen und sich widersprechen können.
+        $this->MaintainVariable('RAW_' . $register, '', VARIABLETYPE_STRING, '', 0, false);
     }
 
     /** Rohdatenpfad für alles, was (noch) keine belegte Bedeutung hat. */

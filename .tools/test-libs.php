@@ -352,7 +352,52 @@ check('Sonntag ist AE', CWIFI_Registers::SCHEDULE_REGISTERS[6], 'AE');
 check('Text fuer einen Tag', CWIFI_Registers::scheduleToText($sa), '07:00 → 22,0 °C · 22:00 → 18,0 °C');
 check('Text ohne Daten', CWIFI_Registers::scheduleToText(null), '–');
 
+
+/* ==================================================== Geräteauskunft B0–BF
+ *
+ * Alle Beispiele stammen aus echten Voll-Dumps (siehe .docs/protokoll.md), nicht aus
+ * konstruierten Zeichenketten — sonst prüft der Stand nur die eigene Erwartung.
+ */
+
+check('B1 ergibt das Modell',
+    CWIFI_Registers::decodeInfo('B1', '#436F6D65742057696669205665722E20362E31'), 'Comet Wifi Ver. 6.1');
+check('B2 ergibt die Firmware',
+    CWIFI_Registers::decodeInfo('B2', '#322E372E312E30'), '2.7.1.0');
+check('B6 ergibt die IP',
+    CWIFI_Registers::decodeInfo('B6', '#00C0A8022D01445F0301'), '192.168.2.45');
+check('B6 zweites Geraet, andere IP',
+    CWIFI_Registers::decodeInfo('B6', '#00C0A8022A01445F0301'), '192.168.2.42');
+check('BA ergibt den Zugangspunkt',
+    CWIFI_Registers::decodeInfo('BA', '#24:f5:a2:74:7b:ab'), '24:f5:a2:74:7b:ab');
+check('BF ergibt die Verschluesselung',
+    CWIFI_Registers::decodeInfo('BF', '#5B575041322D50534B2D43434D505D5B4553535D'), '[WPA2-PSK-CCMP][ESS]');
+check('B0 ohne Gruppe',
+    CWIFI_Registers::decodeInfo('B0', '#U000000000000'), 'Einzelgerät');
+check('B0 mit Gruppenkopf',
+    CWIFI_Registers::decodeInfo('B0', '#SD43D395E3C2E'), 'Gruppe D4:3D:39:5E:3C:2E');
+// 'S' mit lauter Nullen ist keine Gruppe, sondern dieselbe Aussage wie 'U'.
+check('B0 mit S aber ohne MAC gilt als Einzelgeraet',
+    CWIFI_Registers::decodeInfo('B0', '#S000000000000'), 'Einzelgerät');
+
+/* Unlesbares muss null ergeben und darf nicht als Buchstabensalat durchgehen —
+   sonst stuende in der Instanz eine Auskunft, die keine ist. */
+check('Binaerer Inhalt ergibt keine Auskunft', CWIFI_Registers::decodeInfo('B1', '#0102'), null);
+check('Kein Hex ergibt keine Auskunft',        CWIFI_Registers::decodeInfo('B2', '#XYZ'), null);
+check('Ungerade Laenge ergibt keine Auskunft', CWIFI_Registers::decodeInfo('B1', '#41424'), null);
+check('Zu kurzes B6 ergibt keine Auskunft',    CWIFI_Registers::decodeInfo('B6', '#00C0'), null);
+check('Leerer Inhalt ergibt keine Auskunft',   CWIFI_Registers::decodeInfo('B1', '#'), null);
+check('Unbekanntes Register ergibt keine Auskunft',
+    CWIFI_Registers::decodeInfo('A4', '#2112010114'), null);
+
+// Jedes Register der Tabelle muss einen Ident und einen Quellstring haben, sonst legt das
+// Modul eine Variable ohne Namen an.
+foreach (CWIFI_Registers::INFO_REGISTERS as $reg => $eintrag) {
+    check('INFO_REGISTERS ' . $reg . ' vollstaendig',
+        count($eintrag) === 2 && $eintrag[0] !== '' && $eintrag[1] !== '', true);
+}
+
 /* ------------------------------------------------------------------ Ergebnis */
+
 
 echo "\n";
 if ($failed === 0) {

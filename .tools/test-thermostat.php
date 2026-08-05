@@ -522,7 +522,49 @@ foreach ([201, 202, 203, 204, 205, 206] as $code) {
     checkTrue("Statuscode {$code} ist im Formular beschrieben", in_array($code, $declared, true));
 }
 
+
+/* ==================================================== Geräteauskunft in Klarschrift */
+
+$device = makeDevice(['RawRegisters' => true]);
+
+deliver($device, BASE . '/V/B1', '#436F6D65742057696669205665722E20362E31');
+deliver($device, BASE . '/V/B2', '#322E372E312E30');
+deliver($device, BASE . '/V/B6', '#00C0A8022D01445F0301');
+deliver($device, BASE . '/V/BA', '#24:f5:a2:74:7b:ab');
+deliver($device, BASE . '/V/BF', '#5B575041322D50534B2D43434D505D5B4553535D');
+deliver($device, BASE . '/V/B0', '#U000000000000');
+
+check('Modell in Klarschrift',           $device->GetValue('Model'),        'Comet Wifi Ver. 6.1');
+check('Firmware in Klarschrift',         $device->GetValue('Firmware'),     '2.7.1.0');
+check('IP in Klarschrift',               $device->GetValue('IPAddress'),    '192.168.2.45');
+check('Zugangspunkt in Klarschrift',     $device->GetValue('AccessPoint'),  '24:f5:a2:74:7b:ab');
+check('Verschluesselung in Klarschrift', $device->GetValue('WifiSecurity'), '[WPA2-PSK-CCMP][ESS]');
+check('Gruppe in Klarschrift',           $device->GetValue('Group'),        'Einzelgerät');
+
+// Beides nebeneinander waere doppelt gefuehrt und koennte sich widersprechen.
+foreach (['B0', 'B1', 'B2', 'B6', 'BA', 'BF'] as $reg) {
+    checkTrue('Keine Rohfassung mehr fuer ' . $reg, !isset($device->variables['RAW_' . $reg]));
+}
+
+// Auch mit ABGESCHALTETER Rohdatenerfassung muss die Auskunft entstehen: Sie ist kein
+// Rohwert, sondern eine belegte Angabe.
+$device = makeDevice(['RawRegisters' => false]);
+deliver($device, BASE . '/V/B2', '#322E372E312E30');
+check('Auskunft auch ohne Rohdatenerfassung', $device->GetValue('Firmware'), '2.7.1.0');
+
+// Unlesbares darf keine halbgare Auskunft erzeugen, sondern faellt in den Rohpfad zurueck.
+$device = makeDevice(['RawRegisters' => true]);
+deliver($device, BASE . '/V/B1', '#0102');
+checkTrue('Unlesbares B1 erzeugt keine Auskunft', !isset($device->variables['Model']));
+check('Unlesbares B1 landet im Rohpfad', $device->GetValue('RAW_B1'), '#0102');
+
+// Die Auskunft ist ein Lebenszeichen wie jede andere Gerätemeldung.
+$device = makeDevice();
+deliver($device, BASE . '/V/B2', '#322E372E312E30');
+checkTrue('Auskunft gilt als Lebenszeichen', $device->GetValue('Reachable') === true);
+
 /* ------------------------------------------------------------------ Ergebnis */
+
 
 echo "\n";
 if ($failed === 0) {

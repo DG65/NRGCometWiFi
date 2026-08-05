@@ -2,6 +2,29 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.5.0] – Geräteauskunft in Klarschrift
+
+### Neu
+- **Modell, Firmware, IP-Adresse, WLAN-Zugangspunkt, Verschlüsselung und Gruppenzuordnung
+  als lesbare Variablen** statt als Hex-Kette im Rohpfad. Aus
+  `#436F6D65742057696669205665722E20362E31` wird „Comet Wifi Ver. 6.1", aus
+  `#00C0A8022D01445F0301` wird „192.168.2.45", aus `#U000000000000` wird „Einzelgerät".
+  - Die Variablen entstehen erst, wenn das jeweilige Register ankommt — sonst stünde in
+    einer frischen Instanz eine Reihe leerer Felder, die nach einem Fehler aussieht.
+  - **Keine zusätzliche Batteriebelastung:** Diese Register kommen nur bei einem ohnehin
+    stattfindenden Voll-Dump mit; es wird nichts nachgefragt.
+  - Lässt sich ein Register wider Erwarten nicht lesen, fällt es in den Rohpfad zurück,
+    statt eine verstümmelte Auskunft anzuzeigen. Die Rohfassung eines entschlüsselten
+    Registers wird entfernt, damit nicht beide nebeneinander stehen.
+
+### Behoben
+- **Der Änderungsverlauf zu 0.2.0 behauptete zu viel.** „Diagnoseregister lesbar gemacht"
+  hieß tatsächlich nur: in `.docs/protokoll.md` dokumentiert. In der Instanz standen sie
+  weiter als Hex-Kette. Ab dieser Version stimmt die Aussage.
+- **Der Hinweistext im Formular beschrieb den Stand von 0.1.0** — er nannte Wochenprogramm,
+  Tastensperre und Offset als „noch nicht entschlüsselt", obwohl das seit 0.2.0 und 0.3.0
+  nicht mehr stimmt.
+
 ## [0.4.1] – Ist und Soll auseinanderhalten
 
 ### Behoben

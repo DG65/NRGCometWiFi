@@ -31,7 +31,13 @@
             "Holiday from": "Urlaub von",
             "Holiday until": "Urlaub bis",
             "Holiday temperature": "Urlaubstemperatur",
-            "Weekly schedule": "Wochenprogramm"
+            "Weekly schedule": "Wochenprogramm",
+            "Group": "Gruppe",
+            "Model": "Modell",
+            "Firmware": "Firmware",
+            "IP address": "IP-Adresse",
+            "Wi-Fi access point": "WLAN-Zugangspunkt",
+            "Wi-Fi encryption": "WLAN-Verschlüsselung"
         }
     }
 }

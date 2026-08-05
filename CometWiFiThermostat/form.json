@@ -25,7 +25,7 @@
                 },
                 {
                     "type": "Label",
-                    "caption": "Nur Register mit belegter Bedeutung werden als Variable geführt. Wochenprogramm, Fenster-offen-Erkennung, Tastensperre und Temperatur-Offset sind noch nicht entschlüsselt und bleiben deshalb bewusst außen vor. Wer die Rohdatenerfassung einschaltet und archiviert, hilft beim Entschlüsseln."
+                    "caption": "Nur Register mit belegter Bedeutung werden als Variable geführt. Wochenprogramm, Urlaub, Tastensperre, Temperatur-Offset und die Geräteauskunft (Modell, Firmware, IP, WLAN) sind entschlüsselt. Offen sind noch die Empfindlichkeit der Lüftungserkennung und zwei Register ohne erkennbare Entsprechung — wer die Rohdatenerfassung einschaltet und archiviert, hilft beim Entschlüsseln."
                 }
             ]
         },

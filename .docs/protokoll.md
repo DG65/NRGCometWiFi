@@ -165,7 +165,9 @@ SPZB0001 liefert sie, dieses Modell nicht.
 
 ### Diagnoseregister B0–BF
 
-Aus dem Voll-Dump, teils direkt lesbar:
+Aus dem Voll-Dump, teils direkt lesbar. Die mit ✅ markierten führt das Modul seit 0.5.0 als
+lesbare Variable (`Model`, `Firmware`, `IPAddress`, `AccessPoint`, `WifiSecurity`, `Group`) —
+sie kommen nur bei einem ohnehin stattfindenden Voll-Dump mit und kosten keine Batterie.
 
 | Reg. | Beispiel | Bedeutung | Status |
 |---|---|---|---|
