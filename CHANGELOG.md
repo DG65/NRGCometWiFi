@@ -24,6 +24,16 @@ Alle nennenswerten Änderungen an diesem Modul. Versionierung nach [SemVer](http
 - `.tools/ips-stub.php` kennt jetzt auch die Visualisierungs- und Nachrichtenmethoden des SDK
   sowie fremde Variablen anderer Instanzen.
 
+### Dokumentiert
+- **Retainte Kommandos und wie man sie loswird** (`.docs/protokoll.md`). An zehn Geräten
+  durchgeführt: Ein retaintes `S/AF #FFFFFFFF` je Gerät wurde gelöscht. Beobachtet dabei —
+  die Geräte bekommen die leere Nachricht zugestellt und ignorieren sie, und bei `both`-
+  Brücken geht das Löschen mit Retain-Flag zum Hersteller hinaus (hier erwünscht, sonst
+  käme die Kopie beim nächsten Reconnect zurück).
+- **`V/`-Topics werden nicht retained.** Bestandsaufnahme über zehn Geräte: null Treffer.
+  Damit ist geklärt, warum eine frisch angelegte Instanz leer bleibt, bis das Gerät das
+  nächste Mal von sich aus sendet — das ist kein Fehler.
+
 ## [0.4.0] – Kachel
 
 ### Neu

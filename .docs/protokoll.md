@@ -288,11 +288,49 @@ getestet und blieb wirkungslos.
    sie, das WiFi-Modell offenbar nicht. Nicht erfinden.
 4. **Realer Sollwertbereich** — `#39` = 28,5 °C wurde live gesehen. Ob es Sonderwerte für
    „Aus"/„Boost" außerhalb des Bereichs gibt, ist offen.
-5. **Retained-Verhalten der `V/`-Topics** — unbekannt. Entscheidet, ob eine frisch angelegte
-   Instanz sofort Werte sieht oder bis zur nächsten Gerätemeldung wartet.
+5. ~~**Retained-Verhalten der `V/`-Topics**~~ — **beantwortet (05.08.2026):** Es gibt keine.
+   Eine Bestandsaufnahme über `--retained-only` auf `02/+/+/V/#` ergab null Treffer bei zehn
+   Geräten. Eine frisch angelegte Instanz bleibt also leer, bis das Gerät das nächste Mal
+   von sich aus sendet — das kann Stunden dauern und ist kein Fehler.
 6. **Gibt es einen Sammel-Datenabruf?** Analog zu `02/FFFFFFFF/000000000004/T/B7` wäre ein
    `…/000000000004/S/AF` denkbar, mit dem sich alle Geräte auf einmal abfragen ließen. Nicht
    beobachtet, nicht getestet.
+
+## Retainte Kommandos sind schädlich
+
+`S/`-Topics sind Kommandos. Wird eines **retained** abgelegt, stellt der Broker es bei
+**jedem** Reconnect erneut zu — und `S/AF #FFFFFFFF` fordert alle Register an. Ein
+Batteriegerät, das ohnehin nur selten aufwacht, macht dann bei jedem Verbindungsaufbau
+einen vollständigen Registerdump. Deshalb sendet dieses Modul `S/`-Nachrichten
+grundsätzlich mit `retain=false`.
+
+**Bestandsaufnahme (nur lesen):**
+
+```bash
+mosquitto_sub -h <broker> -u <benutzer> -P <passwort> -V 5 --retained-only   -t '02/+/+/S/#' -t '02/+/+/T/#' -t '02/+/+/G/#' -v -W 6
+```
+
+**Löschen** heißt in MQTT: leere Nachricht mit Retain-Flag auf dasselbe Topic.
+
+```bash
+mosquitto_pub -h <broker> -u <benutzer> -P <passwort>   -t '02/<benutzer>/<MAC>/S/AF' -r -n
+```
+
+Zwei Nebenwirkungen, beide am 05.08.2026 an zehn Geräten beobachtet und für unbedenklich
+befunden:
+
+1. **Die Geräte bekommen die leere Nachricht zugestellt** — sie sind Abonnenten ihrer
+   eigenen `S/`-Topics. Im Brokerlog: `Sending PUBLISH to da16x02… (r0, 0 bytes)`. Keines
+   der zehn Geräte reagierte darauf; kein Registerdump, kein Verbindungsabbruch. Vermutlich
+   verwirft die Firmware alles ohne `#`-Präfix — belegt ist nur, dass nichts passiert.
+2. **Bei `topic … both`-Brücken geht das Löschen mit Retain-Flag zur Cloud hinaus**
+   (`Sending PUBLISH to local.da16x02… (r1)`). Das ist hier erwünscht: Läge die retainte
+   Kopie beim Hersteller, käme sie beim nächsten Brücken-Reconnect sonst zurück.
+
+Der Ursprung der zehn gefundenen `S/AF #FFFFFFFF` ließ sich nicht mehr klären — die
+Historie im Brokerlog reichte nicht weit genug zurück. Nach dem Löschen deshalb nach
+einigen Tagen die Bestandsaufnahme wiederholen; kommen sie wieder, veröffentlicht sie
+jemand fortlaufend und die Ursache muss dort gesucht werden.
 
 ## Die eigenen Geräte finden
 
