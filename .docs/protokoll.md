@@ -180,7 +180,7 @@ sie kommen nur bei einem ohnehin stattfindenden Voll-Dump mit und kosten keine B
 | `B0` | `#U000000000000` / `#S<MAC>` | Gruppenzuordnung, siehe eigener Abschnitt | ✅ |
 | `B4` `B5` `B7` `BB` `BC` | `#00000000` `#FF` `#00` `#00` `#FF` | Konstanten, siehe unten | ❓ |
 | `BE` | `#FF6300` / `#FF6400` / `#FF6100` | unbekannt, variiert leicht je Gerät | ❓ |
-| `BD` | `#0840` / `#0800` | wechselt mit der Tastensperre — Statusspiegel | 🟡 |
+| `BD` | `#0800` (alle zehn Geräte) | unbekannt. Eine fremde Umsetzung deutet Byte 1 als Batterie (Skala 0–8) — hier widerlegt, siehe Abgleich | ❓ |
 
 **Bestandsaufnahme über zehn Geräte (05.08.2026).** `B4`, `B5`, `B7`, `BB` und `BC` tragen auf
 allen zehn Geräten denselben Wert. Sie können damit weder einen Gerätezustand noch eine
@@ -241,9 +241,14 @@ Zwei Byte, das zweite auf allen zehn Geräten `0x0A`. Das erste variiert:
 | `0x80` | Wohnzimmer Rechts |
 
 Ein Bitfeld also, kein Zahlenwert — `0x04` und `0x0C` unterscheiden sich in einem Bit. Das ist
-das einzige noch unbekannte Register mit einer sichtbaren Entsprechung in der App. **Weg zur
-Auflösung:** in der App an einem Gerät die Empfindlichkeit der Lüftungserkennung über alle
-Stufen stellen und `A5` dabei mitlesen.
+das einzige noch unbekannte Register mit einer sichtbaren Entsprechung in der App.
+
+**Unabhängig bestätigt:** Die Home-Assistant-Anbindung von MaxXLive führt `A5` als
+`REG_WINDOW_OPEN`. Die Zuordnung zur Fenster-/Lüftungserkennung stammt damit aus zwei
+Richtungen; die Kodierung der Nutzdaten ist dort aber ebenfalls nicht aufgelöst.
+
+**Weg zur Auflösung:** in der App an einem Gerät die Empfindlichkeit der Lüftungserkennung
+über alle Stufen stellen und `A5` dabei mitlesen.
 
 ### Wochenprogramm A8–AE ✅
 
@@ -414,10 +419,43 @@ Instanz ohne ihn anlegen möchte.
 Alle bislang gesehenen Geräte tragen ein MAC-Präfix von Dialog Semiconductor — das ist der
 WLAN-Chip, nicht Eurotronic. Als Erkennungsmerkmal taugt es deshalb nur schwach.
 
+## Abgleich mit fremden Umsetzungen (05.08.2026)
+
+Zwei Home-Assistant-Anbindungen führen eigene Registertabellen. Der Abgleich bestätigt einiges
+und widerlegt zweierlei — Letzteres ist der wichtigere Teil, weil beide Projekte
+weiterverbreitet sind als dieses hier.
+
+**Bestätigt:**
+
+| Register | Dort | Hier |
+|---|---|---|
+| `A0` `A1` `A2` `A3` `A7` `AF` `XX` | gleiche Bedeutung | ✅ |
+| `A5` | `REG_WINDOW_OPEN` | Lüftungserkennung 🟡 — Zuordnung damit aus zwei Richtungen |
+| `AF`-Maske | `#02000000` heißt „Temperatur abfragen" | Bit 1 = `A1`. Deckt sich mit der hier unabhängig hergeleiteten Regel „Bit n = A(n)" |
+
+**Widerlegt** — beides an zehn Geräten gegengeprüft:
+
+| Behauptung | Befund |
+|---|---|
+| `BD` Byte 1 = Batterie auf Skala 0–8 | `BD` ist auf **allen zehn** Geräten `#0800`, auch bei 20 % und 45 % Batterie. Wäre es die Batterie, stünde dort eine 2 bzw. eine 4. |
+| `A6` = Komforttemperatur | `A6` liefert Werte bis 100. Als Temperatur — ob halbiert oder nicht — ergäbe das 50 bzw. 100 °C an einem Gerät, dessen Skala bei 28,5 endet. `A6` ist der Batteriestand in Prozent; die Werte folgen der Batteriewarnung des Geräts. |
+
+Eine dritte Umsetzung (TechHummel) deutet `A3` als Lüftungserkennung und `B1` als
+Softwareversion des Reglers. Beides passt nicht zu den hiesigen Messungen: `A3` wurde
+bitweise am Gerät durchgeschaltet, und `B1` enthält im Klartext „Comet Wifi Ver. 6.1".
+
+Keine dieser Abweichungen ist ein Vorwurf — ohne Herstellerunterlagen misst jeder an seiner
+eigenen Anlage, und Firmwarestände unterscheiden sich. Sie sind hier festgehalten, damit
+niemand die fremde Tabelle für gesichert hält, nur weil sie älter ist.
+
 ## Fremdquellen
 
 - [ioBroker: „Eurotronic Comet WiFi — funktioniert doch!?!?"](https://forum.iobroker.net/topic/69372/eurotronic-comet-wifi-funktioniert-doch)
 - [Home Assistant: „Integrating Comet Wifi basic functionality"](https://community.home-assistant.io/t/integrating-comet-wifi-basic-functionality/493474)
+- [MaxXLive/ha-comet-wifi](https://github.com/MaxXLive/ha-comet-wifi) — eigene Registertabelle, siehe Abgleich oben
+- [TechHummel/comet-wifi-homeassistant-integration](https://github.com/TechHummel/comet-wifi-homeassistant-integration)
+- [marcinkordas/comet_wifi_integration](https://github.com/marcinkordas/comet_wifi_integration) — arbeitet über die Hersteller-Cloud, keine Registertabelle
+- [Renesas DA16200 AT-Kommandos (UM-WI-003)](https://www.renesas.com/en/software-tool/da16200-wi-fi-command-set) — der WLAN-Chip der Geräte; die Client-ID beginnt mit `da16x`. Die Diagnoseregister `B6` (beginnt mit `00` = Schnittstelle WLAN0, wie bei `AT+NWIP`), `BA` und `BF` (`[WPA2-PSK-CCMP][ESS]` ist das Ausgabeformat von `AT+WFSCAN`) sehen nach durchgereichten Antworten dieses Chips aus.
 - [comet_wifi_integration (Home Assistant, GitHub)](https://github.com/marcinkordas/comet_wifi_integration)
 
 Die Register `A2`, `A3`, `A5`, `A7`, `A8`–`AE` stammen ausschließlich aus diesen Quellen

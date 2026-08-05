@@ -2,6 +2,24 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.6.1] – Abgleich mit fremden Umsetzungen
+
+### Dokumentiert
+- **Zwei weitere Home-Assistant-Anbindungen gefunden und gegengeprüft.** Sie bestätigen
+  `A0`–`A3`, `A7`, `AF` und `XX`, und sie führen `A5` als Fenster-/Lüftungserkennung — die
+  hiesige Vermutung stammt damit aus zwei unabhängigen Richtungen. Auch die Registermaske
+  von `AF` deckt sich: Dort steht `#02000000` für „Temperatur abfragen", also Bit 1 = `A1`,
+  genau die hier eigenständig hergeleitete Regel.
+- **Zwei fremde Deutungen an zehn Geräten widerlegt.** `BD` soll dort die Batterie auf einer
+  Skala 0–8 enthalten — es steht aber auf allen zehn Geräten auf `#0800`, auch bei 20 %
+  Restladung. Und `A6` soll die Komforttemperatur sein — Werte bis 100 ergäben 50 °C an
+  einem Gerät, dessen Skala bei 28,5 endet. `A6` bleibt der Batteriestand.
+- **Die Diagnoseregister stammen vermutlich vom WLAN-Chip.** Die Client-ID beginnt mit
+  `da16x` — das ist der Renesas DA16200. `BF` entspricht dem Ausgabeformat von `AT+WFSCAN`,
+  und `B6` beginnt mit `00` wie die Schnittstellennummer bei `AT+NWIP`. Das erklärt, warum
+  `B4`, `B5`, `B7`, `BB` und `BC` auf allen Geräten gleich sind: Es sind Chip-Zustände, keine
+  Thermostatwerte.
+
 ## [0.6.0] – Die Uhr im Gerät
 
 ### Neu
