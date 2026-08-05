@@ -151,6 +151,11 @@ function IPS_GetProperty(int $id, string $name)
     return IPSTestState::$instances[$id]['Properties'][$name] ?? null;
 }
 
+function IPS_InstanceExists(int $id): bool
+{
+    return isset(IPSTestState::$instances[$id]);
+}
+
 function IPS_GetName(int $id): string
 {
     return IPSTestState::$instances[$id]['Name'] ?? ('Instanz ' . $id);

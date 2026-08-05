@@ -1,0 +1,336 @@
+<style>
+    .cr-wrap {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        color: var(--ui-text, #e8eaed);
+        padding: 6px 4px 10px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+    }
+    .cr-wrap.offline { opacity: .5; }
+
+    .cr-head {
+        width: 100%;
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+        flex-wrap: wrap;
+        padding: 0 4px;
+    }
+    .cr-head .name {
+        font-size: 1.05em;
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        min-width: 0;
+        flex: 1 1 auto;
+    }
+    .cr-badge {
+        font-size: .7em;
+        font-weight: 600;
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: var(--ui-elevation-2, rgba(255, 255, 255, .1));
+        white-space: nowrap;
+    }
+    .cr-badge.warn { background: rgba(255, 138, 101, .2); color: #ff8a65; }
+    .cr-badge.off  { background: rgba(239, 83, 80, .2);  color: #ef5350; }
+    .cr-badge.man  { background: rgba(79, 195, 247, .18); color: #4fc3f7; }
+
+    /* Der Ring ist die Bedienfläche. Er trägt deshalb den meisten Platz — anders als in der
+       Übersichtskachel, wo zehn Räume nebeneinander passen müssen. */
+    .cr-dial { position: relative; width: 200px; height: 200px; touch-action: manipulation; }
+    .cr-dial svg { display: block; width: 100%; height: 100%; }
+    .cr-dial .track    { fill: none; stroke: var(--ui-elevation-2, rgba(255,255,255,.1)); stroke-width: 12; stroke-linecap: round; }
+    .cr-dial .progress { fill: none; stroke: #4fc3f7; stroke-width: 12; stroke-linecap: round; transition: stroke-dasharray .25s ease, stroke .25s ease; }
+    .cr-dial.heating .progress { stroke: #ff9800; }
+    .cr-dial.closed  .progress { stroke: var(--ui-elevation-3, rgba(255,255,255,.22)); }
+    .cr-dial .knob   { fill: #fff; stroke: rgba(0,0,0,.25); stroke-width: 1; transition: cx .25s ease, cy .25s ease; }
+    .cr-dial.control { cursor: pointer; }
+
+    .cr-center {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 2px;
+        pointer-events: none;
+    }
+    .cr-center .lbl  { font-size: .68em; opacity: .55; text-transform: uppercase; letter-spacing: .06em; }
+    .cr-center .is   { font-size: 2.6em; font-weight: 300; line-height: 1; font-variant-numeric: tabular-nums; }
+    .cr-center .is small { font-size: .38em; font-weight: 400; opacity: .6; margin-left: 2px; }
+    .cr-center .soll { font-size: .82em; margin-top: 4px; }
+    .cr-center .soll b { font-weight: 600; }
+
+    .cr-bar { display: flex; align-items: center; gap: 10px; }
+    .cr-bar button {
+        width: 42px; height: 42px;
+        border: none; border-radius: 50%;
+        background: var(--ui-elevation-2, rgba(255,255,255,.1));
+        color: inherit; font-size: 1.3em; line-height: 1; cursor: pointer;
+    }
+    .cr-bar button:hover:not(:disabled) { background: var(--ui-elevation-3, rgba(255,255,255,.2)); }
+    .cr-bar button:disabled { opacity: .3; cursor: default; }
+
+    .cr-quick { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+    .cr-quick button {
+        border: none; border-radius: 999px; padding: 6px 14px;
+        background: var(--ui-elevation-2, rgba(255,255,255,.1));
+        color: inherit; font-size: .8em; cursor: pointer;
+    }
+    .cr-quick button:hover:not(:disabled) { background: var(--ui-elevation-3, rgba(255,255,255,.2)); }
+    .cr-quick button.aktiv { background: rgba(79,195,247,.25); color: #4fc3f7; font-weight: 600; }
+    .cr-quick button:disabled { opacity: .3; cursor: default; }
+
+    .cr-meta {
+        display: flex; gap: 12px; flex-wrap: wrap; justify-content: center;
+        font-size: .74em; opacity: .62; padding: 0 4px;
+    }
+    .cr-meta .low   { color: #ff8a65; opacity: 1; font-weight: 600; }
+    .cr-meta .clock { color: #ffb74d; opacity: 1; font-weight: 600; }
+
+    .cr-empty { opacity: .6; font-size: .9em; padding: 20px 8px; text-align: center; }
+</style>
+
+<div class="cr-wrap" id="crWrap"></div>
+
+<script>
+    var CR = { ok: false };
+
+    var CR_R = 84, CR_CX = 100, CR_CY = 100;
+    var CR_UMFANG = 2 * Math.PI * CR_R;
+    var CR_START = 140, CR_SWEEP = 260;          // Lücke von 100° unten, wie bei einer Tankuhr
+    var CR_BOGEN = CR_UMFANG * CR_SWEEP / 360;
+
+    function crFmt(v) {
+        if (v === null || v === undefined) { return '–'; }
+        return v.toFixed(1).replace('.', ',');
+    }
+
+    /* Aus und An sind Endanschläge des Ventils, keine Temperaturen. */
+    function crSollText(d) {
+        if (d.endstop) { return d.endstop; }
+        if (d.setpoint === null) { return '–'; }
+        return crFmt(d.setpoint) + ' °C';
+    }
+
+    function crAnteil(d) {
+        if (d.setpoint === null) { return 0; }
+        var spanne = d.maxTemp - d.minTemp;
+        return Math.max(0, Math.min(1, (d.setpoint - d.minTemp) / spanne));
+    }
+
+    /** Winkel in Grad -> Punkt auf dem Ring. */
+    function crPunkt(grad) {
+        var b = (grad - 90) * Math.PI / 180;
+        return { x: CR_CX + CR_R * Math.cos(b), y: CR_CY + CR_R * Math.sin(b) };
+    }
+
+    function crSetze(wert) {
+        if (!CR.control || !CR.reachable) { return; }
+        var w = Math.round(wert * 2) / 2;
+        if (w < CR.minTemp) { w = CR.minTemp; }
+        if (w > CR.maxTemp) { w = CR.maxTemp; }
+        if (w === CR.setpoint) { return; }
+        CR.setpoint = w;                                  // sofort anzeigen
+        CR.endstop  = (w === CR.maxTemp) ? 'An' : (w === CR.minTemp ? 'Aus' : null);
+        crZeichne();
+        requestAction('setpoint', w);
+    }
+
+    /** Tippen auf den Ring: Winkel zurückrechnen und daraus die Temperatur. */
+    function crAusKlick(evt, svg) {
+        var r = svg.getBoundingClientRect();
+        var px = (evt.clientX - r.left) / r.width * 200;
+        var py = (evt.clientY - r.top) / r.height * 200;
+        var grad = Math.atan2(py - CR_CY, px - CR_CX) * 180 / Math.PI + 90;
+        if (grad < 0) { grad += 360; }
+        var rel = grad - CR_START;
+        if (rel < 0) { rel += 360; }
+        if (rel > CR_SWEEP) { return; }                   // in die untere Lücke getippt
+        crSetze(CR.minTemp + (rel / CR_SWEEP) * (CR.maxTemp - CR.minTemp));
+    }
+
+    function crChip(text, klasse) {
+        var s = document.createElement('span');
+        s.className = 'cr-badge' + (klasse ? ' ' + klasse : '');
+        s.textContent = text;
+        return s;
+    }
+
+    function crZeichne() {
+        var wrap = document.getElementById('crWrap');
+        if (!wrap) { return; }
+        wrap.innerHTML = '';
+
+        if (!CR.ok) {
+            wrap.innerHTML = '<div class="cr-empty">Kein Thermostat ausgewählt.<br>'
+                + 'In den Einstellungen der Instanz eines auswählen.</div>';
+            return;
+        }
+        wrap.className = 'cr-wrap' + (CR.reachable ? '' : ' offline');
+
+        /* ---------------------------------------------------------------- Kopf */
+        var head = document.createElement('div');
+        head.className = 'cr-head';
+        var name = document.createElement('div');
+        name.className = 'name';
+        name.textContent = CR.name;
+        name.title = CR.name;
+        head.appendChild(name);
+
+        if (!CR.reachable)  { head.appendChild(crChip('nicht erreichbar', 'off')); }
+        if (CR.holiday)     { head.appendChild(crChip('Urlaub')); }
+        if (CR.keylock === 1) { head.appendChild(crChip('gesperrt')); }
+        if (CR.keylock === 2) { head.appendChild(crChip('gesperrt +')); }
+        if (CR.clockOff)    { head.appendChild(crChip('Uhr ' + (CR.clockDev > 0 ? '+' : '') + CR.clockDev + ' min', 'warn')); }
+        wrap.appendChild(head);
+
+        /* ---------------------------------------------------------------- Ring */
+        var anteil = crAnteil(CR);
+        var zu     = CR.endstop === 'Aus';
+
+        var dial = document.createElement('div');
+        dial.className = 'cr-dial'
+            + (CR.heating ? ' heating' : '')
+            + (zu ? ' closed' : '')
+            + (CR.control && CR.reachable ? ' control' : '');
+
+        var svgNS = 'http://www.w3.org/2000/svg';
+        var svg = document.createElementNS(svgNS, 'svg');
+        svg.setAttribute('viewBox', '0 0 200 200');
+
+        var track = document.createElementNS(svgNS, 'circle');
+        track.setAttribute('class', 'track');
+        track.setAttribute('cx', CR_CX); track.setAttribute('cy', CR_CY); track.setAttribute('r', CR_R);
+        track.setAttribute('stroke-dasharray', CR_BOGEN + ' ' + CR_UMFANG);
+        track.setAttribute('transform', 'rotate(' + (CR_START - 90) + ' ' + CR_CX + ' ' + CR_CY + ')');
+        svg.appendChild(track);
+
+        var prog = document.createElementNS(svgNS, 'circle');
+        prog.setAttribute('class', 'progress');
+        prog.setAttribute('cx', CR_CX); prog.setAttribute('cy', CR_CY); prog.setAttribute('r', CR_R);
+        prog.setAttribute('stroke-dasharray', (CR_BOGEN * anteil) + ' ' + CR_UMFANG);
+        prog.setAttribute('transform', 'rotate(' + (CR_START - 90) + ' ' + CR_CX + ' ' + CR_CY + ')');
+        svg.appendChild(prog);
+
+        var p = crPunkt(CR_START + CR_SWEEP * anteil);
+        var knob = document.createElementNS(svgNS, 'circle');
+        knob.setAttribute('class', 'knob');
+        knob.setAttribute('cx', p.x); knob.setAttribute('cy', p.y); knob.setAttribute('r', 7);
+        svg.appendChild(knob);
+
+        if (CR.control && CR.reachable) {
+            svg.addEventListener('click', function (e) { crAusKlick(e, svg); });
+        }
+        dial.appendChild(svg);
+
+        var mitte = document.createElement('div');
+        mitte.className = 'cr-center';
+        var lbl = document.createElement('div');
+        lbl.className = 'lbl';
+        lbl.textContent = 'Ist';
+        mitte.appendChild(lbl);
+        var is = document.createElement('div');
+        is.className = 'is';
+        is.innerHTML = CR.temp === null ? '–' : crFmt(CR.temp) + '<small>°C</small>';
+        mitte.appendChild(is);
+        var soll = document.createElement('div');
+        soll.className = 'soll';
+        soll.innerHTML = 'Soll <b>' + crSollText(CR) + '</b>';
+        soll.title = CR.endstop === 'An' ? 'Endanschlag: Ventil ganz auf'
+                   : (CR.endstop === 'Aus' ? 'Endanschlag: Ventil ganz zu' : 'Solltemperatur');
+        mitte.appendChild(soll);
+        dial.appendChild(mitte);
+        wrap.appendChild(dial);
+
+        if (!CR.control) { crFuss(wrap); return; }
+
+        /* ------------------------------------------------------------ Feinstufen */
+        var bar = document.createElement('div');
+        bar.className = 'cr-bar';
+        [['−', -0.5, 'Halbes Grad kühler'], ['+', 0.5, 'Halbes Grad wärmer']].forEach(function (e) {
+            var b = document.createElement('button');
+            b.textContent = e[0];
+            b.title = e[2];
+            b.disabled = !CR.reachable;
+            b.onclick = function () { crSetze((CR.setpoint === null ? 20 : CR.setpoint) + e[1]); };
+            bar.appendChild(b);
+        });
+        wrap.appendChild(bar);
+
+        /* ------------------------------------------------------------- Schnellwahl */
+        var quick = document.createElement('div');
+        quick.className = 'cr-quick';
+
+        var aus = document.createElement('button');
+        aus.textContent = 'Aus';
+        aus.title = 'Ventil ganz zu';
+        aus.className = CR.endstop === 'Aus' ? 'aktiv' : '';
+        aus.disabled = !CR.reachable;
+        aus.onclick = function () { crSetze(CR.minTemp); };
+        quick.appendChild(aus);
+
+        var an = document.createElement('button');
+        an.textContent = 'An';
+        an.title = 'Ventil ganz auf';
+        an.className = CR.endstop === 'An' ? 'aktiv' : '';
+        an.disabled = !CR.reachable;
+        an.onclick = function () { crSetze(CR.maxTemp); };
+        quick.appendChild(an);
+
+        var modus = document.createElement('button');
+        modus.textContent = CR.manual ? 'Handbetrieb' : 'Zeitplan';
+        modus.className = CR.manual ? 'aktiv' : '';
+        modus.title = CR.manual
+            ? 'Der Zeitplan ist aus — der Sollwert bleibt stehen. Klicken schaltet ihn wieder ein.'
+            : 'Das Wochenprogramm im Gerät regelt und überschreibt gesetzte Sollwerte.';
+        modus.disabled = !CR.reachable;
+        modus.onclick = function () { requestAction('mode', !CR.manual); };
+        quick.appendChild(modus);
+
+        wrap.appendChild(quick);
+        crFuss(wrap);
+    }
+
+    function crFuss(wrap) {
+        if (!CR.details) { return; }
+        var meta = document.createElement('div');
+        meta.className = 'cr-meta';
+
+        if (CR.battery !== null) {
+            var bat = document.createElement('span');
+            bat.className = CR.batteryLow ? 'low' : '';
+            bat.textContent = '🔋 ' + CR.battery + ' %';
+            meta.appendChild(bat);
+        }
+        if (CR.signal !== null) {
+            var sig = document.createElement('span');
+            sig.textContent = '📶 ' + CR.signal + ' dBm';
+            meta.appendChild(sig);
+        }
+        if (CR.offset !== null && CR.offset !== 0) {
+            var off = document.createElement('span');
+            off.textContent = 'Offset ' + (CR.offset > 0 ? '+' : '') + crFmt(CR.offset) + ' K';
+            meta.appendChild(off);
+        }
+        if (CR.lastText) {
+            var last = document.createElement('span');
+            last.textContent = CR.lastText;
+            last.title = 'Letzte Meldung des Geräts';
+            meta.appendChild(last);
+        }
+        wrap.appendChild(meta);
+    }
+
+    function handleMessage(payload) {
+        var data = (typeof payload === 'string') ? JSON.parse(payload) : payload;
+        if (!data) { return; }
+        CR = data;
+        crZeichne();
+    }
+</script>

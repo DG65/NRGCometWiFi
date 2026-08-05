@@ -2,6 +2,32 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.10.0] – Raumkachel für ein einzelnes Thermostat
+
+### Neu
+- **Comet WiFi Raumkachel** (`CometWiFiRoomTile`): ein Gerät, groß und bedienbar.
+  - **Der Ring ist die Bedienfläche.** Ein Tipp darauf setzt den Sollwert; darunter stellen
+    zwei Knöpfe in Halbgrad-Schritten nach. Die Übersichtskachel muss zehn Räume nebeneinander
+    unterbringen und kommt deshalb mit 26 Pixel großen Knöpfen aus — hier gehört der Platz
+    der Bedienung.
+  - **Schnellwahl „Aus" und „An"** für die Endanschläge des Ventils, dazu die Betriebsart
+    zum Umschalten zwischen Zeitplan und Handbetrieb.
+  - **Kopfzeile mit dem, was Aufmerksamkeit braucht:** nicht erreichbar, Urlaub, Tastensperre,
+    schief stehende Geräteuhr.
+  - Gesteuert wird über die Geräteinstanz, nicht an ihr vorbei — damit gilt auch von hier aus
+    die Umschaltung auf Handbetrieb.
+  - **Der Ring färbt sich beim Heizen** — abgeleitet aus Soll und Ist, nicht gemessen. Eine
+    Ventilstellung liefert das Gerät nicht (vollständig geprüft), und das steht als Kommentar
+    an der Stelle, damit es niemand später für eine Messung hält.
+  - Beide Kacheln lassen sich nebeneinander verwenden: die eine für den Überblick, die andere
+    für den Raum, den man gerade bedient.
+
+### Prüfstand
+- 31 Prüfungen, Schwerpunkt auf den beiden Angriffspunkten einer Einzelkachel: die Zuordnung
+  zu genau einer Instanz (fehlend, fremdes Modul, nachträglich gelöscht) und die Bedienung,
+  deren Werte aus dem Browser kommen und deshalb grundsätzlich unglaubwürdig sind.
+  Gegengeprobt — alle drei eingebauten Sabotagen schlagen an.
+
 ## [0.9.2] – A5 halb entschlüsselt, App als Quelle verworfen
 
 ### Erkannt

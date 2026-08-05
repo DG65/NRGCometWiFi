@@ -1,0 +1,16 @@
+{
+    "id": "{93EA2E19-8F98-41E4-9EFF-DCA30C61AF7C}",
+    "name": "CometWiFiRoomTile",
+    "type": 3,
+    "vendor": "Eurotronic",
+    "aliases": [
+        "Comet WiFi Raumkachel",
+        "NRG-Stack Comet WiFi Raumkachel",
+        "Thermostat einzeln"
+    ],
+    "url": "https://github.com/DG65/NRGCometWiFi",
+    "parentRequirements": [],
+    "childRequirements": [],
+    "implemented": [],
+    "prefix": "CWIFIR"
+}

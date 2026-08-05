@@ -37,11 +37,19 @@ MQTT Client (Symcon-Kernmodul, zeigt auf den lokalen Broker)
 ├── Comet WiFi Konfigurator   (type 4, passive Erkennung, sendet nichts)
 ├── Comet WiFi Thermostat     (type 3, eine Instanz je Gerät)
 └── …
+
+Comet WiFi Kachel        (type 3, ohne Elternteil — Übersicht aller Geräte)
+Comet WiFi Raumkachel    (type 3, ohne Elternteil — ein Gerät, groß und bedienbar)
 ```
 
-Beide Module sind **Kinder des MQTT Clients**, nicht voneinander.
+Die beiden Kacheln hängen an **keinem** Elternteil. Sie lesen ausschließlich die Variablen der
+Geräteinstanzen und steuern über deren öffentliche Funktionen — ein Fehler in der Darstellung
+kann die MQTT-Anbindung damit nicht beeinträchtigen.
 
-**Eigene Prefixe je Modul:** `CWIFI` (Thermostat), `CWIFIC` (Konfigurator). Im Verbund gibt es
+Thermostat und Konfigurator sind **Kinder des MQTT Clients**, nicht voneinander.
+
+**Eigene Prefixe je Modul:** `CWIFI` (Thermostat), `CWIFIC` (Konfigurator), `CWIFIT`
+(Übersichtskachel), `CWIFIR` (Raumkachel). Im Verbund gibt es
 beide Muster — ShellyV2 teilt einen Prefix über vier Module, MeterHub vergibt eigene
 (`MHUB`/`MHUBD`/`MHUBV`). Hier bewusst die MeterHub-Variante: Bei geteiltem Prefix müsste jeder
 neue öffentliche Methodenname gegen das jeweils andere Modul geprüft werden, weil beide
@@ -167,6 +175,7 @@ php .tools/test-libs.php           # Topic-Bau, MAC-Normalisierung, Dekodierung 
 php .tools/test-thermostat.php     # Empfangs- und Sendepfad des Geräts          (197)
 php .tools/test-configurator.php   # Erkennung, Instanz-Zuordnung, Zeitsync        (57)
 php .tools/test-tile.php           # Kachel-Nutzlast: Ist/Soll, Namen, Ausfälle    (32)
+php .tools/test-roomtile.php       # Raumkachel: Zuordnung, Ring, Bedienung        (31)
 ```
 
 `IPSTestState::useLocale('<Modulverzeichnis>')` schaltet `Translate()` auf die echte
