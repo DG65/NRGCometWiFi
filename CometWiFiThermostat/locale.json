@@ -16,7 +16,17 @@
             "Module version: ": "Modulversion: ",
             "Base topic: ": "Basis-Topic: ",
             "Base topic: (please enter MAC address and MQTT user)": "Basis-Topic: (bitte MAC-Adresse und MQTT-Benutzer eintragen)",
-            "Expected client ID of the device: ": "Erwartete Client-ID des Geräts: "
+            "Expected client ID of the device: ": "Erwartete Client-ID des Geräts: ",
+            "Operating mode": "Betriebsart",
+            "Schedule": "Zeitplan",
+            "Manual": "Handbetrieb",
+            "Key lock": "Tastensperre",
+            "Off": "Aus",
+            "On": "Ein",
+            "Plus": "Plus",
+            "Rotate display by 180°": "Anzeige um 180° drehen",
+            "Automatic daylight saving time": "Automatische Sommer-/Winterzeit",
+            "Temperature offset": "Temperatur-Offset"
         }
     }
 }

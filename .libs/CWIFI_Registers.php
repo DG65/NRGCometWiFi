@@ -29,10 +29,68 @@ class CWIFI_Registers
 
     public const REG_SETPOINT    = 'A0';
     public const REG_TEMPERATURE = 'A1';
+    public const REG_OFFSET      = 'A2';
+    public const REG_OPTIONS     = 'A3';
     public const REG_BATTERY     = 'A6';
     public const REG_RSSI        = 'B3';
     public const REG_COMM        = 'XX';
     public const REG_REQUEST     = 'AF';
+
+    /* ------------------------------------------------- Optionen-Bitfeld (A3)
+     *
+     * Alle Bits am Gerät belegt (05.08.2026), jeweils in BEIDE Richtungen geschaltet und
+     * gegen die Zustandsmeldung geprüft. Sie sitzen im OBEREN Byte des Zustands: Der
+     * Zustand `#2182` hat also Sommerzeit (0x01) und Handbetrieb (0x20) gesetzt.
+     */
+
+    /** Automatische Sommer-/Winterzeitumstellung. */
+    public const OPT_DST = 0x01;
+
+    /** Anzeige um 180° drehen. */
+    public const OPT_ROTATE = 0x02;
+
+    /** Tastensperre. Schließt OPT_LOCK_PLUS aus. */
+    public const OPT_LOCK = 0x04;
+
+    /** Tastensperre plus. Schließt OPT_LOCK aus. */
+    public const OPT_LOCK_PLUS = 0x08;
+
+    /** Handbetrieb: gesetzt = Zeitplan aus, gelöscht = Wochenprogramm regelt. */
+    public const OPT_MANUAL = 0x20;
+
+    public const IDENT_MODE       = 'Mode';
+    public const IDENT_KEYLOCK    = 'KeyLock';
+    public const IDENT_ROTATE     = 'RotateDisplay';
+    public const IDENT_DST        = 'AutoDST';
+    public const IDENT_OFFSET     = 'Offset';
+
+    /* --------------------------------------------------------- Sollwertskala
+     *
+     * Das Gerät kennt keine reine Temperaturskala: Unterhalb von 8,0 °C rastet es auf
+     * „Aus" (Ventil zu), oberhalb von 28,0 °C auf „An" (Ventil auf). Beides sind gültige
+     * Sollwerte und werden wie Temperaturen kodiert — 7,5 bzw. 28,5. Am Gerät belegt.
+     *
+     * Praktisch heißt das: Wer „Aus" meint, sendet 7,5; wer dauerhaft heizen will, 28,5.
+     * Die vielen `#39` an Dietmars Anlage waren entsprechend keine 28,5-°C-Sollwerte,
+     * sondern schlicht „An".
+     */
+    public const SETPOINT_OFF = 7.5;
+    public const SETPOINT_ON  = 28.5;
+
+    /** Kleinster bzw. größter Wert, der als echte Temperatur gemeint ist. */
+    public const SETPOINT_MIN_REAL = 8.0;
+    public const SETPOINT_MAX_REAL = 28.0;
+
+    /** Ist dieser Sollwert einer der beiden Endanschläge? */
+    public static function isEndstop(float $celsius): bool
+    {
+        return $celsius <= self::SETPOINT_OFF || $celsius >= self::SETPOINT_ON;
+    }
+
+    /** Tastensperre als dreistufige Auswahl — die Bits schließen einander aus. */
+    public const LOCK_OFF  = 0;
+    public const LOCK_ON   = 1;
+    public const LOCK_PLUS = 2;
 
     /* -------------------------------------------------------------- Payloads */
 
@@ -225,5 +283,98 @@ class CWIFI_Registers
     public static function encodeTimestamp(int $timestamp): string
     {
         return '#' . gmdate('y.m.d-H:i', $timestamp);
+    }
+
+    /* ------------------------------------------------------ Optionen (A3) */
+
+    /**
+     * Liest das Optionen-Bitfeld aus einer `V/A3`-Meldung.
+     *
+     * Der Zustand ist zwei Byte (`#2182`); die Schaltbits sitzen im oberen.
+     * Das untere Byte blieb über alle Tests unverändert und wird nicht gedeutet.
+     *
+     * @return int|null Oberes Byte, oder null wenn unlesbar.
+     */
+    public static function decodeOptions(string $payload): ?int
+    {
+        if (!self::isPlausible($payload)) {
+            return null;
+        }
+        $body = substr($payload, 1);
+        if (strlen($body) < 2 || !ctype_xdigit($body)) {
+            return null;
+        }
+        return (int) hexdec(substr($body, 0, 2));
+    }
+
+    /**
+     * Baut einen maskierten Schreibbefehl für `S/A3`.
+     *
+     * Format `#<SETZEN><LÖSCHEN>000000` — erstes Byte sind die zu setzenden, zweites die zu
+     * löschenden Bits. Damit lässt sich ein einzelnes Bit ändern, ohne die übrigen zu kennen.
+     * Am Gerät für alle fünf Bits in beide Richtungen belegt.
+     */
+    public static function encodeOptions(int $set, int $clear = 0): string
+    {
+        return '#' . sprintf('%02X%02X', $set & 0xFF, $clear & 0xFF) . '000000';
+    }
+
+    /** Bequemer Schalter für ein einzelnes Bit. */
+    public static function encodeOptionSwitch(int $bit, bool $on): string
+    {
+        return $on ? self::encodeOptions($bit, 0) : self::encodeOptions(0, $bit);
+    }
+
+    /**
+     * Tastensperre: dreistufig, die beiden Bits schließen einander aus.
+     * Beim Setzen der einen Stufe wird die andere ausdrücklich gelöscht — genau so macht
+     * es die Hersteller-App (`#0804000000` für „plus").
+     */
+    public static function encodeKeyLock(int $level): string
+    {
+        switch ($level) {
+            case self::LOCK_ON:
+                return self::encodeOptions(self::OPT_LOCK, self::OPT_LOCK_PLUS);
+            case self::LOCK_PLUS:
+                return self::encodeOptions(self::OPT_LOCK_PLUS, self::OPT_LOCK);
+            default:
+                return self::encodeOptions(0, self::OPT_LOCK | self::OPT_LOCK_PLUS);
+        }
+    }
+
+    /** Leitet die Sperrstufe aus dem Optionen-Byte ab. */
+    public static function keyLockLevel(int $options): int
+    {
+        if ($options & self::OPT_LOCK_PLUS) {
+            return self::LOCK_PLUS;
+        }
+        return ($options & self::OPT_LOCK) ? self::LOCK_ON : self::LOCK_OFF;
+    }
+
+    /**
+     * Temperatur-Offset kodieren. Gleiche Halbierung wie bei Temperaturen, mit Vorzeichen
+     * im Zweierkomplement — negative Werte sind bislang NICHT am Gerät geprüft.
+     */
+    public static function encodeOffset(float $kelvin): string
+    {
+        $halves = (int) round(max(-6.0, min(6.0, $kelvin)) * 2);
+        return '#' . sprintf('%02X', $halves & 0xFF);
+    }
+
+    /** Temperatur-Offset lesen. */
+    public static function decodeOffset(string $payload): ?float
+    {
+        if (!self::isPlausible($payload)) {
+            return null;
+        }
+        $body = substr($payload, 1);
+        if (!ctype_xdigit($body)) {
+            return null;
+        }
+        $raw = (int) hexdec($body);
+        if ($raw > 127) {          // Zweierkomplement
+            $raw -= 256;
+        }
+        return (float) ($raw / 2);
     }
 }

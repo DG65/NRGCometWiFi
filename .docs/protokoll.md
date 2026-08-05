@@ -84,10 +84,10 @@ Kodierung ist je Register verschieden und muss einzeln bestimmt werden.
 |---|---|---|---|---|
 | `A0` | Solltemperatur | `#39` = 28,5 °C | ✅ | live, 9 Geräte |
 | `A1` | Isttemperatur | `#2C` = 22,0 °C | ✅ | live |
-| `A2` | Temperatur-Offset (Kalibrierung) | — | 🟡 | Foren; Vorzeichenkodierung **ungeprüft** |
-| `A3` | Optionen-Bitfeld: Tastensperre / Sommerzeit / Displaydrehung | `#200700` `#220500` `#230400` `#270000` | 🟡 | Foren; Bitzuordnung **nicht reproduziert** |
-| `A4` | unbekannt | 11-Byte-Payload | ❓ | live 04.08.2026 |
-| `A5` | Fenster-offen-Erkennung + Empfindlichkeit | `#140A` / `#040A`, Nibbles `#X80` `#X08` `#X0C` | 🟡 | Foren; Empfindlichkeits-Schema unstimmig |
+| `A2` | Temperatur-Offset, Wert × 2 | `#02` = +1,0 K | ✅ | App-Mitschnitt 05.08.2026; negative Werte noch ungeprüft |
+| `A3` | Optionen-Bitfeld — **vollständig entschlüsselt**, siehe unten | `#2182` | ✅ | App-Mitschnitt 05.08.2026, alle Bits beidseitig |
+| `A4` | unbekannt | `#3B11010114` (5 Byte) | ❓ | live |
+| `A5` | Fenster-offen-Erkennung | `#040A`, `#800A` | 🟡 | Werte gesehen, Bedeutung offen — die App überträgt die Einstellung nur verzögert |
 | `A6` | Batteriestand in Prozent | `#5F` = 95 % | ✅ | live, 10 Geräte 05.08.2026 |
 | `A7` | Urlaubsmodus | — | 🟡 | Foren |
 | `A8`–`AE` | Wochenprogramm (7 Tage) | — | ❓ | Foren; Format nicht dekodiert |
@@ -105,6 +105,100 @@ Kodierung ist je Register verschieden und muss einzeln bestimmt werden.
 | `A0` | ⚠️ **Wirkt nur mit direkt folgendem `S/AF #FFFFFFFF`** | siehe unten | ✅ |
 | `AF` | Datenabruf auslösen | `#0B` aktuelle Temperaturen · `#FFFFFFFF` alle Felder · `#4B` periodisch · `#48000000` Batterie/Sperre/Sommerzeit/Drehung | 🟡 | Foren |
 | `XX` | Verbindungstest | `#COMM-TEST` | ✅ | live (Gerät sendet selbst) |
+
+### Sollwertskala: „Aus" und „An" sind Endanschläge
+
+Das Gerät hat keine reine Temperaturskala. Unterhalb von 8,0 °C rastet es auf **Aus**
+(Ventil zu), oberhalb von 28,0 °C auf **An** (Ventil auf). Beides sind gültige Sollwerte und
+werden wie Temperaturen kodiert:
+
+| Anzeige | Wert | Payload |
+|---|---|---|
+| Aus | 7,5 | `#0F` |
+| 8,0 °C | 8,0 | `#10` |
+| … | … | … |
+| 28,0 °C | 28,0 | `#38` |
+| An | 28,5 | `#39` |
+
+Von Dietmar am Gerät benannt, `#0F` und `#39` beide am Gerät gesetzt und zurückgemeldet.
+
+**Konsequenz für die Auswertung:** Die vielen `#39` an der Anlage sind keine
+28,5-°C-Sollwerte, sondern schlicht „An". Eine frühere Deutung als „sommerliche
+Offenstellung" war entsprechend falsch.
+
+### Optionen-Bitfeld A3
+
+**Lesen** (`V/A3`) liefert zwei Byte, z. B. `#2182`. Die Schaltbits sitzen im **oberen** Byte;
+das untere blieb über alle Tests unverändert und wird nicht gedeutet.
+
+**Schreiben** (`S/A3`) erfolgt **maskiert**: `#<SETZEN><LÖSCHEN>000000` — erstes Byte sind die
+zu setzenden, zweites die zu löschenden Bits. Damit lässt sich ein Bit ändern, ohne die
+übrigen zu kennen.
+
+| Bit | Funktion | Ein | Aus |
+|---|---|---|---|
+| `0x01` | Automatische Sommer-/Winterzeit | `#0100000000` | `#0001000000` |
+| `0x02` | Anzeige um 180° drehen | `#0200000000` | `#0002000000` |
+| `0x04` | Tastensperre | `#0408000000` | `#0004000000` |
+| `0x08` | Tastensperre **plus** | `#0804000000` | `#0008000000` |
+| `0x20` | Handbetrieb (Zeitplan aus) | `#2000000000` | `#0020000000` |
+
+Alle fünf am Gerät belegt (05.08.2026), jeweils in **beide** Richtungen geschaltet und gegen
+die Zustandsmeldung geprüft. `0x04` und `0x08` schließen einander aus — die App löscht beim
+Setzen des einen ausdrücklich das andere, es ist also eine dreistufige Auswahl.
+
+**Handbetrieb ist der wichtigste Schalter:** Läuft der Zeitplan, überschreibt das
+Wochenprogramm einen von außen gesetzten Sollwert beim nächsten Schaltpunkt. Live beobachtet:
+Beim Einschalten des Zeitplans sprang `V/A0` sofort auf den Programmwert.
+
+### Einen Boost gibt es nicht
+
+In der Hersteller-App nicht vorhanden. Die `0x08`-Befehle, die zunächst danach aussahen,
+gehören zur Tastensperre.
+
+### Es gibt keine Ventilstellung
+
+Ein vollständiger Feld-Dump (`S/AF #FFFFFFFF`) liefert `A0`–`AF` und `B0`–`BF`. Jedes Register
+ist zugeordnet; keines enthält eine Ventilstellung. Das ist damit kein Rückschluss aus
+fehlenden Beobachtungen, sondern eine vollständige Bestandsaufnahme. Die Zigbee-Schwester
+SPZB0001 liefert sie, dieses Modell nicht.
+
+### Diagnoseregister B0–BF
+
+Aus dem Voll-Dump, teils direkt lesbar:
+
+| Reg. | Beispiel | Bedeutung | Status |
+|---|---|---|---|
+| `B1` | `#436F6D65742057696669205665722E20362E31` | ASCII „Comet Wifi Ver. 6.1" — Firmware | ✅ |
+| `B2` | `#322E372E312E30` | ASCII „2.7.1.0" | ✅ |
+| `B3` | `#-68` | Signalstärke in dBm | ✅ |
+| `B6` | `#00C0A8022A01445F0301` | enthält die IP (`C0A8022A` = 192.168.2.42) | ✅ |
+| `BA` | `24:f5:a2:74:7b:ab` | MAC des WLAN-Zugangspunkts | ✅ |
+| `BF` | `#5B575041322D50534B2D43434D505D5B4553535D` | ASCII „[WPA2-PSK-CCMP][ESS]" | ✅ |
+| `B0` `B4` `B5` `B7` `BB` `BC` `BE` | | unbekannt | ❓ |
+| `BD` | `#0840` / `#0800` | wechselt mit der Tastensperre — Statusspiegel | 🟡 |
+
+### Wochenprogramm A8–AE
+
+Sieben Register, aber **zwei verschiedene Längen**: `A8`–`AC` je 8 Byte, `AD`–`AE` je 4 Byte.
+
+```
+A8 #062C09E4176C1FA4      AD #BEACD524
+A9 #2A2C2DE43B6C43A4      AE #E2ACF924
+AA #4E2C51E45F6C67A4
+AB #722C75E4836C8BA4
+AC #962C99E4A76CAFA4
+```
+
+Auffällig: In den 8-Byte-Registern taucht `2C` mehrfach auf — das ist genau der aktuelle
+Sollwert (22,0 °C). Das Format ist noch nicht entschlüsselt; dafür braucht es einen gezielten
+Durchgang mit bekannten Schaltzeiten.
+
+### Urlaub A7
+
+`#FFFFFFFFFFFFFFFFFF` (9 Byte, alle FF) = **nicht gesetzt**. Ein gesetzter Urlaub sah so aus:
+`#0C1F071A0C10081A32`, gesendet an fünf Geräte gleichzeitig — offenbar eine kontoweite
+Einstellung. Format noch nicht entschlüsselt.
 
 ### Ein Sollwert braucht zwei Nachrichten
 

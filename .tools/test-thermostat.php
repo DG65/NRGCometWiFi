@@ -185,20 +185,27 @@ check('COMM-TEST setzt Status wieder aktiv', $device->GetStatus(), IS_ACTIVE);
 
 /* ================================================== 3. Rohdaten und Unbekanntes */
 
+// A4 ist noch nicht gedeutet - anders als A3, das seit dem App-Mitschnitt entschluesselt
+// ist und deshalb NICHT mehr im Rohpfad landen darf.
 $device = makeDevice(['RawRegisters' => false]);
-deliver($device, BASE . '/V/A3', '#230400');
-checkTrue('Ohne Rohdatenerfassung keine RAW-Variable', !isset($device->variables['RAW_A3']));
+deliver($device, BASE . '/V/A4', '#3B11010114');
+checkTrue('Ohne Rohdatenerfassung keine RAW-Variable', !isset($device->variables['RAW_A4']));
 
 $device = makeDevice(['RawRegisters' => true]);
-deliver($device, BASE . '/V/A3', '#230400');
-checkTrue('Mit Rohdatenerfassung entsteht RAW_A3', isset($device->variables['RAW_A3']));
-check('RAW_A3 enthält den unveränderten Payload', $device->GetValue('RAW_A3'), '#230400');
+deliver($device, BASE . '/V/A4', '#3B11010114');
+checkTrue('Mit Rohdatenerfassung entsteht RAW_A4', isset($device->variables['RAW_A4']));
+check('RAW_A4 enthält den unveränderten Payload', $device->GetValue('RAW_A4'), '#3B11010114');
+
+// Gedeutete Register duerfen NICHT zusaetzlich als Rohwert auftauchen.
+deliver($device, BASE . '/V/A3', '#2182');
+checkTrue('Entschluesseltes A3 landet nicht im Rohpfad', !isset($device->variables['RAW_A3']));
+check('A3 setzt stattdessen die Optionen', $device->GetValue('Mode'), true);
 
 deliver($device, BASE . '/V/BD', '#0806');
 check('RAW_BD enthält den unveränderten Payload', $device->GetValue('RAW_BD'), '#0806');
 
 // Undekodierte Register dürfen NICHT als gedeutete Variable auftauchen.
-foreach (['A2', 'A3', 'A5', 'A7', 'BB', 'BD'] as $register) {
+foreach (['A4', 'A5', 'A7', 'BB', 'BD'] as $register) {
     checkTrue(
         "Register {$register} wird bewusst nicht gedeutet",
         CWIFI_Registers::byRegister($register) === null
@@ -210,11 +217,12 @@ foreach (['A2', 'A3', 'A5', 'A7', 'BB', 'BD'] as $register) {
 $device = makeDevice();
 IPSTestState::$sentPackets = [];
 
+// Ohne Zwangsumschaltung: genau zwei Pakete - der Sollwert und der Nachzieher. Ohne die
+// zweite Nachricht verwirft das Gerät den Sollwert und meldet seinen alten Wert zurück
+// (am Gerät belegt, die Hersteller-Cloud macht es genauso).
+$device = makeDevice(['ForceManualOnSet' => false]);
+IPSTestState::$sentPackets = [];
 checkTrue('SetTemperature meldet Erfolg', $device->SetTemperature(21.5));
-
-// Zwei Pakete: der Sollwert und unmittelbar danach die Aufforderung, alle Felder zu senden.
-// Ohne die zweite Nachricht verwirft das Gerät den Sollwert und meldet seinen alten Wert
-// zurück — am Gerät belegt, die Hersteller-Cloud macht es genauso.
 check('Sollwert und Nachzieher gesendet', count(IPSTestState::$sentPackets), 2);
 
 $packet = IPSTestState::$sentPackets[0];
@@ -234,13 +242,86 @@ check('PacketType PUBLISH', $packet['PacketType'], 3);
 
 check('Variable folgt sofort (optimistisch)', $device->GetValue('Setpoint'), 21.5);
 
+/* ------------------------- Zwangsumschaltung auf Handbetrieb (Standardverhalten) */
+
+// Laeuft der Zeitplan, ueberschreibt er einen gesetzten Sollwert beim naechsten
+// Schaltpunkt. Deshalb schaltet das Modul vorher auf Handbetrieb - sonst waere jede
+// Automatisierung aus Symcon heraus wirkungslos.
+$device = makeDevice(['ForceManualOnSet' => true]);
+$device->SetValue('Mode', false);              // Zeitplan laeuft
+IPSTestState::$sentPackets = [];
+$device->SetTemperature(20.0);
+
+check('Vier Pakete: Umschaltung, Nachzieher, Sollwert, Nachzieher',
+    count(IPSTestState::$sentPackets), 4);
+check('Zuerst wird auf Handbetrieb geschaltet',
+    IPSTestState::$sentPackets[0]['Topic'], BASE . '/S/A3');
+check('Handbetrieb setzt Bit 0x20',
+    IPSTestState::$sentPackets[0]['Payload'], '#2000000000');
+check('Danach folgt der Sollwert',
+    IPSTestState::$sentPackets[2]['Topic'], BASE . '/S/A0');
+check('Betriebsart-Variable steht auf Handbetrieb', $device->GetValue('Mode'), true);
+
+// Steht der Handbetrieb schon, wird nicht unnoetig umgeschaltet - das waere ein
+// zusaetzliches Wecken des Batteriegeraets bei jedem Sollwert.
+IPSTestState::$sentPackets = [];
+$device->SetTemperature(21.0);
+check('Bei bereits aktivem Handbetrieb nur zwei Pakete',
+    count(IPSTestState::$sentPackets), 2);
+
+/* ----------------------------------------------- Optionen schalten (Register A3) */
+
+$device = makeDevice();
+IPSTestState::$sentPackets = [];
+checkTrue('Tastensperre setzen meldet Erfolg', $device->SetKeyLock(CWIFI_Registers::LOCK_ON));
+check('Tastensperre auf S/A3', IPSTestState::$sentPackets[0]['Topic'], BASE . '/S/A3');
+check('Tastensperre-Befehl wie in der App', IPSTestState::$sentPackets[0]['Payload'], '#0408000000');
+check('Nachzieher fordert A3 an', IPSTestState::$sentPackets[1]['Payload'], '#08000000');
+check('Variable folgt', $device->GetValue('KeyLock'), CWIFI_Registers::LOCK_ON);
+
+IPSTestState::$sentPackets = [];
+$device->SetKeyLock(CWIFI_Registers::LOCK_PLUS);
+check('Tastensperre plus wie in der App', IPSTestState::$sentPackets[0]['Payload'], '#0804000000');
+
+IPSTestState::$sentPackets = [];
+$device->SetRotateDisplay(true);
+check('Anzeige drehen wie in der App', IPSTestState::$sentPackets[0]['Payload'], '#0200000000');
+
+IPSTestState::$sentPackets = [];
+$device->SetAutoDST(false);
+check('Sommerzeit aus wie in der App', IPSTestState::$sentPackets[0]['Payload'], '#0001000000');
+
+IPSTestState::$sentPackets = [];
+$device->SetOffset(1.0);
+check('Offset auf S/A2', IPSTestState::$sentPackets[0]['Topic'], BASE . '/S/A2');
+check('Offset +1,0 K wie in der App', IPSTestState::$sentPackets[0]['Payload'], '#02');
+
+/* -------------------------------- Optionen empfangen und aufteilen */
+
+$device = makeDevice();
+deliver($device, BASE . '/V/A3', '#2182');
+check('Handbetrieb aus #2182', $device->GetValue('Mode'), true);
+check('Sommerzeit aus #2182', $device->GetValue('AutoDST'), true);
+check('Drehung aus #2182', $device->GetValue('RotateDisplay'), false);
+check('Sperre aus #2182', $device->GetValue('KeyLock'), CWIFI_Registers::LOCK_OFF);
+
+deliver($device, BASE . '/V/A3', '#0182');
+check('Zeitplan aktiv bei #0182', $device->GetValue('Mode'), false);
+
+deliver($device, BASE . '/V/A3', '#2982');
+check('Sperre plus bei #2982', $device->GetValue('KeyLock'), CWIFI_Registers::LOCK_PLUS);
+
+deliver($device, BASE . '/V/A2', '#02');
+check('Offset aus #02', $device->GetValue('Offset'), 1.0);
+
 // Halbgrad-Raster und Grenzen.
 $device->SetTemperature(21.3);
 check('21,3 wird auf 21,5 gerundet', $device->GetValue('Setpoint'), 21.5);
+// Geklemmt wird jetzt auf die echten Endanschlaege des Geraets, nicht auf geratene Werte.
 $device->SetTemperature(2.0);
-check('Unter Minimum wird geklemmt', $device->GetValue('Setpoint'), 5.0);
+check('Unter Minimum wird auf „Aus" geklemmt', $device->GetValue('Setpoint'), 7.5);
 $device->SetTemperature(99.0);
-check('Über Maximum wird geklemmt', $device->GetValue('Setpoint'), 30.0);
+check('Über Maximum wird auf „An" geklemmt', $device->GetValue('Setpoint'), 28.5);
 
 // RequestAction ist der Weg aus dem WebFront.
 IPSTestState::$sentPackets = [];

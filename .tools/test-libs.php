@@ -242,6 +242,64 @@ check('Feldauswahl A3+A6 ergibt #48000000', CWIFI_Registers::requestFields('A6',
 check('Feldauswahl A0+A1', CWIFI_Registers::requestFields('A0', 'A1'), '#03000000');
 check('Feldauswahl ohne Register', CWIFI_Registers::requestFields(), '#00000000');
 
+/* ------------------------------------------ 13. Optionen-Bitfeld (A3) */
+
+// Alle Werte stammen aus dem Mitschnitt der Hersteller-App, jeweils in beide Richtungen.
+check('Optionen lesen #2182', CWIFI_Registers::decodeOptions('#2182'), 0x21);
+check('Optionen lesen #0182', CWIFI_Registers::decodeOptions('#0182'), 0x01);
+check('Optionen lesen #2582', CWIFI_Registers::decodeOptions('#2582'), 0x25);
+check('Optionen lesen Unsinn', CWIFI_Registers::decodeOptions('#ZZ'), null);
+
+// Genau diese Befehle hat die App gesendet.
+check('Zeitplan aus (Handbetrieb ein)',
+    CWIFI_Registers::encodeOptionSwitch(CWIFI_Registers::OPT_MANUAL, true), '#2000000000');
+check('Zeitplan ein (Handbetrieb aus)',
+    CWIFI_Registers::encodeOptionSwitch(CWIFI_Registers::OPT_MANUAL, false), '#0020000000');
+check('Anzeige drehen ein',
+    CWIFI_Registers::encodeOptionSwitch(CWIFI_Registers::OPT_ROTATE, true), '#0200000000');
+check('Anzeige drehen aus',
+    CWIFI_Registers::encodeOptionSwitch(CWIFI_Registers::OPT_ROTATE, false), '#0002000000');
+check('Sommerzeit ein',
+    CWIFI_Registers::encodeOptionSwitch(CWIFI_Registers::OPT_DST, true), '#0100000000');
+check('Sommerzeit aus',
+    CWIFI_Registers::encodeOptionSwitch(CWIFI_Registers::OPT_DST, false), '#0001000000');
+
+// Dreistufige Sperre: das jeweils andere Bit wird ausdruecklich geloescht.
+check('Tastensperre ein', CWIFI_Registers::encodeKeyLock(CWIFI_Registers::LOCK_ON), '#0408000000');
+check('Tastensperre plus', CWIFI_Registers::encodeKeyLock(CWIFI_Registers::LOCK_PLUS), '#0804000000');
+check('Tastensperre aus', CWIFI_Registers::encodeKeyLock(CWIFI_Registers::LOCK_OFF), '#000C000000');
+
+check('Stufe aus 0x21', CWIFI_Registers::keyLockLevel(0x21), CWIFI_Registers::LOCK_OFF);
+check('Stufe aus 0x25', CWIFI_Registers::keyLockLevel(0x25), CWIFI_Registers::LOCK_ON);
+check('Stufe aus 0x29', CWIFI_Registers::keyLockLevel(0x29), CWIFI_Registers::LOCK_PLUS);
+
+/* ------------------------------------------------- 14. Temperatur-Offset (A2) */
+
+// Die App sendete fuer +1,0 K genau #02 und fuers Zuruecksetzen #00.
+check('Offset +1,0 K', CWIFI_Registers::encodeOffset(1.0), '#02');
+check('Offset 0', CWIFI_Registers::encodeOffset(0.0), '#00');
+check('Offset +2,5 K', CWIFI_Registers::encodeOffset(2.5), '#05');
+check('Offset lesen #02', CWIFI_Registers::decodeOffset('#02'), 1.0);
+check('Offset lesen #00', CWIFI_Registers::decodeOffset('#00'), 0.0);
+// Negative Werte sind bislang NICHT am Geraet geprueft - die Rechnung wird trotzdem
+// festgehalten, damit eine spaetere Bestaetigung nur noch das Vorzeichen belegen muss.
+check('Offset -1,0 K (unbestaetigt)', CWIFI_Registers::encodeOffset(-1.0), '#FE');
+check('Offset lesen #FE (unbestaetigt)', CWIFI_Registers::decodeOffset('#FE'), -1.0);
+
+/* --------------------------------------------- 15. Sollwertskala mit Endanschlaegen */
+
+// Unterhalb 8,0 rastet das Geraet auf "Aus", oberhalb 28,0 auf "An" - beides gueltige
+// Sollwerte, die wie Temperaturen kodiert werden. Am Geraet belegt.
+check('Aus ist 7,5', CWIFI_Registers::SETPOINT_OFF, 7.5);
+check('An ist 28,5', CWIFI_Registers::SETPOINT_ON, 28.5);
+check('Aus kodiert zu #0F', CWIFI_Registers::encodeSetpoint(7.5, 7.5, 28.5)[0], '#0F');
+check('An kodiert zu #39', CWIFI_Registers::encodeSetpoint(28.5, 7.5, 28.5)[0], '#39');
+check('8,0 Grad kodiert zu #10', CWIFI_Registers::encodeSetpoint(8.0, 7.5, 28.5)[0], '#10');
+check('28,0 Grad kodiert zu #38', CWIFI_Registers::encodeSetpoint(28.0, 7.5, 28.5)[0], '#38');
+check('7,5 ist Endanschlag', CWIFI_Registers::isEndstop(7.5), true);
+check('28,5 ist Endanschlag', CWIFI_Registers::isEndstop(28.5), true);
+check('20,0 ist kein Endanschlag', CWIFI_Registers::isEndstop(20.0), false);
+
 /* ------------------------------------------------------------------ Ergebnis */
 
 echo "\n";

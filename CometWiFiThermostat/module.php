@@ -45,12 +45,16 @@ class CometWiFiThermostat extends IPSModule
         $this->RegisterPropertyString('MAC', '');
         $this->RegisterPropertyString('MQTTUser', '');
         $this->RegisterPropertyString('TopicPrefix', '02');
-        $this->RegisterPropertyFloat('SetpointMin', 5.0);
-        $this->RegisterPropertyFloat('SetpointMax', 30.0);
+        // Die Skala des Geräts läuft von „Aus" über 8,0–28,0 °C bis „An". Die beiden
+        // Endanschläge sind 7,5 (#0F) und 28,5 (#39) — keine echten Temperaturen, sondern
+        // Ventil ganz zu bzw. ganz auf. Am Gerät belegt.
+        $this->RegisterPropertyFloat('SetpointMin', CWIFI_Registers::SETPOINT_OFF);
+        $this->RegisterPropertyFloat('SetpointMax', CWIFI_Registers::SETPOINT_ON);
         $this->RegisterPropertyInteger('BatteryLowThreshold', 20);
         $this->RegisterPropertyInteger('BatteryDecode', CWIFI_Registers::BATTERY_HEX);
         $this->RegisterPropertyInteger('PollInterval', 0);
         $this->RegisterPropertyInteger('TimeoutMinutes', 180);
+        $this->RegisterPropertyBoolean('ForceManualOnSet', true);
         $this->RegisterPropertyBoolean('RawRegisters', false);
         $this->RegisterPropertyBoolean('DebugUnknown', true);
 
@@ -162,6 +166,20 @@ class CometWiFiThermostat extends IPSModule
 
         $this->markAlive();
 
+        // Optionen und Offset haben ein eigenes Format und stehen deshalb nicht in der
+        // allgemeinen Registertabelle.
+        if ($register === CWIFI_Registers::REG_OPTIONS) {
+            $this->handleOptions($payload);
+            return;
+        }
+        if ($register === CWIFI_Registers::REG_OFFSET) {
+            $value = CWIFI_Registers::decodeOffset($payload);
+            if ($value !== null) {
+                $this->SetValue(CWIFI_Registers::IDENT_OFFSET, $value);
+            }
+            return;
+        }
+
         $definition = CWIFI_Registers::byRegister($register);
         if ($definition === null) {
             $this->handleUnknownRegister($register, $payload);
@@ -186,6 +204,20 @@ class CometWiFiThermostat extends IPSModule
         if ($definition['ident'] === CWIFI_Registers::IDENT_SETPOINT) {
             $this->reconcilePendingSetpoint((float) $value);
         }
+    }
+
+    /** Zerlegt das Optionen-Bitfeld in die einzelnen Schalter. */
+    private function handleOptions(string $payload): void
+    {
+        $options = CWIFI_Registers::decodeOptions($payload);
+        if ($options === null) {
+            $this->SendDebug('Optionen unlesbar', $payload, 0);
+            return;
+        }
+        $this->SetValue(CWIFI_Registers::IDENT_MODE, (bool) ($options & CWIFI_Registers::OPT_MANUAL));
+        $this->SetValue(CWIFI_Registers::IDENT_ROTATE, (bool) ($options & CWIFI_Registers::OPT_ROTATE));
+        $this->SetValue(CWIFI_Registers::IDENT_DST, (bool) ($options & CWIFI_Registers::OPT_DST));
+        $this->SetValue(CWIFI_Registers::IDENT_KEYLOCK, CWIFI_Registers::keyLockLevel($options));
     }
 
     /** Rohdatenpfad für alles, was (noch) keine belegte Bedeutung hat. */
@@ -274,10 +306,118 @@ class CometWiFiThermostat extends IPSModule
 
     public function RequestAction($Ident, $Value)
     {
-        if ($Ident !== CWIFI_Registers::IDENT_SETPOINT) {
-            throw new Exception($this->Translate('Unknown Ident: ') . $Ident);
+        switch ($Ident) {
+            case CWIFI_Registers::IDENT_SETPOINT:
+                $this->SetTemperature(floatval($Value));
+                return;
+
+            case CWIFI_Registers::IDENT_MODE:
+                $this->SetManualMode(boolval($Value));
+                return;
+
+            case CWIFI_Registers::IDENT_KEYLOCK:
+                $this->SetKeyLock(intval($Value));
+                return;
+
+            case CWIFI_Registers::IDENT_ROTATE:
+                $this->SetRotateDisplay(boolval($Value));
+                return;
+
+            case CWIFI_Registers::IDENT_DST:
+                $this->SetAutoDST(boolval($Value));
+                return;
+
+            case CWIFI_Registers::IDENT_OFFSET:
+                $this->SetOffset(floatval($Value));
+                return;
         }
-        $this->SetTemperature(floatval($Value));
+        throw new Exception($this->Translate('Unknown Ident: ') . $Ident);
+    }
+
+    /**
+     * Handbetrieb ein- oder ausschalten.
+     *
+     * Eingeschaltet lässt das Gerät das Wochenprogramm ruhen — nur dann bleibt ein von
+     * Symcon gesetzter Sollwert dauerhaft stehen. Ausgeschaltet übernimmt der Zeitplan
+     * sofort wieder und überschreibt den Sollwert (am Gerät beobachtet).
+     */
+    public function SetManualMode(bool $Manual): bool
+    {
+        if (!$this->sendOption(CWIFI_Registers::encodeOptionSwitch(CWIFI_Registers::OPT_MANUAL, $Manual))) {
+            return false;
+        }
+        $this->SetValue(CWIFI_Registers::IDENT_MODE, $Manual);
+        return true;
+    }
+
+    /** Tastensperre: 0 = aus, 1 = ein, 2 = plus. */
+    public function SetKeyLock(int $Level): bool
+    {
+        if (!$this->sendOption(CWIFI_Registers::encodeKeyLock($Level))) {
+            return false;
+        }
+        $this->SetValue(CWIFI_Registers::IDENT_KEYLOCK, $Level);
+        return true;
+    }
+
+    public function SetRotateDisplay(bool $Rotate): bool
+    {
+        if (!$this->sendOption(CWIFI_Registers::encodeOptionSwitch(CWIFI_Registers::OPT_ROTATE, $Rotate))) {
+            return false;
+        }
+        $this->SetValue(CWIFI_Registers::IDENT_ROTATE, $Rotate);
+        return true;
+    }
+
+    public function SetAutoDST(bool $Enabled): bool
+    {
+        if (!$this->sendOption(CWIFI_Registers::encodeOptionSwitch(CWIFI_Registers::OPT_DST, $Enabled))) {
+            return false;
+        }
+        $this->SetValue(CWIFI_Registers::IDENT_DST, $Enabled);
+        return true;
+    }
+
+    /**
+     * Temperatur-Offset zur Kalibrierung.
+     *
+     * ⚠️ Negative Werte sind rechnerisch als Zweierkomplement umgesetzt, aber am Gerät
+     *    NICHT geprüft — belegt ist nur `+1,0 K → #02` und `0 → #00`.
+     */
+    public function SetOffset(float $Kelvin): bool
+    {
+        $topic = $this->topicFor(CWIFI_Registers::REG_OFFSET);
+        if ($topic === '' || !$this->sendMQTT($topic, CWIFI_Registers::encodeOffset($Kelvin))) {
+            return false;
+        }
+        $this->sendRequest(CWIFI_Registers::requestFields(CWIFI_Registers::REG_OFFSET));
+        $this->SetValue(CWIFI_Registers::IDENT_OFFSET, round($Kelvin * 2) / 2);
+        return true;
+    }
+
+    /**
+     * Schickt einen maskierten Optionen-Befehl samt gezieltem Nachzieher.
+     * Wie beim Sollwert bestätigt das Gerät erst, wenn das Feld angefordert wird.
+     */
+    private function sendOption(string $payload): bool
+    {
+        $topic = $this->topicFor(CWIFI_Registers::REG_OPTIONS);
+        if ($topic === '' || !$this->sendMQTT($topic, $payload)) {
+            return false;
+        }
+        $this->sendRequest(CWIFI_Registers::requestFields(CWIFI_Registers::REG_OPTIONS));
+        return true;
+    }
+
+    /** Set-Topic für ein Register, oder '' bei unvollständiger Konfiguration. */
+    private function topicFor(string $register): string
+    {
+        $mac  = CWIFI_Topics::normalizeMac($this->ReadPropertyString('MAC'));
+        $user = trim($this->ReadPropertyString('MQTTUser'));
+        if ($mac === '' || $user === '') {
+            return '';
+        }
+        return CWIFI_Topics::set($this->ReadPropertyString('TopicPrefix'), $user, $mac, $register);
     }
 
     /**
@@ -316,6 +456,14 @@ class CometWiFiThermostat extends IPSModule
             $mac,
             CWIFI_Registers::REG_SETPOINT
         );
+
+        // Solange der Zeitplan läuft, hält ein gesetzter Sollwert nur bis zum nächsten
+        // Schaltpunkt — das Wochenprogramm im Gerät überschreibt ihn dann. Mit
+        // „Handbetrieb erzwingen" schaltet das Modul vorher um, damit der Wert bleibt.
+        if ($this->ReadPropertyBoolean('ForceManualOnSet')
+            && $this->GetValue(CWIFI_Registers::IDENT_MODE) !== true) {
+            $this->SetManualMode(true);
+        }
 
         if (!$this->sendMQTT($topic, $payload)) {
             return false;
@@ -498,6 +646,94 @@ class CometWiFiThermostat extends IPSModule
             60,
             true
         );
+
+        /* ---------------------------------------------- Optionen (Register A3) */
+
+        $this->MaintainVariable(
+            CWIFI_Registers::IDENT_MODE,
+            $this->Translate('Operating mode'),
+            VARIABLETYPE_BOOLEAN,
+            $this->optionPresentation('Schedule', 'Manual'),
+            70,
+            true
+        );
+        $this->EnableAction(CWIFI_Registers::IDENT_MODE);
+
+        $this->MaintainVariable(
+            CWIFI_Registers::IDENT_KEYLOCK,
+            $this->Translate('Key lock'),
+            VARIABLETYPE_INTEGER,
+            [
+                'PRESENTATION' => VARIABLE_PRESENTATION_ENUMERATION,
+                'OPTIONS'      => json_encode([
+                    $this->enumOption(CWIFI_Registers::LOCK_OFF, 'Off'),
+                    $this->enumOption(CWIFI_Registers::LOCK_ON, 'On'),
+                    $this->enumOption(CWIFI_Registers::LOCK_PLUS, 'Plus')
+                ])
+            ],
+            80,
+            true
+        );
+        $this->EnableAction(CWIFI_Registers::IDENT_KEYLOCK);
+
+        $this->MaintainVariable(
+            CWIFI_Registers::IDENT_ROTATE,
+            $this->Translate('Rotate display by 180°'),
+            VARIABLETYPE_BOOLEAN,
+            ['PRESENTATION' => VARIABLE_PRESENTATION_SWITCH],
+            90,
+            true
+        );
+        $this->EnableAction(CWIFI_Registers::IDENT_ROTATE);
+
+        $this->MaintainVariable(
+            CWIFI_Registers::IDENT_DST,
+            $this->Translate('Automatic daylight saving time'),
+            VARIABLETYPE_BOOLEAN,
+            ['PRESENTATION' => VARIABLE_PRESENTATION_SWITCH],
+            95,
+            true
+        );
+        $this->EnableAction(CWIFI_Registers::IDENT_DST);
+
+        $this->MaintainVariable(
+            CWIFI_Registers::IDENT_OFFSET,
+            $this->Translate('Temperature offset'),
+            VARIABLETYPE_FLOAT,
+            [
+                'PRESENTATION' => VARIABLE_PRESENTATION_SLIDER,
+                'MIN'          => -6.0,
+                'MAX'          => 6.0,
+                'STEP_SIZE'    => 0.5,
+                'SUFFIX'       => ' K',
+                'DIGITS'       => 1
+            ],
+            96,
+            true
+        );
+        $this->EnableAction(CWIFI_Registers::IDENT_OFFSET);
+    }
+
+    /** Zweiwertige Darstellung ohne Ampelfarbe — für Betriebsarten statt Zuständen. */
+    private function optionPresentation(string $captionFalse, string $captionTrue): array
+    {
+        return [
+            'PRESENTATION' => VARIABLE_PRESENTATION_SWITCH,
+            'CAPTION_ON'   => $this->Translate($captionTrue),
+            'CAPTION_OFF'  => $this->Translate($captionFalse)
+        ];
+    }
+
+    private function enumOption(int $value, string $caption): array
+    {
+        return [
+            'Value'       => $value,
+            'Caption'     => $this->Translate($caption),
+            'IconActive'  => false,
+            'Icon'        => '',
+            'ColorActive' => false,
+            'ColorValue'  => -1
+        ];
     }
 
     /**

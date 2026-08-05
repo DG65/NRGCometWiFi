@@ -124,8 +124,17 @@
             "expanded": true,
             "items": [
                 {
+                    "type": "CheckBox",
+                    "name": "ForceManualOnSet",
+                    "caption": "Beim Setzen eines Sollwerts auf Handbetrieb umschalten"
+                },
+                {
                     "type": "Label",
-                    "caption": "Grenzen des Schiebereglers. Der tatsächlich vom Gerät akzeptierte Bereich ist nicht dokumentiert; 28,5 °C wurden bereits beobachtet."
+                    "caption": "Ohne diese Umschaltung hält ein gesetzter Sollwert nur bis zum nächsten Schaltpunkt: Das Wochenprogramm im Gerät übernimmt dann wieder. Für Automatisierungen aus Symcon heraus ist die Umschaltung deshalb praktisch immer erwünscht."
+                },
+                {
+                    "type": "Label",
+                    "caption": "Die Skala des Geräts läuft von „Aus\" über 8,0–28,0 °C bis „An\". Die beiden Endanschläge sind keine Temperaturen, sondern Ventil ganz zu (7,5) bzw. ganz auf (28,5) — genau so zeigt es auch das Display. Die Vorgabewerte bilden diese Skala vollständig ab; eine Einschränkung ist nur sinnvoll, wenn man die Endanschläge bewusst nicht erreichen möchte."
                 },
                 {
                     "type": "NumberSpinner",
@@ -133,8 +142,8 @@
                     "caption": "Minimum",
                     "suffix": "°C",
                     "digits": 1,
-                    "minimum": 0,
-                    "maximum": 30,
+                    "minimum": 7.5,
+                    "maximum": 28.0,
                     "width": "200px"
                 },
                 {
@@ -143,8 +152,8 @@
                     "caption": "Maximum",
                     "suffix": "°C",
                     "digits": 1,
-                    "minimum": 5,
-                    "maximum": 40,
+                    "minimum": 8.0,
+                    "maximum": 28.5,
                     "width": "200px"
                 }
             ]
@@ -169,8 +178,14 @@
                     "caption": "Batteriewert lesen als",
                     "width": "260px",
                     "options": [
-                        { "caption": "Hexadezimal (Standard)", "value": 0 },
-                        { "caption": "Dezimal", "value": 1 }
+                        {
+                            "caption": "Hexadezimal (Standard)",
+                            "value": 0
+                        },
+                        {
+                            "caption": "Dezimal",
+                            "value": 1
+                        }
                     ]
                 },
                 {
