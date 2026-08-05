@@ -211,9 +211,16 @@ $device = makeDevice();
 IPSTestState::$sentPackets = [];
 
 checkTrue('SetTemperature meldet Erfolg', $device->SetTemperature(21.5));
-check('Genau ein Paket gesendet', count(IPSTestState::$sentPackets), 1);
+
+// Zwei Pakete: der Sollwert und unmittelbar danach die Aufforderung, alle Felder zu senden.
+// Ohne die zweite Nachricht verwirft das Gerät den Sollwert und meldet seinen alten Wert
+// zurück — am Gerät belegt, die Hersteller-Cloud macht es genauso.
+check('Sollwert und Nachzieher gesendet', count(IPSTestState::$sentPackets), 2);
 
 $packet = IPSTestState::$sentPackets[0];
+$follow = IPSTestState::$sentPackets[1];
+check('Nachzieher geht auf S/AF', $follow['Topic'], BASE . '/S/AF');
+check('Nachzieher fordert alle Felder an', $follow['Payload'], '#FFFFFFFF');
 check('Topic ist das Set-Topic', $packet['Topic'], BASE . '/S/A0');
 check('Payload 21,5 °C = #2B', $packet['Payload'], '#2B');
 // Ein retaintes Kommando würde bei jedem Reconnect erneut zugestellt und das
@@ -237,7 +244,7 @@ check('Über Maximum wird geklemmt', $device->GetValue('Setpoint'), 30.0);
 // RequestAction ist der Weg aus dem WebFront.
 IPSTestState::$sentPackets = [];
 $device->RequestAction('Setpoint', 19.0);
-check('RequestAction sendet', count(IPSTestState::$sentPackets), 1);
+check('RequestAction sendet Sollwert und Nachzieher', count(IPSTestState::$sentPackets), 2);
 check('RequestAction setzt den Wert', $device->GetValue('Setpoint'), 19.0);
 
 $threw = false;

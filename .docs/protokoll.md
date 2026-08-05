@@ -102,8 +102,36 @@ Kodierung ist je Register verschieden und muss einzeln bestimmt werden.
 | Reg. | Bedeutung | Payload | Status |
 |---|---|---|---|
 | `A0` | Solltemperatur setzen | `#` + **zwei Hex-Ziffern in Großschreibung**, Temp × 2 | ✅ |
+| `A0` | ⚠️ **Wirkt nur mit direkt folgendem `S/AF #FFFFFFFF`** | siehe unten | ✅ |
 | `AF` | Datenabruf auslösen | `#0B` aktuelle Temperaturen · `#FFFFFFFF` alle Felder · `#4B` periodisch · `#48000000` Batterie/Sperre/Sommerzeit/Drehung | 🟡 | Foren |
 | `XX` | Verbindungstest | `#COMM-TEST` | ✅ | live (Gerät sendet selbst) |
+
+### Ein Sollwert braucht zwei Nachrichten
+
+`S/A0` allein ist **wirkungslos**. Das Gerät verwirft den Wert nicht stillschweigend, sondern
+**widerspricht**: Unmittelbar nach dem Empfang meldet es per `V/A0` wieder seinen alten
+Sollwert. Erst ein direkt anschließendes `S/AF` mit `#FFFFFFFF` bringt es dazu, den neuen Wert
+zu übernehmen und zu bestätigen.
+
+Die Hersteller-Cloud macht es genauso — im Broker-Protokoll stehen beide Nachrichten in
+derselben Sekunde:
+
+```
+1785939860  S/A0  (3 Byte)      ← Sollwert
+1785939860  S/AF  #FFFFFFFF     ← unmittelbar danach
+1785939862  V/A0               ← Gerät bestätigt den NEUEN Wert
+```
+
+Am eigenen Gerät nachgestellt und belegt (05.08.2026): Ein `S/A0 #22` allein wurde mit
+`V/A0 #27` (altem Wert) beantwortet; dieselbe Nachricht plus `S/AF #FFFFFFFF` führte zu
+`V/A0 #24` — der Wert war übernommen.
+
+Ebenfalls geprüft und **nicht** die Ursache: Payload (byte-identisch zur Cloud), Topic, QoS
+(auch mit QoS 2 abgelehnt), Retain, sowie die Frage, ob eine Zwischenstation stört (direkt am
+Broker dasselbe Verhalten).
+
+**Reihenfolge zählt.** Ein `S/AF` *vor* dem `S/A0` genügt nicht — das wurde ebenfalls
+getestet und blieb wirkungslos.
 
 ### Gruppe (`G/`)
 

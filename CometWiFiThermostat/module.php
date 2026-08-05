@@ -283,6 +283,13 @@ class CometWiFiThermostat extends IPSModule
     /**
      * Setzt die Solltemperatur.
      *
+     * ⚠️ Ein `S/A0` ALLEIN bleibt wirkungslos. Das Gerät nimmt den Wert nicht an und meldet
+     *    unmittelbar danach per `V/A0` wieder seinen alten Sollwert zurück — es widerspricht
+     *    also aktiv, statt die Nachricht bloß zu verschlucken. Erst ein direkt folgendes
+     *    `S/AF #FFFFFFFF` bringt es dazu, den Wert zu übernehmen und zu bestätigen. Genau so
+     *    macht es auch die Hersteller-Cloud; im Broker-Protokoll stehen beide Nachrichten in
+     *    derselben Sekunde. Am Gerät belegt (05.08.2026), siehe .docs/protokoll.md.
+     *
      * Der Wert wird sofort in die Variable geschrieben, ohne auf die Bestätigung des Geräts
      * zu warten: Das Thermostat meldet sich erst, wenn es aufwacht — das kann Minuten
      * dauern, und der Schieberegler spränge in der Zwischenzeit sichtbar zurück. Sobald
@@ -313,6 +320,11 @@ class CometWiFiThermostat extends IPSModule
         if (!$this->sendMQTT($topic, $payload)) {
             return false;
         }
+
+        // Ohne diese zweite Nachricht verwirft das Gerät den Sollwert wieder — siehe oben.
+        // Der Rückgabewert wird bewusst nicht geprüft: Der Sollwert ist raus, und ein
+        // fehlgeschlagener Nachzieher wird von sendMQTT() bereits protokolliert.
+        $this->sendRequest(CWIFI_Registers::REQUEST_ALL);
 
         $this->SetValue(CWIFI_Registers::IDENT_SETPOINT, $applied);
         $this->SetBuffer(self::BUFFER_PENDING, $applied . '|' . time());
