@@ -264,6 +264,19 @@
                 {
                     "type": "Label",
                     "caption": "0 schaltet den Hinweis ab."
+                },
+                {
+                    "type": "NumberSpinner",
+                    "name": "ClockSyncDays",
+                    "caption": "Uhr selbsttätig nachstellen alle",
+                    "suffix": "Tage",
+                    "minimum": 0,
+                    "maximum": 90,
+                    "width": "240px"
+                },
+                {
+                    "type": "Label",
+                    "caption": "0 lässt es bleiben — das ist die Vorgabe, denn jedes Stellen weckt ein Batteriegerät. Eingeschaltet wird nur gestellt, wenn die Abweichung über der Hinweisschwelle liegt; und der Zeitpunkt ist je Gerät versetzt, damit nicht zehn Thermostate gleichzeitig aufwachen."
                 }
             ]
         }

@@ -2,6 +2,24 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.8.0] – Uhr nachführen, Kachel warnt
+
+### Neu
+- **Selbsttätige Nachführung der Geräteuhr**, Intervall in Tagen, ab Werk **aus**. Gestellt
+  wird nur, wenn die Abweichung über der Hinweisschwelle liegt — für zwei Minuten ein
+  Batteriegerät zu wecken wäre genau die Betriebsamkeit, die dieses Modul vermeidet. Der
+  Zeitpunkt ist je Gerät aus der MAC versetzt.
+- **Die Kachel meldet eine schief stehende Uhr** und zählt sie zu „braucht Aufmerksamkeit".
+  Schwelle einstellbar, ab Werk 15 Minuten. Eine falsche Uhr verschiebt jeden Schaltpunkt
+  des Wochenprogramms um dieselbe Spanne; das gehört auf die Übersicht und nicht nur ins
+  Formular einer einzelnen Instanz.
+
+### Dokumentiert
+- **Der Uhrbefehl darf nie mit QoS ≥ 1 gesendet werden.** Sonst hält der Broker ihn für ein
+  schlafendes Gerät vor und stellt ihn Stunden später zu — die Uhr ginge dann auf den
+  Zeitpunkt des Absendens und wäre schlechter dran als vorher. Beim Stellen von zehn Geräten
+  traf das eines: Es schlief, die QoS-0-Nachricht wurde verworfen. Genau richtig so.
+
 ## [0.7.1] – Das Stellen ist belegt
 
 ### Bestätigt

@@ -36,8 +36,14 @@
                     "caption": "Reihenfolge",
                     "width": "260px",
                     "options": [
-                        { "caption": "Nach Name", "value": "name" },
-                        { "caption": "Nach Isttemperatur (wärmster zuerst)", "value": "temperature" }
+                        {
+                            "caption": "Nach Name",
+                            "value": "name"
+                        },
+                        {
+                            "caption": "Nach Isttemperatur (wärmster zuerst)",
+                            "value": "temperature"
+                        }
                     ]
                 },
                 {
@@ -67,6 +73,19 @@
                     "minimum": 0,
                     "maximum": 100,
                     "width": "220px"
+                },
+                {
+                    "type": "NumberSpinner",
+                    "name": "ClockWarnMinutes",
+                    "caption": "Geräteuhr melden ab Abweichung",
+                    "suffix": "min",
+                    "minimum": 0,
+                    "maximum": 720,
+                    "width": "240px"
+                },
+                {
+                    "type": "Label",
+                    "caption": "Das Wochenprogramm läuft im Thermostat. Geht dessen Uhr falsch, verschiebt sich jeder Schaltpunkt um dieselbe Spanne. 0 schaltet den Hinweis ab."
                 }
             ]
         },

@@ -240,6 +240,12 @@ nachgewiesen, nicht nur in ihren ersten zwei Byte.
 Nach dem Schreiben `A4` zurückfordern (`S/AF #10000000`): Wie beim Sollwert bestätigt das
 Gerät von sich aus nichts.
 
+**Niemals mit QoS ≥ 1 senden.** Sonst hält der Broker den Befehl für ein schlafendes Gerät
+vor und stellt ihn Stunden später zu — die Uhr ginge dann auf den Zeitpunkt des Absendens und
+wäre schlechter dran als vorher. Bei zehn gestellten Geräten traf das eines: Es schlief, die
+QoS-0-Nachricht wurde verworfen, und beim nächsten Anlauf war es wach. Genau dieses Verhalten
+ist erwünscht — verloren ist besser als veraltet.
+
 Die letzten drei Byte standen auf allen Geräten unbewegt auf `01 01 14` — der 1. Januar 2020,
 der Ruhestand einer nie gestellten Uhr. Dass sich das Datum trotz überschrittener Mitternacht
 nie weiterbewegte, spricht dafür, dass die Geräte es ohne äußeres Stellen gar nicht führen.

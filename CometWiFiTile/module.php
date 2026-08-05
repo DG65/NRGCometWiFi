@@ -26,7 +26,8 @@ class CometWiFiTile extends IPSModule
         CWIFI_Registers::IDENT_RSSI,
         CWIFI_Registers::IDENT_REACHABLE,
         CWIFI_Registers::IDENT_LAST_UPDATE,
-        CWIFI_Registers::IDENT_MODE
+        CWIFI_Registers::IDENT_MODE,
+        CWIFI_Registers::IDENT_CLOCK_DEV
     ];
 
     private const NEWS_VERSION = '0.3';
@@ -43,6 +44,9 @@ class CometWiFiTile extends IPSModule
         $this->RegisterPropertyBoolean('ShowOffline', true);
         $this->RegisterPropertyBoolean('AllowControl', true);
         $this->RegisterPropertyInteger('BatteryWarnBelow', 25);
+        // Eine falsch stehende Geräteuhr verschiebt jeden Schaltpunkt des Wochenprogramms
+        // um dieselbe Spanne — das gehört auf die Kachel, nicht nur ins Formular.
+        $this->RegisterPropertyInteger('ClockWarnMinutes', 15);
         $this->RegisterPropertyString('SortMode', 'name');
 
         $this->RegisterAttributeString(self::ATTR_SEEN_NEWS, '');
@@ -168,6 +172,7 @@ class CometWiFiTile extends IPSModule
     {
         $showOffline = $this->ReadPropertyBoolean('ShowOffline');
         $warnBelow   = $this->ReadPropertyInteger('BatteryWarnBelow');
+        $clockWarn   = $this->ReadPropertyInteger('ClockWarnMinutes');
 
         $rooms   = [];
         $sumTemp = 0.0;
@@ -186,7 +191,11 @@ class CometWiFiTile extends IPSModule
             $last     = (int) $this->valueOf($id, CWIFI_Registers::IDENT_LAST_UPDATE);
 
             $batteryLow = is_numeric($battery) && $battery > 0 && $battery < $warnBelow;
-            if (!$reachable || $batteryLow) {
+
+            $abw       = $this->valueOf($id, CWIFI_Registers::IDENT_CLOCK_DEV);
+            $clockOff  = $clockWarn > 0 && is_numeric($abw) && abs((int) $abw) >= $clockWarn;
+
+            if (!$reachable || $batteryLow || $clockOff) {
                 $issues++;
             }
             if (is_numeric($temp) && $temp > 0) {
@@ -205,6 +214,8 @@ class CometWiFiTile extends IPSModule
                 'endstop'    => is_numeric($setpoint) ? $this->endstopLabel((float) $setpoint) : null,
                 'battery'    => is_numeric($battery) ? (int) $battery : null,
                 'batteryLow' => $batteryLow,
+                'clockOff'   => $clockOff,
+                'clockDev'   => is_numeric($abw) ? (int) $abw : null,
                 'signal'     => $this->valueOf($id, CWIFI_Registers::IDENT_RSSI),
                 'reachable'  => $reachable,
                 'manual'     => (bool) $this->valueOf($id, CWIFI_Registers::IDENT_MODE),

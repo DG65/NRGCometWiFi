@@ -64,6 +64,9 @@ class CometWiFiThermostat extends IPSModule
         // Wochenprogramm in Viertelstunden gedacht ist und darunter niemand etwas merkt.
         $this->RegisterPropertyInteger('ClockWarnMinutes', 15);
         $this->RegisterAttributeInteger(self::ATTR_CLOCK_DEV, 0);
+        // Ab Werk aus: Schreiben weckt ein Batteriegerät, und ob jemand das will, ist eine
+        // Entscheidung und keine Voreinstellung.
+        $this->RegisterPropertyInteger('ClockSyncDays', 0);
         $this->RegisterPropertyBoolean('DebugUnknown', true);
 
         $this->RegisterAttributeString(self::ATTR_SEEN_NEWS, '');
@@ -71,6 +74,7 @@ class CometWiFiThermostat extends IPSModule
 
         $this->RegisterTimer('CWIFI_Poll', 0, 'CWIFI_Poll($_IPS[\'TARGET\']);');
         $this->RegisterTimer('CWIFI_Alive', 0, 'CWIFI_CheckAlive($_IPS[\'TARGET\']);');
+        $this->RegisterTimer('CWIFI_ClockSync', 0, 'CWIFI_SyncClock($_IPS[\'TARGET\']);');
     }
 
     public function ApplyChanges()
@@ -88,6 +92,7 @@ class CometWiFiThermostat extends IPSModule
             $this->SetReceiveDataFilter(CWIFI_Topics::blockingFilter());
             $this->SetTimerInterval('CWIFI_Poll', 0);
             $this->SetTimerInterval('CWIFI_Alive', 0);
+            $this->SetTimerInterval('CWIFI_ClockSync', 0);
             $this->SetStatus($mac === '' ? 201 : 202);
             return;
         }
@@ -653,6 +658,11 @@ class CometWiFiThermostat extends IPSModule
             return false;
         }
 
+        /* Bewusst QoS 0 — und hier ausnahmsweise nicht nur, weil Symcons MQTT-Instanz
+           nichts anderes annimmt: Eine Uhrzeit verdirbt. Läge der Befehl in der Warteschlange
+           des Brokers und erreichte ein schlafendes Gerät erst Stunden später, stellte er
+           die Uhr auf den Zeitpunkt des Absendens — und damit schlimmer als vorher. Verloren
+           ist besser als veraltet; beim nächsten Anlauf ist das Gerät wach. */
         $payload = CWIFI_Registers::encodeClock(time());
         if (!$this->sendMQTT($topic, $payload)) {
             return false;
@@ -802,6 +812,26 @@ class CometWiFiThermostat extends IPSModule
     }
 
     /**
+     * Zeitgesteuerte Nachführung der Geräteuhr.
+     *
+     * Stellt nur, wenn es nötig ist: Steht die Uhr innerhalb der Hinweisschwelle, bleibt das
+     * Gerät in Ruhe. Ein Batteriegerät für eine Korrektur von zwei Minuten zu wecken, wäre
+     * genau die Sorte Betriebsamkeit, die dieses Modul vermeiden soll.
+     */
+    public function SyncClock(): void
+    {
+        if ($this->ReadPropertyInteger('ClockSyncDays') <= 0) {
+            return;
+        }
+        if (!$this->clockOffLimits()) {
+            $this->SendDebug('Uhr-Nachführung', 'Abweichung im Rahmen, nichts zu tun', 0);
+            return;
+        }
+        $this->SendDebug('Uhr-Nachführung', 'Abweichung zu groß, Uhr wird gestellt', 0);
+        $this->SetClock();
+    }
+
+    /**
      * Wachhund gegen stumme Geräte.
      *
      * Der Last Will greift erst nach Ablauf des Keepalive (600 s) und bei einem
@@ -849,6 +879,22 @@ class CometWiFiThermostat extends IPSModule
         }
 
         $this->SetTimerInterval('CWIFI_Alive', 300000);   // 5 Minuten
+
+        // Nachführung der Uhr. Ein Tag ist reichlich: Die Uhren laufen richtig, sie stehen
+        // nur falsch — beobachtet wurde über gut drei Stunden kein messbarer Gang. Der
+        // Versatz aus der MAC verhindert, dass zehn Geräte gleichzeitig geweckt werden.
+        $tage = $this->ReadPropertyInteger('ClockSyncDays');
+        if ($tage <= 0) {
+            $this->SetTimerInterval('CWIFI_ClockSync', 0);
+        } else {
+            $intervall = $tage * 86400;
+            $this->SetTimerInterval('CWIFI_ClockSync', $intervall * 1000);
+            $this->SendDebug(
+                'Uhr-Nachführung',
+                sprintf('alle %d Tage, Versatz %d s', $tage, crc32($mac) % $intervall),
+                0
+            );
+        }
     }
 
     /* ================================================================== Variablen */

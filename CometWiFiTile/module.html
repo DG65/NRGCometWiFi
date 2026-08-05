@@ -99,6 +99,7 @@
     .cw-meta .low { color: #ff8a65; opacity: 1; font-weight: 600; }
     .cw-meta .off { color: #ef5350; opacity: 1; font-weight: 600; }
     .cw-meta .man { color: var(--ui-primary, #4fc3f7); opacity: .95; }
+    .cw-meta .clock { color: #ffb74d; opacity: 1; font-weight: 600; }
 
     .cw-empty { opacity: .6; font-size: .9em; padding: 14px 4px; }
 </style>
@@ -274,6 +275,15 @@
                 var sig = document.createElement('span');
                 sig.textContent = '📶 ' + room.signal + ' dBm';
                 meta.appendChild(sig);
+            }
+
+            if (room.clockOff) {
+                var clk = document.createElement('span');
+                clk.className = 'clock';
+                clk.textContent = '🕒 ' + (room.clockDev > 0 ? '+' : '') + room.clockDev + ' min';
+                clk.title = 'Die Uhr des Geräts geht falsch — das Wochenprogramm im Gerät '
+                    + 'schaltet um diese Spanne versetzt.';
+                meta.appendChild(clk);
             }
 
             if (room.lastText) {
