@@ -2,6 +2,25 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.9.2] – A5 halb entschlüsselt, App als Quelle verworfen
+
+### Erkannt
+- **`S/A5` ist schreibbar** — zweimal geschrieben, zweimal vom Gerät bestätigt.
+- **Aufbau `#<Empfindlichkeit><Dauer>`.** Byte 2 ist die Dauer in Minuten: Die App bietet
+  10–60 min in Zehnerschritten an, alle zehn Geräte tragen `0x0A` = 10.
+- **Byte 1 ist die Empfindlichkeit**, drei Werte beobachtet (`0x04`, `0x0C`, `0x80`). `0x0C`
+  ist „Unempfindlich". Bit 2 und 3 sehen nach einem Stufenfeld aus, Bit 7 nach Abschaltung —
+  als Vermutung markiert, es fehlt ein zweiter benannter Wert.
+
+### Gewarnt
+- **Die Hersteller-App zeigt nicht den Gerätezustand.** Drei nacheinander in der App
+  vorgenommene Änderungen erreichten das Thermostat nicht; die App zeigte sie trotzdem als
+  gültig an, auch nach vollständigem Neustart. Zugleich meldete das Gerät nachweislich einen
+  anderen Wert. Brücken, Rückrichtung und Wartezeit wurden als Ursache ausgeschlossen — jedes
+  Kommando im Mitschnitt stammte aus der eigenen Sitzung.
+- Damit ist die App als Gegenprobe für Registerdeutungen unbrauchbar. Das betrifft rückwirkend
+  jede Aussage, die sich allein auf ihre Anzeige stützt.
+
 ## [0.9.1] – BD durchgemessen
 
 ### Erkannt

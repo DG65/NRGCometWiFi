@@ -315,25 +315,59 @@ Was es dann ist, bleibt offen. Ein Wert nahe 100, der langsam wandert und je Ger
 abweicht, passt zu einer internen Messgröße (Taktgeber, Versorgungsspannung, Referenz) —
 belegt ist davon nichts.
 
-### `A5` — Empfindlichkeit der Lüftungserkennung 🟡
+### `A5` — Lüftungserkennung: Empfindlichkeit und Dauer 🟡
 
-Zwei Byte, das zweite auf allen zehn Geräten `0x0A`. Das erste variiert:
+Zwei Byte: `#<Empfindlichkeit><Dauer>`.
 
-| Wert | Geräte |
-|---|---|
-| `0x04` | acht |
-| `0x0C` | Esszimmer |
-| `0x80` | Wohnzimmer Rechts |
+**`S/A5` ist schreibbar — am Gerät belegt (05.08.2026).** Zweimal geschrieben, zweimal
+unverändert als `V/A5` zurückgemeldet:
 
-Ein Bitfeld also, kein Zahlenwert — `0x04` und `0x0C` unterscheiden sich in einem Bit. Das ist
-das einzige noch unbekannte Register mit einer sichtbaren Entsprechung in der App.
+```
+#0C0A → #040A   angenommen
+#040A → #0428   angenommen
+```
 
-**Unabhängig bestätigt:** Die Home-Assistant-Anbindung von MaxXLive führt `A5` als
-`REG_WINDOW_OPEN`. Die Zuordnung zur Fenster-/Lüftungserkennung stammt damit aus zwei
-Richtungen; die Kodierung der Nutzdaten ist dort aber ebenfalls nicht aufgelöst.
+**Byte 2 ist die Dauer in Minuten.** Die App bietet 10, 20, 30, 40, 50 und 60 Minuten an; alle
+zehn Geräte tragen `0x0A` = 10, die unterste Stufe. Damit passen die sechs Stufen lückenlos auf
+`0x0A` bis `0x3C`. Ein unabhängiges Ablesen des geschriebenen Werts (`0x28` = 40) steht noch
+aus — siehe unten, warum.
 
-**Weg zur Auflösung:** in der App an einem Gerät die Empfindlichkeit der Lüftungserkennung
-über alle Stufen stellen und `A5` dabei mitlesen.
+**Byte 1 ist die Empfindlichkeit**, bisher drei Werte beobachtet:
+
+| Wert | binär | gesehen bei |
+|---|---|---|
+| `0x04` | `00000100` | acht Geräte |
+| `0x0C` | `00001100` | ein Gerät, dort in der App als **„Unempfindlich"** benannt |
+| `0x80` | `10000000` | ein Gerät |
+
+Das legt Bit 2 und 3 als zweistelliges Stufenfeld nahe (`0x00`, `0x04`, `0x08`, `0x0C` = vier
+Stufen) und Bit 7 als Abschaltung. **Vermutung, nicht belegt** — es fehlt die Zuordnung auch
+nur eines zweiten Werts zu einem Namen.
+
+### Warum die Hersteller-App als Gegenprobe ausfällt ⚠️
+
+Der naheliegende Weg — in der App eine Stufe wählen und den Wert mitlesen — hat dreimal
+hintereinander **nicht** funktioniert. Nacheinander „Mittel", „Sehr empfindlich" sowie
+„Mittel + 20 min" eingestellt; das Gerät meldete unverändert den zuvor gesetzten Wert.
+
+Ausgeschlossen wurde:
+
+- **Netz und Brücken.** Alle zehn Brücken zur Hersteller-Cloud antworteten auf Pings.
+- **Fehlende Rückrichtung.** Über die Brücken kommen laufend Nachrichten herein.
+- **Verzögerung.** Auch nach 25 Minuten kam nichts.
+
+Der Mitschnitt zeigt: **Jedes `S/A5` in diesem Zeitraum stammte von der eigenen Client-ID**;
+die `local.…`-Zeilen unmittelbar danach sind die Cloud, die den eigenen Befehl zurückspiegelt.
+Ein von der App ausgelöstes Kommando war nicht darunter.
+
+**Und die App zeigt nicht den Gerätezustand.** Sie meldete „Sehr empfindlich / 10 min",
+während im Thermostat nachweislich `0x04` und 40 Minuten standen — auch nach vollständigem
+Neustart der App. Sie zeigt ihren eigenen Merkzettel beziehungsweise den Stand der Cloud.
+
+**Konsequenz für dieses Modul:** Die App taugt nicht als Beleg für einen Gerätezustand. Wo in
+diesem Dokument „gegen die App geprüft" steht, ist damit immer gemeint: gegen die App **und**
+gegen die Rückmeldung des Geräts. Wer nur die App ansieht, kann sich täuschen — auch außerhalb
+dieses Registers.
 
 ### Wochenprogramm A8–AE ✅
 
