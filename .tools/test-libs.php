@@ -433,7 +433,30 @@ check('A4 Minute 60 ist keine Uhrzeit',  CWIFI_Registers::decodeClock('#3C120101
 check('A4 zu kurz',                      CWIFI_Registers::decodeClock('#21'), null);
 check('A4 kein Hex',                     CWIFI_Registers::decodeClock('#ZZ12010114'), null);
 
+
+/* ------------------------------------------------- Uhr stellen (Gegenstueck) */
+
+// Reihenfolge wie bei A7: Minute, Stunde, Tag, Monat, Jahr.
+check('encodeClock baut den Payload',
+    CWIFI_Registers::encodeClock(mktime(21, 53, 0, 8, 5, 2026)), '#351505081A');
+// mktime(Stunde, Minute, Sekunde, Monat, Tag, Jahr) — hier der 2. Januar 2026, 03:07.
+check('encodeClock einstellige Werte gepolstert',
+    CWIFI_Registers::encodeClock(mktime(3, 7, 0, 1, 2, 2026)), '#070302011A');
+check('encodeClock Mitternacht',
+    CWIFI_Registers::encodeClock(mktime(0, 0, 0, 12, 31, 2026)), '#00001F0C1A');
+
+/* Kodieren und wieder lesen muss dieselbe Uhrzeit ergeben — sonst stimmt eine der beiden
+   Richtungen nicht, und welche, sieht man erst am Geraet. */
+foreach ([[0,0],[7,3],[12,34],[21,53],[23,59]] as [$std, $min]) {
+    $t = mktime($std, $min, 0, 8, 5, 2026);
+    $zurueck = CWIFI_Registers::decodeClock(CWIFI_Registers::encodeClock($t), $t);
+    check(sprintf('Rundreise %02d:%02d Stunde', $std, $min), $zurueck['hour'], $std);
+    check(sprintf('Rundreise %02d:%02d Minute', $std, $min), $zurueck['minute'], $min);
+    check(sprintf('Rundreise %02d:%02d ohne Abweichung', $std, $min), $zurueck['deviation'], 0);
+}
+
 /* ------------------------------------------------------------------ Ergebnis */
+
 
 
 

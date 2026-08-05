@@ -238,6 +238,34 @@
                     "caption": "Unbekannte Register ins Debug-Fenster schreiben"
                 }
             ]
+        },
+        {
+            "type": "ExpansionPanel",
+            "caption": "🕒  Geräteuhr",
+            "expanded": true,
+            "items": [
+                {
+                    "type": "Label",
+                    "caption": "Das Wochenprogramm läuft im Thermostat, nicht in Symcon. Geht die Uhr des Geräts falsch, verschiebt sich jeder Schaltpunkt um dieselbe Spanne — eine Absenkung um 21:00 kommt bei 40 Minuten Vorlauf schon um 20:20."
+                },
+                {
+                    "type": "Label",
+                    "caption": "⚠️  Ob sich die Uhr überhaupt stellen lässt, ist nicht gesichert. Das Register ist beim Lesen belegt, beim Schreiben nicht. Nach dem Stellen wird die Uhr zurückgelesen — bleibt die Abweichung stehen, nimmt das Gerät den Befehl nicht an."
+                },
+                {
+                    "type": "NumberSpinner",
+                    "name": "ClockWarnMinutes",
+                    "caption": "Hinweis ab Abweichung",
+                    "suffix": "min",
+                    "minimum": 0,
+                    "maximum": 720,
+                    "width": "220px"
+                },
+                {
+                    "type": "Label",
+                    "caption": "0 schaltet den Hinweis ab."
+                }
+            ]
         }
     ],
     "actions": [
@@ -251,6 +279,11 @@
             "caption": "Alle Felder anfordern",
             "confirm": "Fordert sämtliche Register des Geräts an. Das weckt das Thermostat spürbar und geht auf die Batterie. Wirklich ausführen?",
             "onClick": "CWIFI_RequestAllFields($id);"
+        },
+        {
+            "type": "Button",
+            "caption": "🕒  Geräteuhr auf Symcon-Zeit stellen",
+            "onClick": "CWIFI_SetClock($id);"
         },
         {
             "type": "Button",
@@ -291,6 +324,11 @@
             "code": 206,
             "icon": "inactive",
             "caption": "Seit längerer Zeit keine Meldung – siehe Variable „Letzte Meldung\"."
+        },
+        {
+            "code": 207,
+            "icon": "inactive",
+            "caption": "Die Uhr des Geräts weicht deutlich von der Symcon-Zeit ab – das Wochenprogramm im Gerät schaltet entsprechend versetzt."
         }
     ]
 }

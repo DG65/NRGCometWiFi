@@ -151,6 +151,28 @@ class CWIFI_Registers
     }
 
     /**
+     * Baut den Payload zum Stellen der Geräteuhr.
+     *
+     * Kehrt `decodeClock()` um und übernimmt die Reihenfolge, die `A7` beim Urlaub
+     * verwendet: Minute, Stunde, Tag, Monat, Jahr — jedes Byte als zwei Hex-Ziffern.
+     *
+     * **Am Gerät nicht belegt.** Dass `A4` gelesen die Uhr ist, steht fest; ob das Gerät
+     * dasselbe Register auch beschreiben lässt, ist ein Versuch. Die Gegenprobe macht der
+     * Aufrufer, indem er `A4` danach zurückliest.
+     */
+    public static function encodeClock(int $timestamp): string
+    {
+        return '#' . strtoupper(sprintf(
+            '%02X%02X%02X%02X%02X',
+            (int) date('i', $timestamp),
+            (int) date('G', $timestamp),
+            (int) date('j', $timestamp),
+            (int) date('n', $timestamp),
+            (int) date('y', $timestamp)
+        ));
+    }
+
+    /**
      * Wandelt eine Geräteauskunft in lesbaren Text.
      *
      * Gibt `null` zurück, wenn sich nichts Sinnvolles ergibt — dann bleibt die Variable

@@ -221,10 +221,13 @@ Das Wochenprogramm läuft **im Gerät**, nicht in Symcon. Jeder Schaltpunkt feue
 diese Spanne zu früh. Wer die Heizzeiten für falsch hält, sollte deshalb zuerst hierher
 sehen. Das Modul führt die Abweichung seit 0.6.0 als eigene Variable.
 
-**Offen bleibt das Stellen.** Der Rundruf auf `02/FFFFFFFF/000000000004/T/B7` blieb wirkungslos
-(siehe offene Frage weiter unten). Solange das nicht gelöst ist, lässt sich die Abweichung nur
-anzeigen, nicht beheben — oder man verzichtet auf das Wochenprogramm im Gerät und schaltet
-aus Symcon heraus.
+**Stellen: `S/A4` mit derselben Kodierung.** Naheliegend, seit die Leserichtung belegt ist —
+der frühere, wirkungslose Versuch lief über den Rundruf `02/FFFFFFFF/000000000004/T/B7`, also
+über ein ganz anderes Register. Das Modul bietet den Befehl ab 0.7.0 als Knopf an und fordert
+die Uhr danach zurück; ob das Gerät ihn annimmt, entscheidet allein diese Rückmeldung.
+
+Nimmt es ihn nicht an, bleibt nur, auf das Wochenprogramm im Gerät zu verzichten und aus
+Symcon heraus zu schalten — dort stimmt die Uhr.
 
 Die letzten drei Byte sind auf allen Geräten `01 01 14` und bewegen sich nicht, obwohl die
 Uhren längst über Mitternacht gelaufen sind. Als Datum gelesen wäre das der 1. Januar 2020 —

@@ -2,6 +2,25 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.7.0] – Die Uhr stellen
+
+### Neu
+- **Knopf „Geräteuhr auf Symcon-Zeit stellen"** (`CWIFI_SetClock`). Sendet `S/A4` in der
+  Kodierung, die beim Lesen belegt ist, und fordert die Uhr unmittelbar danach zurück —
+  erst die Rückmeldung entscheidet.
+  - **Ausdrücklich ein Versuch.** Dass `A4` gelesen die Uhr ist, steht fest; ob das Gerät
+    dasselbe Register beschreiben lässt, nicht. Der Hinweis steht im Formular, damit
+    niemand die Funktion für gesichert hält.
+  - Bewusst ein Knopf und kein Zeitgeber: Jeder Schreibvorgang weckt ein Batteriegerät.
+- **Hinweis bei schief stehender Uhr** (Status 207, Schwelle einstellbar, ab Werk 15 min).
+
+### Behoben
+- **Der Hinweis hätte keine Minute überlebt.** `markAlive()` setzt bei jeder eingehenden
+  Gerätemeldung auf „aktiv" zurück — ein dort gesetzter Status wäre von der nächsten
+  Temperaturmeldung weggewischt worden. Die Prüfung sitzt jetzt in `refreshStatus()`, wo
+  auch die übrigen bleibenden Zustände entschieden werden. Aufgefallen ist es nur, weil der
+  erste Prüfstand dazu die eingebaute Sabotage **nicht** bemerkt hat.
+
 ## [0.6.1] – Abgleich mit fremden Umsetzungen
 
 ### Dokumentiert

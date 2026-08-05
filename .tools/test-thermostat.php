@@ -600,7 +600,54 @@ foreach (['A7', 'A8', 'AE', 'A3', 'A2', 'B1'] as $reg) {
 deliver($device, BASE . '/V/BE', '#FF6300');
 check('Unbekanntes Register behaelt die Rohfassung', $device->GetValue('RAW_BE'), '#FF6300');
 
+
+/* ==================================================== Uhr stellen */
+
+$device = makeDevice();
+IPSTestState::$sentPackets = [];
+checkTrue('SetClock meldet Erfolg', $device->SetClock());
+
+$pakete = IPSTestState::$sentPackets;
+check('SetClock sendet zwei Nachrichten', count($pakete), 2);
+check('erste geht auf S/A4',   $pakete[0]['Topic'], BASE . '/S/A4');
+checkTrue('Payload ist eine Uhrzeit', CWIFI_Registers::decodeClock($pakete[0]['Payload']) !== null);
+check('Abweichung der gesendeten Zeit ist null',
+    CWIFI_Registers::decodeClock($pakete[0]['Payload'])['deviation'], 0);
+// Ohne den Nachzieher bestaetigt das Geraet nichts — dasselbe gilt beim Sollwert.
+check('zweite fordert A4 zurueck', $pakete[1]['Topic'], BASE . '/S/AF');
+checkTrue('Kommandos NIE mit Retain', $pakete[0]['Retain'] === false && $pakete[1]['Retain'] === false);
+
+// Ohne MAC gibt es kein Topic und damit auch keinen Sendeversuch.
+$device = makeDevice(['MAC' => '']);
+IPSTestState::$sentPackets = [];
+checkTrue('Ohne MAC kein Uhrbefehl', !$device->SetClock());
+check('Ohne MAC wird nichts gesendet', count(IPSTestState::$sentPackets), 0);
+
+/* Der Hinweis auf eine schief stehende Uhr muss kommen und wieder verschwinden. */
+$device = makeDevice(['ClockWarnMinutes' => 15]);
+$weit = date('H', time() + 3600 * 3) * 60 + (int) date('i');
+deliver($device, BASE . '/V/A4', sprintf('#%02X%02X010114',
+    (int) date('i', time() + 10800), (int) date('G', time() + 10800)));
+check('Weit abweichende Uhr meldet Status 207', $device->GetStatus(), 207);
+
+/* Der eigentliche Fallstrick: markAlive() setzt bei JEDER Meldung auf aktiv zurueck. Ein
+   Hinweis, der die naechste Temperaturmeldung nicht ueberlebt, ist praktisch unsichtbar. */
+deliver($device, BASE . '/V/A1', '#33');
+check('Hinweis ueberlebt eine folgende Gerätemeldung', $device->GetStatus(), 207);
+
+deliver($device, BASE . '/V/A4', sprintf('#%02X%02X010114', (int) date('i'), (int) date('G')));
+checkTrue('Richtig stehende Uhr nimmt den Hinweis zurueck', $device->GetStatus() !== 207);
+deliver($device, BASE . '/V/A1', '#33');
+checkTrue('und er kommt auch nicht zurueck', $device->GetStatus() !== 207);
+
+// Abgeschaltet heisst abgeschaltet.
+$device = makeDevice(['ClockWarnMinutes' => 0]);
+deliver($device, BASE . '/V/A4', sprintf('#%02X%02X010114',
+    (int) date('i', time() + 10800), (int) date('G', time() + 10800)));
+checkTrue('Schwelle 0 meldet nichts', $device->GetStatus() !== 207);
+
 /* ------------------------------------------------------------------ Ergebnis */
+
 
 
 

@@ -25,6 +25,9 @@ class CometWiFiThermostat extends IPSModule
     private const ATTR_SEEN_NEWS  = 'SeenNews';
     private const ATTR_HINT_GONE  = 'ReviewHintDismissed';
 
+    /** Letzte gemeldete Uhrabweichung in Minuten — siehe clockOffLimits(). */
+    private const ATTR_CLOCK_DEV = 'LastClockDeviation';
+
     private const BUFFER_PENDING  = 'PendingSetpoint';
     private const BUFFER_RECENT   = 'RecentMessages';
     private const BUFFER_SCHEDULE = 'ScheduleDays';
@@ -57,6 +60,10 @@ class CometWiFiThermostat extends IPSModule
         $this->RegisterPropertyInteger('TimeoutMinutes', 180);
         $this->RegisterPropertyBoolean('ForceManualOnSet', true);
         $this->RegisterPropertyBoolean('RawRegisters', false);
+        // Ab dieser Abweichung meldet die Instanz einen Hinweis. 15 Minuten, weil das
+        // Wochenprogramm in Viertelstunden gedacht ist und darunter niemand etwas merkt.
+        $this->RegisterPropertyInteger('ClockWarnMinutes', 15);
+        $this->RegisterAttributeInteger(self::ATTR_CLOCK_DEV, 0);
         $this->RegisterPropertyBoolean('DebugUnknown', true);
 
         $this->RegisterAttributeString(self::ATTR_SEEN_NEWS, '');
@@ -358,8 +365,9 @@ class CometWiFiThermostat extends IPSModule
             true
         );
         $this->SetValue(CWIFI_Registers::IDENT_CLOCK_DEV, $clock['deviation']);
+        $this->WriteAttributeInteger(self::ATTR_CLOCK_DEV, $clock['deviation']);
 
-        if (abs($clock['deviation']) >= 15) {
+        if ($this->clockOffLimits()) {
             $this->SendDebug(
                 'Geräteuhr',
                 sprintf('%02d:%02d — %+d min gegenüber Symcon. Das Wochenprogramm schaltet entsprechend versetzt.',
@@ -367,6 +375,8 @@ class CometWiFiThermostat extends IPSModule
                 0
             );
         }
+        // Weicher Status, den auch die nächste Gerätemeldung nicht wegwischt.
+        $this->refreshStatus();
     }
 
     /**
@@ -479,9 +489,25 @@ class CometWiFiThermostat extends IPSModule
     {
         $this->SetValue(CWIFI_Registers::IDENT_LAST_UPDATE, time());
         $this->SetValue(CWIFI_Registers::IDENT_REACHABLE, true);
-        if ($this->GetStatus() !== IS_ACTIVE) {
-            $this->SetStatus(IS_ACTIVE);
+        $this->refreshStatus();
+    }
+
+    /**
+     * Weicht die zuletzt gemeldete Geräteuhr weiter ab als eingestellt?
+     *
+     * Der Wert kommt aus einem Attribut und nicht aus der Variable: `GetIDForIdent` wirft,
+     * solange die Variable noch nicht angelegt ist, und das ist bei einer frischen Instanz
+     * bis zum ersten Voll-Dump der Normalfall. Nach einem Modul-Neuladen steht hier eine 0,
+     * bis das Gerät die Uhr das nächste Mal meldet — ein zu optimistischer Anfangszustand
+     * ist besser als eine Warnung ohne Datengrundlage.
+     */
+    private function clockOffLimits(): bool
+    {
+        $grenze = $this->ReadPropertyInteger('ClockWarnMinutes');
+        if ($grenze <= 0) {
+            return false;
         }
+        return abs($this->ReadAttributeInteger(self::ATTR_CLOCK_DEV)) >= $grenze;
     }
 
     /* ===================================================================== Senden */
@@ -606,6 +632,35 @@ class CometWiFiThermostat extends IPSModule
             return false;
         }
         $this->sendRequest(CWIFI_Registers::requestFields(CWIFI_Registers::REG_HOLIDAY));
+        return true;
+    }
+
+    /**
+     * Stellt die Uhr des Geräts auf die Symcon-Zeit.
+     *
+     * Der Nutzen ist nicht kosmetisch: Das Wochenprogramm läuft im Gerät, und eine falsch
+     * stehende Uhr verschiebt jeden Schaltpunkt um dieselbe Spanne.
+     *
+     * **Ein Versuch, keine gesicherte Funktion.** Dass `A4` gelesen die Uhr ist, ist belegt;
+     * ob das Gerät das Register auch beschreiben lässt, ist es nicht. Deshalb wird `A4`
+     * unmittelbar danach zurückgefordert — erst die Rückmeldung entscheidet, und die neue
+     * Abweichung steht dann in der Variable.
+     */
+    public function SetClock(): bool
+    {
+        $topic = $this->topicFor(CWIFI_Registers::REG_CLOCK);
+        if ($topic === '') {
+            return false;
+        }
+
+        $payload = CWIFI_Registers::encodeClock(time());
+        if (!$this->sendMQTT($topic, $payload)) {
+            return false;
+        }
+        $this->SendDebug('Geräteuhr stellen', $payload . ' -> ' . $topic, 0);
+
+        // A4 liegt in der A0-A7-Maske, ein gezielter Nachzieher genügt.
+        $this->sendRequest(CWIFI_Registers::requestFields(CWIFI_Registers::REG_CLOCK));
         return true;
     }
 
@@ -1187,6 +1242,13 @@ class CometWiFiThermostat extends IPSModule
         $last = $this->GetValue(CWIFI_Registers::IDENT_LAST_UPDATE);
         if (!is_int($last) || $last === 0) {
             $this->SetStatus(205);
+            return;
+        }
+        // Muss hier stehen und nicht dort, wo die Uhr ankommt: Sonst wischt die nächste
+        // Gerätemeldung über markAlive() den Hinweis wieder weg. Das Gerät ist ja
+        // erreichbar — nur seine Schaltzeiten stimmen nicht.
+        if ($this->clockOffLimits()) {
+            $this->SetStatus(207);
             return;
         }
         $this->SetStatus(IS_ACTIVE);
