@@ -81,8 +81,8 @@ class CometWiFiThermostat extends IPSModule
         }
 
         $base = CWIFI_Topics::base($this->ReadPropertyString('TopicPrefix'), $user, $mac);
-        $this->SetReceiveDataFilter(CWIFI_Topics::receiveFilter($base, true));
-        $this->SendDebug('Empfangsfilter', $base . '/…', 0);
+        $this->SetReceiveDataFilter(CWIFI_Topics::receiveFilter($mac));
+        $this->SendDebug('Empfangsfilter', 'auf MAC ' . $mac . ', erwartetes Topic ' . $base . '/…', 0);
 
         $this->applyTimers($mac);
 

@@ -130,20 +130,26 @@ check(
 
 /* -------------------------------------------------------- 5. Empfangsfilter */
 
-// Der Filter läuft gegen das rohe JSON-Datenpaket, dort sind Schrägstriche escaped.
-$filter  = CWIFI_Topics::receiveFilter($base, true);
-$packet  = json_encode(['Topic' => $base . '/V/A0', 'Payload' => '#2C'], JSON_UNESCAPED_SLASHES);
+// Entscheidend: Der Filter muss unter BEIDEN JSON-Schreibweisen greifen. Ob Symcon die
+// Schrägstriche im Datenpaket escaped, ist nicht zugesichert — eine Filterfassung mit
+// Schrägstrichen traf am Zielsystem nie zu, und die Instanz empfing schlicht nichts,
+// ohne jede Fehlermeldung.
+$plain   = json_encode(['Topic' => $base . '/V/A0', 'Payload' => '#2C'], JSON_UNESCAPED_SLASHES);
 $escaped = json_encode(['Topic' => $base . '/V/A0', 'Payload' => '#2C']);   // mit \/
 $foreign = json_encode(['Topic' => '02/AABBCCDD/AABBCCDDEEFF/V/A0', 'Payload' => '#2C']);
 
-check('Filter trifft eigenes Topic (escaped JSON)', preg_match('~' . $filter . '~',$escaped), 1);
-check('Filter trifft fremdes Gerät nicht', preg_match('~' . $filter . '~',$foreign), 0);
+$filter = CWIFI_Topics::receiveFilter($mac);
+check('Gerätefilter trifft bei escapten Schrägstrichen', preg_match('~' . $filter . '~', $escaped), 1);
+check('Gerätefilter trifft bei nackten Schrägstrichen', preg_match('~' . $filter . '~', $plain), 1);
+check('Gerätefilter trifft fremdes Gerät nicht', preg_match('~' . $filter . '~', $foreign), 0);
+check('Filter enthält keinen Schrägstrich', strpos($filter, '/'), false);
 check('Blockierfilter trifft nie', preg_match('~' . CWIFI_Topics::blockingFilter() . '~', $escaped), 0);
 
-// Konfigurator-Filter: alle MACs unter demselben Benutzer.
-$cfgFilter = CWIFI_Topics::receiveFilter($prefix . '/' . $user . '/', false);
-check('Konfigurator-Filter trifft Gerät A', preg_match('~' . $cfgFilter . '~', $escaped), 1);
-check('Konfigurator-Filter trifft Gerät B', preg_match('~' . $cfgFilter . '~', $foreign), 1);
+// Konfigurator filtert auf die Kontokennung und sieht damit alle Geräte des Kontos.
+$cfgFilter = CWIFI_Topics::receiveFilter($user);
+check('Konfiguratorfilter trifft Gerät A (escaped)', preg_match('~' . $cfgFilter . '~', $escaped), 1);
+check('Konfiguratorfilter trifft Gerät A (nackt)', preg_match('~' . $cfgFilter . '~', $plain), 1);
+check('Konfiguratorfilter trifft Gerät B', preg_match('~' . $cfgFilter . '~', $foreign), 1);
 
 /* ------------------------------------------------------- 6. Temperatur-Dekodierung */
 

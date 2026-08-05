@@ -129,22 +129,25 @@ class CWIFI_Topics
     /**
      * Baut den regulären Ausdruck für SetReceiveDataFilter().
      *
-     * Zwei Eigenheiten, die schon Zeit gekostet haben:
-     *  - Der Filter arbeitet auf dem rohen JSON-Datenpaket, dort sind die Schrägstriche
-     *    escaped ("02\/AABBCCDD\/...").
-     *  - Ohne den Anker '"Topic":"' könnte auch ein Payload-Inhalt zufällig zutreffen.
+     * Der Filter läuft gegen das rohe JSON-Datenpaket, nicht gegen das fertig zerlegte
+     * Topic. Ob Symcon die Schrägstriche darin escaped (`02\/AABBCCDD\/…`) oder nicht, ist
+     * nicht zugesichert — eine Fassung, die Schrägstriche enthielt, traf deshalb nie zu und
+     * die Instanz empfing schlicht gar nichts, ohne jede Fehlermeldung.
      *
-     * @param string $topicStart Topic-Anfang, auf den gefiltert werden soll.
-     * @param bool   $exactChild true = nur direkte Unter-Topics (Basis-Topic eines Geräts),
-     *                           false = alles, was mit diesem Anfang beginnt (Konfigurator).
+     * Deshalb wird hier ausschließlich auf ein **schrägstrichfreies** Merkmal gefiltert:
+     * die MAC beim Gerät, die Kontokennung beim Konfigurator. Beides sind Hex-Zeichenketten,
+     * die unter beiden Schreibweisen gleich aussehen.
+     *
+     * Der Filter ist bewusst nur eine Vorauswahl, keine Prüfung: Welche Nachricht wirklich
+     * zu dieser Instanz gehört, entscheidet `split()` bzw. `macFromTopic()` in `ReceiveData`
+     * anhand des tatsächlichen Topics. Ein zufälliger Treffer im Nutzdatenteil kostet damit
+     * nur einen verworfenen Aufruf, er kann keinen falschen Wert setzen.
+     *
+     * @param string $marker Schrägstrichfreies Erkennungsmerkmal (MAC oder Kontokennung).
      */
-    public static function receiveFilter(string $topicStart, bool $exactChild): string
+    public static function receiveFilter(string $marker): string
     {
-        // preg_quote OHNE Trennzeichen-Argument: Schrägstriche bleiben unangetastet und
-        // werden anschließend gezielt ersetzt. Mit '/' als Trennzeichen käme '\/' heraus,
-        // was die folgende Ersetzung zu '\\\/' verstümmeln würde.
-        $quoted = str_replace('/', '\\\\/', preg_quote($topicStart));
-        return '.*"Topic":"' . $quoted . ($exactChild ? '\\\\/' : '') . '.*';
+        return '.*' . preg_quote($marker) . '.*';
     }
 
     /** Filter, der nie zutrifft — für unvollständig konfigurierte Instanzen. */

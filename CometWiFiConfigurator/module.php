@@ -64,9 +64,8 @@ class CometWiFiConfigurator extends IPSModule
         }
 
         // Anders als beim Gerät bewusst OHNE MAC: Wir wollen alle Geräte dieses Kontos sehen.
-        $head = $this->ReadPropertyString('TopicPrefix') . '/' . $user . '/';
-        $this->SetReceiveDataFilter(CWIFI_Topics::receiveFilter($head, false));
-        $this->SendDebug('Empfangsfilter', $head . '…', 0);
+        $this->SetReceiveDataFilter(CWIFI_Topics::receiveFilter($user));
+        $this->SendDebug('Empfangsfilter', 'auf Kontokennung ' . $user, 0);
 
         // Gesammeltes wird im Arbeitsspeicher gehalten und nur gelegentlich weggeschrieben —
         // ein Attributschreiben je Nachricht wäre bei mehreren Geräten ein Dauerfeuer.
