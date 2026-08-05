@@ -11,7 +11,7 @@ Payload als eine Variable mit einer erfundenen Bedeutung. Ein falsch gedeutetes 
 im Zweifel die Tasten eines Thermostats in einem bewohnten Haus, ein falsch gedeuteter Offset
 zeigt 20 K daneben — beides ist schlechter als eine ehrliche Lücke.
 
-`docs/protokoll.md` ist die **einzige** Quelle der Wahrheit über das Protokoll. Wer etwas
+`.docs/protokoll.md` ist die **einzige** Quelle der Wahrheit über das Protokoll. Wer etwas
 Neues entschlüsselt, trägt es dort mit Status (✅ verifiziert / 🟡 vermutet / ❓ unbekannt) und
 Quelle ein, **bevor** es in den Code wandert. Beim Statuswechsel 🟡 → ✅ gehört die Begründung
 dazu, nicht nur das Häkchen.
@@ -127,7 +127,7 @@ Vollständig in `../EMS/SUITE.md`, hier nur die für dieses Repo relevanten:
   Nutzer, oder nur für Dietmars Installation?" Konkret hier: Der Benutzername `AABBCCDD` ist
   **Dietmars** Kontokennung, nicht die aller Nutzer — er steht als Vorbelegung im Feld, muss
   aber als „bei Ihnen möglicherweise anders" gekennzeichnet sein. Ebenso die IP-Bereiche und
-  MAC-Adressen: die gehören in `docs/protokoll.md` als Beispiel, nicht ins Formular.
+  MAC-Adressen: die gehören in `.docs/protokoll.md` als Beispiel, nicht ins Formular.
 
 ## Prüfstände
 
@@ -169,5 +169,5 @@ EMS-Sitzung nutzt).
   Mitlesen, was die Geräte senden:
   `docker logs -f <broker-container>` bzw.
   `mosquitto_sub -h <broker> -u <benutzer> -P <passwort> -t '#' -v`.
-  Die konkreten Adressen der eigenen Installation stehen in `docs/anlage-dietmar.md`
+  Die konkreten Adressen der eigenen Installation stehen in `.docs/anlage-dietmar.md`
   (nicht im Repository).

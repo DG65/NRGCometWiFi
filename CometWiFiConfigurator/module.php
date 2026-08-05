@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-require_once __DIR__ . '/../libs/CWIFI_Topics.php';
-require_once __DIR__ . '/../libs/CWIFI_Registers.php';
-require_once __DIR__ . '/../libs/CWIFI_MQTT.php';
+require_once __DIR__ . '/../.libs/CWIFI_Topics.php';
+require_once __DIR__ . '/../.libs/CWIFI_Registers.php';
+require_once __DIR__ . '/../.libs/CWIFI_MQTT.php';
 
 /**
  * Findet Comet-WiFi-Thermostate durch reines Mithören.

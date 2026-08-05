@@ -26,7 +26,7 @@ Erste Fassung. Die Bibliotheken und beide Modulklassen sind durch Prüfstände a
   (ab Werk aus, wirkt auf alle Geräte im Netz)
 
 ### Protokoll
-- `docs/protokoll.md` als einzige Quelle der Wahrheit, getrennt nach verifiziert / vermutet /
+- `.docs/protokoll.md` als einzige Quelle der Wahrheit, getrennt nach verifiziert / vermutet /
   unbekannt
 - **Schreibkodierung `S/A0` am Gerät belegt** (05.08.2026): `#` + zwei Hex-Ziffern in
   Großschreibung, Wert = Temperatur × 2. Nachgewiesen durch Mitschnitt eines aus der

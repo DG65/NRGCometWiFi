@@ -9,7 +9,7 @@ Teil des **NRG-Stack** — welche Modulstände zusammenpassen, steht im
 > ⚠️ **Reines Reverse Engineering.** Eurotronic dokumentiert das Protokoll nicht. Dieses Modul
 > stützt sich auf eigene Mitschnitten und Foren-Wissen. Ein Firmware-Update des Herstellers
 > kann es jederzeit brechen. Was genau als gesichert gilt und was nicht, steht in
-> [`docs/protokoll.md`](docs/protokoll.md).
+> [`.docs/protokoll.md`](.docs/protokoll.md).
 
 ## Enthaltene Module
 

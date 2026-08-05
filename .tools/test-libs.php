@@ -18,8 +18,8 @@ define('VARIABLETYPE_INTEGER', 1);
 define('VARIABLETYPE_FLOAT', 2);
 define('VARIABLETYPE_STRING', 3);
 
-require_once __DIR__ . '/../libs/CWIFI_Topics.php';
-require_once __DIR__ . '/../libs/CWIFI_Registers.php';
+require_once __DIR__ . '/../.libs/CWIFI_Topics.php';
+require_once __DIR__ . '/../.libs/CWIFI_Registers.php';
 
 $failed = 0;
 $passed = 0;
