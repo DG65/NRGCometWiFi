@@ -20,7 +20,7 @@
 
     .cw-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(182px, 1fr));
         gap: 8px;
     }
 
@@ -43,15 +43,29 @@
         text-overflow: ellipsis;
     }
 
-    .cw-temp { display: flex; align-items: baseline; gap: 6px; }
+    /* Ist und Soll tragen beide ein Etikett. Ohne das liest sich die grosse Zahl
+       als Sollwert — und ein Endanschlag daneben („An") sieht nicht wie eine
+       Temperatur aus, wodurch der Sollwert zu fehlen scheint. */
+    .cw-temp { display: flex; align-items: baseline; gap: 5px; }
+    .cw-temp .lbl { font-size: .72em; opacity: .55; text-transform: uppercase; letter-spacing: .04em; }
     .cw-temp .is { font-size: 1.5em; font-weight: 600; line-height: 1; }
-    .cw-temp .soll { font-size: .82em; opacity: .7; }
-    .cw-temp .soll b { font-weight: 600; opacity: 1; }
+    .cw-temp .unit { font-size: .8em; opacity: .6; }
+
+    .cw-soll { display: flex; align-items: baseline; gap: 5px; font-size: .88em; }
+    .cw-soll .lbl { font-size: .82em; opacity: .55; text-transform: uppercase; letter-spacing: .04em; }
+    .cw-soll b { font-weight: 600; }
 
     .cw-bar {
         display: flex;
         align-items: center;
         gap: 6px;
+    }
+    .cw-bar .lbl {
+        flex: 0 0 auto;
+        font-size: .72em;
+        opacity: .55;
+        text-transform: uppercase;
+        letter-spacing: .04em;
     }
     .cw-bar button {
         flex: 0 0 auto;
@@ -110,6 +124,13 @@
         return cwFmt(room.setpoint) + ' °C';
     }
 
+    /* Wer „An" liest, soll erfahren koennen, was das Geraet dabei tut. */
+    function cwSetpointHint(room) {
+        if (room.endstop === 'An')  { return 'Endanschlag: Ventil ganz auf (28,5)'; }
+        if (room.endstop === 'Aus') { return 'Endanschlag: Ventil ganz zu (7,5)'; }
+        return 'Solltemperatur';
+    }
+
     function cwStep(room, delta) {
         if (!CW.control) { return; }
         var base = room.setpoint === null ? 20 : room.setpoint;
@@ -156,25 +177,53 @@
 
             var name = document.createElement('div');
             name.className = 'cw-name';
-            name.textContent = room.name;
+            name.textContent = room.shortName || room.name;
             name.title = room.name;
             card.appendChild(name);
 
             var temp = document.createElement('div');
             temp.className = 'cw-temp';
+            temp.title = 'Gemessene Raumtemperatur';
+            var istLbl = document.createElement('span');
+            istLbl.className = 'lbl';
+            istLbl.textContent = 'Ist';
+            temp.appendChild(istLbl);
             var is = document.createElement('span');
             is.className = 'is';
-            is.textContent = room.temp === null ? '–' : cwFmt(room.temp) + '°';
+            is.textContent = room.temp === null ? '–' : cwFmt(room.temp);
             temp.appendChild(is);
-            var soll = document.createElement('span');
-            soll.className = 'soll';
-            soll.innerHTML = 'Soll <b>' + cwSetpointText(room) + '</b>';
-            temp.appendChild(soll);
+            if (room.temp !== null) {
+                var unit = document.createElement('span');
+                unit.className = 'unit';
+                unit.textContent = '°C';
+                temp.appendChild(unit);
+            }
             card.appendChild(temp);
+
+            // Der Sollwert erscheint genau einmal: in der Bedienleiste, sonst als eigene Zeile.
+            if (!CW.control) {
+                var sollRow = document.createElement('div');
+                sollRow.className = 'cw-soll';
+                sollRow.title = cwSetpointHint(room);
+                var sollLbl = document.createElement('span');
+                sollLbl.className = 'lbl';
+                sollLbl.textContent = 'Soll';
+                sollRow.appendChild(sollLbl);
+                var sollVal = document.createElement('b');
+                sollVal.textContent = cwSetpointText(room);
+                sollRow.appendChild(sollVal);
+                card.appendChild(sollRow);
+            }
 
             if (CW.control) {
                 var bar = document.createElement('div');
                 bar.className = 'cw-bar';
+                bar.title = cwSetpointHint(room);
+
+                var barLbl = document.createElement('span');
+                barLbl.className = 'lbl';
+                barLbl.textContent = 'Soll';
+                bar.appendChild(barLbl);
 
                 var minus = document.createElement('button');
                 minus.textContent = '−';

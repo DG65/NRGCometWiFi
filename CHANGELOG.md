@@ -2,6 +2,28 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.4.1] – Ist und Soll auseinanderhalten
+
+### Behoben
+- **Die Isttemperatur trug kein Etikett.** Sie stand als große Zahl allein, daneben „Soll An" —
+  und weil „An" nicht wie eine Temperatur aussieht, las sich die Karte so, als wäre die große
+  Zahl der Sollwert und der echte Sollwert fehle. Beide Werte sind jetzt beschriftet. Die
+  Daten waren nie falsch, nur nicht als das erkennbar, was sie sind.
+- **Der Sollwert stand doppelt** — einmal in der Kopfzeile, einmal in der Bedienleiste. Er
+  erscheint jetzt genau einmal: in der Bedienleiste, oder als eigene Zeile, wenn die
+  Bedienung abgeschaltet ist.
+- **Ein gemeinsamer Wortanfang aller Gerätenamen wird ausgeblendet.** Heißen alle Instanzen
+  „Thermostat …", fraß das wiederholte Wort genau den Platz, der zur Unterscheidung fehlte;
+  aus „Thermostat Hauswirt…" wird „Hauswirtschaft". Der volle Name bleibt als Tooltip.
+- Karten etwas breiter, damit längere Raumnamen ohne Abschneiden hineinpassen.
+
+### Neu
+- Endanschläge erklären sich beim Überfahren: „Ventil ganz auf (28,5)" statt nur „An".
+- **Prüfstand für die Kachel** (32 Prüfungen) — prüft Ist und Soll als getrennte Felder und
+  fällt durch, wenn sie vertauscht werden. Gegengeprobt durch eingebaute Vertauschung.
+- `.tools/ips-stub.php` kennt jetzt auch die Visualisierungs- und Nachrichtenmethoden des SDK
+  sowie fremde Variablen anderer Instanzen.
+
 ## [0.4.0] – Kachel
 
 ### Neu

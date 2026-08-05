@@ -19,6 +19,7 @@ define('KL_WARNING', 2);
 define('KL_NOTIFY', 1);
 define('KL_MESSAGE', 0);
 define('IS_INACTIVE', 104);
+define('VM_UPDATE', 10603);
 
 define('VARIABLETYPE_BOOLEAN', 0);
 define('VARIABLETYPE_INTEGER', 1);
@@ -39,12 +40,29 @@ class IPSTestState
     public static array $debug        = [];
     public static array $logMessages  = [];
 
+    /** Fremde Variablen anderer Instanzen: objectId => ['instance'=>int,'ident'=>string,'value'=>mixed] */
+    public static array $objects = [];
+    /** Zuletzt an die Visualisierung geschickte Nutzlast. */
+    public static ?string $visualization = null;
+    public static array $registeredMessages = [];
+
     public static function reset(): void
     {
-        self::$instances   = [];
-        self::$sentPackets = [];
-        self::$debug       = [];
-        self::$logMessages = [];
+        self::$instances         = [];
+        self::$sentPackets       = [];
+        self::$debug             = [];
+        self::$logMessages       = [];
+        self::$objects           = [];
+        self::$visualization     = null;
+        self::$registeredMessages = [];
+    }
+
+    /** Legt eine Variable an einer fremden Instanz an und gibt ihre Objekt-ID zurück. */
+    public static function addObject(int $instanceId, string $ident, $value): int
+    {
+        $objectId = 10000 + count(self::$objects) + 1;
+        self::$objects[$objectId] = ['instance' => $instanceId, 'ident' => $ident, 'value' => $value];
+        return $objectId;
     }
 }
 
@@ -82,6 +100,35 @@ function IPS_GetInstanceListByModuleID(string $guid): array
         }
     }
     return $ids;
+}
+
+/**
+ * Liefert false, wenn es den Ident nicht gibt — genau wie das Original. Die Module fragen
+ * mit @ davor ab und prüfen auf false; ein Stub, der stattdessen 0 liefert, würde diesen
+ * Pfad nie testen.
+ */
+function IPS_GetObjectIDByIdent(string $ident, int $parentId)
+{
+    foreach (IPSTestState::$objects as $objectId => $object) {
+        if ($object['instance'] === $parentId && $object['ident'] === $ident) {
+            return $objectId;
+        }
+    }
+    return false;
+}
+
+function GetValue(int $objectId)
+{
+    if (!isset(IPSTestState::$objects[$objectId])) {
+        trigger_error('Variable ' . $objectId . ' existiert nicht', E_USER_WARNING);
+        return null;
+    }
+    return IPSTestState::$objects[$objectId]['value'];
+}
+
+function SetValue(int $objectId, $value): void
+{
+    IPSTestState::$objects[$objectId]['value'] = $value;
 }
 
 function IPS_GetProperty(int $id, string $name)
@@ -426,10 +473,33 @@ abstract class IPSModule
 
     protected function RegisterMessage(int $senderId, int $message): void
     {
+        IPSTestState::$registeredMessages[$senderId][$message] = true;
     }
 
     protected function UnregisterMessage(int $senderId, int $message): void
     {
+        unset(IPSTestState::$registeredMessages[$senderId][$message]);
+        if (empty(IPSTestState::$registeredMessages[$senderId])) {
+            unset(IPSTestState::$registeredMessages[$senderId]);
+        }
+    }
+
+    protected function GetMessageList(): array
+    {
+        $list = [];
+        foreach (IPSTestState::$registeredMessages as $senderId => $messages) {
+            $list[$senderId] = array_keys($messages);
+        }
+        return $list;
+    }
+
+    protected function SetVisualizationType(int $type): void
+    {
+    }
+
+    protected function UpdateVisualizationValue(string $value): void
+    {
+        IPSTestState::$visualization = $value;
     }
 
     protected function RegisterReference(int $id): void

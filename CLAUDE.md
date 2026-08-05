@@ -163,9 +163,10 @@ Vollständig in `../EMS/SUITE.md`, hier nur die für dieses Repo relevanten:
 ## Prüfstände
 
 ```
-php .tools/test-libs.php           # Topic-Bau, MAC-Normalisierung, Dekodierung  (124)
-php .tools/test-thermostat.php     # Empfangs- und Sendepfad des Geräts           (91)
-php .tools/test-configurator.php   # Erkennung, Instanz-Zuordnung, Zeitsync       (57)
+php .tools/test-libs.php           # Topic-Bau, MAC-Normalisierung, Dekodierung   (190)
+php .tools/test-thermostat.php     # Empfangs- und Sendepfad des Geräts          (135)
+php .tools/test-configurator.php   # Erkennung, Instanz-Zuordnung, Zeitsync        (57)
+php .tools/test-tile.php           # Kachel-Nutzlast: Ist/Soll, Namen, Ausfälle    (32)
 ```
 
 `.tools/ips-stub.php` bildet so viel IP-Symcon nach (Properties, Attribute, Buffer, Variablen,

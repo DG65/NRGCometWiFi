@@ -197,6 +197,7 @@ class CometWiFiTile extends IPSModule
             $rooms[] = [
                 'id'         => $id,
                 'name'       => IPS_GetName($id),
+                'shortName'  => '',                 // wird unten gefüllt
                 'temp'       => (is_numeric($temp) && $temp > 0) ? round((float) $temp, 1) : null,
                 'setpoint'   => is_numeric($setpoint) ? round((float) $setpoint, 1) : null,
                 // „Aus" und „An" sind Endanschläge, keine Temperaturen — die Kachel muss das
@@ -212,6 +213,8 @@ class CometWiFiTile extends IPSModule
             ];
         }
 
+        $this->shortenNames($rooms);
+
         return json_encode([
             'rooms'    => $rooms,
             'average'  => $counted > 0 ? round($sumTemp / $counted, 1) : null,
@@ -222,6 +225,45 @@ class CometWiFiTile extends IPSModule
             'minTemp'  => CWIFI_Registers::SETPOINT_OFF,
             'maxTemp'  => CWIFI_Registers::SETPOINT_ON
         ]);
+    }
+
+    /**
+     * Kürzt einen gemeinsamen Wortanfang aus allen Namen heraus.
+     *
+     * Heißen alle Instanzen „Thermostat Wohnzimmer Links" und so weiter, frisst das
+     * wiederholte Wort genau den Platz, der zur Unterscheidung fehlt — auf einer Kachel
+     * mit schmalen Karten ist das der Unterschied zwischen lesbar und abgeschnitten.
+     * Greift nur bei mindestens zwei Geräten und lässt den vollen Namen als Tooltip stehen.
+     */
+    private function shortenNames(array &$rooms): void
+    {
+        if (count($rooms) < 2) {
+            foreach ($rooms as &$room) {
+                $room['shortName'] = $room['name'];
+            }
+            return;
+        }
+
+        $wordLists = [];
+        foreach ($rooms as $room) {
+            $wordLists[] = preg_split('/\s+/', trim($room['name'])) ?: [];
+        }
+
+        $common = 0;
+        $first  = $wordLists[0];
+        while ($common < count($first) - 1) {          // nie den letzten Rest wegkürzen
+            $word = $first[$common];
+            foreach ($wordLists as $words) {
+                if (count($words) <= $common + 1 || strcasecmp($words[$common], $word) !== 0) {
+                    break 2;
+                }
+            }
+            $common++;
+        }
+
+        foreach ($rooms as $i => &$room) {
+            $room['shortName'] = implode(' ', array_slice($wordLists[$i], $common));
+        }
     }
 
     private function endstopLabel(float $setpoint): ?string
