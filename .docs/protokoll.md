@@ -88,7 +88,7 @@ Kodierung ist je Register verschieden und muss einzeln bestimmt werden.
 | `A3` | Optionen-Bitfeld: Tastensperre / Sommerzeit / Displaydrehung | `#200700` `#220500` `#230400` `#270000` | 🟡 | Foren; Bitzuordnung **nicht reproduziert** |
 | `A4` | unbekannt | 11-Byte-Payload | ❓ | live 04.08.2026 |
 | `A5` | Fenster-offen-Erkennung + Empfindlichkeit | `#140A` / `#040A`, Nibbles `#X80` `#X08` `#X0C` | 🟡 | Foren; Empfindlichkeits-Schema unstimmig |
-| `A6` | Batteriestand | — | 🟡 | Foren; **hex oder dezimal offen**, siehe unten |
+| `A6` | Batteriestand in Prozent | `#5F` = 95 % | ✅ | live, 10 Geräte 05.08.2026 |
 | `A7` | Urlaubsmodus | — | 🟡 | Foren |
 | `A8`–`AE` | Wochenprogramm (7 Tage) | — | ❓ | Foren; Format nicht dekodiert |
 | `AF` | Antwort auf Datenabruf | `#0014` | 🟡 | live |
@@ -125,10 +125,10 @@ Kodierung ist je Register verschieden und muss einzeln bestimmt werden.
    also `#` + 2 Zeichen), keine Zusatzbytes. Die Cloud sendet mit QoS 0 und `retain=0`.
    Wir senden bewusst mit QoS 1 (die Geräte haben `cleanSession=0`, der Broker hält die
    Nachricht damit für ein schlafendes Gerät vor) — `retain` bleibt wie bei der Cloud aus.
-2. **`A6` hex oder dezimal?** `#64` wäre hex 100 %, dezimal 64 %. Dass `B3` nachweislich
-   dezimal ist, verbietet den Umkehrschluss „alles außer B3 ist hex".
-   **Beweis ohne Raten:** Enthält ein `A6`-Payload je ein Zeichen `A`–`F`, ist Hex bewiesen
-   (dezimal unmöglich). Bis dahin bleibt die Umschaltung im Formular stehen.
+2. ~~**`A6` hex oder dezimal?**~~ — **erledigt am 05.08.2026.** Hex bewiesen: Über zehn
+   Geräte hinweg erscheinen Werte wie 85 %, 90 %, 95 % und 100 %. Als Dezimalzahlen gelesen
+   wären das die Payloads `#85`/`#90`/`#95` — die Umschaltung im Formular bleibt trotzdem
+   stehen, falls eine andere Firmware es anders hält.
 3. **Ventilstellung** — in keinem Register gefunden. Die Zigbee-Variante (SPZB0001) liefert
    sie, das WiFi-Modell offenbar nicht. Nicht erfinden.
 4. **Realer Sollwertbereich** — `#39` = 28,5 °C wurde live gesehen. Ob es Sonderwerte für
