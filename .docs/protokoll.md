@@ -180,7 +180,7 @@ sie kommen nur bei einem ohnehin stattfindenden Voll-Dump mit und kosten keine B
 | `B0` | `#U000000000000` / `#S<MAC>` | Gruppenzuordnung, siehe eigener Abschnitt | ✅ |
 | `AF` `B4` `B5` `B7` `BB` `BC` | `#0014` `#00000000` `#FF` `#00` `#00` `#FF` | Konstanten, siehe unten | ❓ |
 | `BE` | `#FF6300` / `#FF6400` / `#FF6200` | unbekannt, langsam wandernder Messwert — siehe unten | ❓ |
-| `BD` | `#0800` (alle zehn Geräte) | unbekannt. Eine fremde Umsetzung deutet Byte 1 als Batterie (Skala 0–8) — hier widerlegt, siehe Abgleich | ❓ |
+| `BD` | `#0800` / `#0840` | Bit 6 folgt der einfachen Tastensperre — siehe eigener Abschnitt | 🟡 |
 
 **Bestandsaufnahme über zehn Geräte (05.08.2026).** `AF`, `B4`, `B5`, `B7`, `BB` und `BC`
 tragen auf allen zehn Geräten denselben Wert. Das Modul legt sie ab 0.8.1 bzw. 0.9.0 nicht
@@ -260,6 +260,32 @@ ist erwünscht — verloren ist besser als veraltet.
 Die letzten drei Byte standen auf allen Geräten unbewegt auf `01 01 14` — der 1. Januar 2020,
 der Ruhestand einer nie gestellten Uhr. Dass sich das Datum trotz überschrittener Mitternacht
 nie weiterbewegte, spricht dafür, dass die Geräte es ohne äußeres Stellen gar nicht führen.
+
+### `BD` — Bit 6 folgt der einfachen Tastensperre 🟡
+
+Am Esszimmer-Thermostat durchgeschaltet (05.08.2026), jede Stufe mit `A3` als Kontrolle
+zurückgelesen:
+
+| Tastensperre | `A3` | gesetzte Bits | `BD` |
+|---|---|---|---|
+| aus | `#2182` | DST, Hand | `#0800` |
+| **ein** | `#2582` | DST, **Sperre** (`0x04`), Hand | **`#0840`** |
+| plus | `#2982` | DST, **Sperre plus** (`0x08`), Hand | `#0800` |
+
+Das Bit ist **kein flüchtiger Ereignismerker**: Bei eingeschalteter Sperre stand `#0840` auch
+nach 20 Sekunden noch. Und es ist **kein Zeitproblem**: Bei „plus" blieb `BD` auch nach 33
+Sekunden auf `#0800`.
+
+**Ein Spiegel der Einstellung ist es damit nicht.** Ein solcher müsste bei „plus" ebenfalls
+anschlagen — die Sperre ist dort ja strenger, nicht schwächer. `BD` bildet also etwas Engeres
+ab als den Zustand von `A3`. Was genau, ist offen; das früher einmal beobachtete `#0806` passt
+in keine der drei hier gemessenen Stufen.
+
+Als Variable wird das nicht geführt: Es ist gegenüber `KeyLock` redundant und obendrein
+unvollständig. Der Befund steht hier, damit ihn niemand ein zweites Mal erarbeiten muss.
+
+Nebenbei bestätigt der Versuch die Bitbelegung von `A3` noch einmal vollständig — `0x04` und
+`0x08` schließen einander wie dokumentiert aus.
 
 ### `BE` — langsam wandernder Messwert ❓
 

@@ -2,6 +2,19 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.9.1] – BD durchgemessen
+
+### Erkannt
+- **`BD` Bit 6 folgt der einfachen Tastensperre — und nur ihr.** Am Esszimmer-Thermostat alle
+  drei Stufen durchgeschaltet, jede mit `A3` als Kontrolle zurückgelesen: „ein" ergibt
+  `#0840`, „plus" und „aus" ergeben `#0800`. Kein flüchtiger Merker (nach 20 s unverändert)
+  und kein Zeitproblem (bei „plus" auch nach 33 s unverändert).
+- **Ein Spiegel der Einstellung ist es damit nicht** — der müsste bei „plus" erst recht
+  anschlagen. `BD` bildet etwas Engeres ab als `A3`. Wird bewusst **nicht** als Variable
+  geführt: gegenüber `KeyLock` redundant und dabei unvollständig.
+- Der Versuch bestätigt nebenbei die Bitbelegung von `A3` vollständig: `0x04` und `0x08`
+  schließen einander aus, wie dokumentiert.
+
 ## [0.9.0] – AF, BD und BE geklärt, soweit es geht
 
 ### Erkannt
