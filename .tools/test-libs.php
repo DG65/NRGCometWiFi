@@ -396,7 +396,45 @@ foreach (CWIFI_Registers::INFO_REGISTERS as $reg => $eintrag) {
         count($eintrag) === 2 && $eintrag[0] !== '' && $eintrag[1] !== '', true);
 }
 
+
+/* ==================================================== Geräteuhr A4 ✅
+ *
+ * Belegt durch zwei Messungen desselben Geräts: 17:51:42 -> #2112010114 (18:33),
+ * 21:11:39 -> #3515010114 (21:53). Verstrichen 3 h 19 min 57 s, Zunahme 3 h 20 min.
+ */
+
+$bezug = mktime(21, 11, 39, 8, 5, 2026);
+$uhr   = CWIFI_Registers::decodeClock('#3515010114', $bezug);
+check('A4 Stunde',     $uhr['hour'],   21);
+check('A4 Minute',     $uhr['minute'], 53);
+check('A4 Abweichung', $uhr['deviation'], 42);
+
+$bezug = mktime(17, 51, 42, 8, 5, 2026);
+$uhr   = CWIFI_Registers::decodeClock('#2112010114', $bezug);
+check('A4 frueherer Messwert, Stunde', $uhr['hour'],   18);
+check('A4 frueherer Messwert, Minute', $uhr['minute'], 33);
+// Dieselbe Uhr, dieselbe Abweichung — das ist der eigentliche Nachweis.
+check('A4 Abweichung bleibt ueber Stunden gleich', $uhr['deviation'], 42);
+
+// Kind 2 laeuft um mehr als neun Stunden vor.
+$bezug = mktime(21, 10, 0, 8, 5, 2026);
+check('A4 grosse Abweichung', CWIFI_Registers::decodeClock('#2206010114', $bezug)['deviation'], 564);
+
+/* Ueber Mitternacht muss der kuerzere Weg gewaehlt werden: Eine Uhr, die 23:58 zeigt,
+   waehrend es 00:02 ist, geht vier Minuten nach — nicht 23 Stunden 56 Minuten vor. */
+$bezug = mktime(0, 2, 0, 8, 5, 2026);
+check('A4 Mitternacht rueckwaerts', CWIFI_Registers::decodeClock('#3A17010114', $bezug)['deviation'], -4);
+$bezug = mktime(23, 58, 0, 8, 5, 2026);
+check('A4 Mitternacht vorwaerts',   CWIFI_Registers::decodeClock('#0200010114', $bezug)['deviation'], 4);
+
+// Was keine Uhrzeit sein kann, darf nicht als eine durchgehen.
+check('A4 Stunde 24 ist keine Uhrzeit',  CWIFI_Registers::decodeClock('#0018010114'), null);
+check('A4 Minute 60 ist keine Uhrzeit',  CWIFI_Registers::decodeClock('#3C12010114'), null);
+check('A4 zu kurz',                      CWIFI_Registers::decodeClock('#21'), null);
+check('A4 kein Hex',                     CWIFI_Registers::decodeClock('#ZZ12010114'), null);
+
 /* ------------------------------------------------------------------ Ergebnis */
+
 
 
 echo "\n";

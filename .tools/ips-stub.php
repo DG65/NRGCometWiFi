@@ -218,6 +218,15 @@ abstract class IPSModule
     }
 
     /** Nur für den Prüfstand: Property setzen wie im Formular. */
+    /**
+     * Legt eine Variable von außen an — für Prüfstände, die einen Altzustand herstellen
+     * müssen (etwa eine verwaiste RAW_-Variable aus einer früheren Modulversion).
+     */
+    public function TEST_MaintainVariable(string $ident, string $caption, int $type, $presentation, int $position, bool $keep): void
+    {
+        $this->MaintainVariable($ident, $caption, $type, $presentation, $position, $keep);
+    }
+
     public function TEST_SetProperty(string $name, $value): void
     {
         $this->properties[$name] = $value;

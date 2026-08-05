@@ -76,6 +76,27 @@ class CWIFI_Registers
      * kommen nur bei einem Voll-Dump mit — deshalb kosten sie keine zusätzliche Batterie,
      * sie fallen bei ohnehin stattfindenden Abrufen mit ab.
      */
+    /**
+     * Echtzeituhr des Geräts. Format `MM HH TT MM JJ`, dieselbe Reihenfolge wie `A7`.
+     *
+     * Am Gerät belegt (05.08.2026): Zwei Messungen desselben Thermostats im Abstand von
+     * 3 h 19 min 57 s ergaben 18:33 und 21:53 — eine Zunahme von 3 h 20 min, auf drei
+     * Sekunden genau. Gegenprobe über zehn Geräte: Jedes lieferte eine gültige Uhrzeit,
+     * und die Abweichung zur echten Zeit blieb je Gerät über Stunden auf ±1 Minute stabil.
+     *
+     * Die Uhren laufen also richtig, stehen aber falsch — zwischen 24 und 60 Minuten vor,
+     * eines um über neun Stunden. Das ist keine Kosmetik: Das Wochenprogramm läuft im
+     * Gerät, nicht in Symcon, und schaltet entsprechend zu früh.
+     *
+     * Die letzten drei Byte sind auf allen Geräten `01 01 14` und bewegen sich nicht,
+     * obwohl die Uhr längst über Mitternacht gelaufen ist. Als Datum gelesen wäre das der
+     * 1. Januar 2020; bewiesen ist das nicht, und für die Uhrzeit spielt es keine Rolle.
+     */
+    public const REG_CLOCK = 'A4';
+
+    public const IDENT_CLOCK     = 'DeviceClock';
+    public const IDENT_CLOCK_DEV = 'ClockDeviation';
+
     public const REG_GROUP    = 'B0';
     public const REG_MODEL    = 'B1';
     public const REG_FIRMWARE = 'B2';
@@ -99,6 +120,35 @@ class CWIFI_Registers
         self::REG_AP       => [self::IDENT_AP,       'Wi-Fi access point'],
         self::REG_SECURITY => [self::IDENT_SECURITY, 'Wi-Fi encryption']
     ];
+
+    /**
+     * Liest die Geräteuhr aus `A4`.
+     *
+     * Gibt `['hour','minute','deviation']` zurück, die Abweichung in Minuten gegenüber
+     * `$now`. Ungültige Werte ergeben `null` — eine Stunde über 23 oder eine Minute über 59
+     * ist keine Uhrzeit, und dann ist die Deutung falsch und nicht die Uhr.
+     */
+    public static function decodeClock(string $payload, ?int $now = null): ?array
+    {
+        $body = ltrim($payload, '#');
+        if (strlen($body) < 4 || !ctype_xdigit(substr($body, 0, 4))) {
+            return null;
+        }
+        $minute = hexdec(substr($body, 0, 2));
+        $hour   = hexdec(substr($body, 2, 2));
+        if ($minute > 59 || $hour > 23) {
+            return null;
+        }
+
+        $now   = $now ?? time();
+        $istMin = (int) date('H', $now) * 60 + (int) date('i', $now);
+        $abw    = ($hour * 60 + $minute) - $istMin;
+        // Über Mitternacht auf den kürzeren Weg normieren: +23 h heißt in Wahrheit -1 h.
+        if ($abw < -720) { $abw += 1440; }
+        if ($abw >  720) { $abw -= 1440; }
+
+        return ['hour' => $hour, 'minute' => $minute, 'deviation' => $abw];
+    }
 
     /**
      * Wandelt eine Geräteauskunft in lesbaren Text.

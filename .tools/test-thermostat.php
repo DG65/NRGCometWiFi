@@ -228,16 +228,17 @@ check('Urlaub loeschen sendet neun FF',
 
 /* ================================================== 3. Rohdaten und Unbekanntes */
 
-// A4 ist noch nicht gedeutet - anders als A3, das seit dem App-Mitschnitt entschluesselt
-// ist und deshalb NICHT mehr im Rohpfad landen darf.
+// BE ist noch nicht gedeutet. Dieser Platzhalter musste schon zweimal weiterziehen — erst
+// war es A3, dann A4, beide sind inzwischen entschluesselt. Wer das naechste Register deutet,
+// waehlt hier eines aus, das noch offen ist (siehe .docs/protokoll.md).
 $device = makeDevice(['RawRegisters' => false]);
-deliver($device, BASE . '/V/A4', '#3B11010114');
-checkTrue('Ohne Rohdatenerfassung keine RAW-Variable', !isset($device->variables['RAW_A4']));
+deliver($device, BASE . '/V/BE', '#FF6300');
+checkTrue('Ohne Rohdatenerfassung keine RAW-Variable', !isset($device->variables['RAW_BE']));
 
 $device = makeDevice(['RawRegisters' => true]);
-deliver($device, BASE . '/V/A4', '#3B11010114');
-checkTrue('Mit Rohdatenerfassung entsteht RAW_A4', isset($device->variables['RAW_A4']));
-check('RAW_A4 enthält den unveränderten Payload', $device->GetValue('RAW_A4'), '#3B11010114');
+deliver($device, BASE . '/V/BE', '#FF6300');
+checkTrue('Mit Rohdatenerfassung entsteht RAW_BE', isset($device->variables['RAW_BE']));
+check('RAW_BE enthält den unveränderten Payload', $device->GetValue('RAW_BE'), '#FF6300');
 
 // Gedeutete Register duerfen NICHT zusaetzlich als Rohwert auftauchen.
 deliver($device, BASE . '/V/A3', '#2182');
@@ -563,7 +564,44 @@ $device = makeDevice();
 deliver($device, BASE . '/V/B2', '#322E372E312E30');
 checkTrue('Auskunft gilt als Lebenszeichen', $device->GetValue('Reachable') === true);
 
+
+/* ==================================================== Geräteuhr und alte Rohwerte */
+
+$device = makeDevice(['RawRegisters' => true]);
+deliver($device, BASE . '/V/A4', '#3515010114');
+
+check('Geraeteuhr als Text', $device->GetValue('DeviceClock'), '21:53');
+checkTrue('Uhrabweichung ist eine Zahl', is_int($device->GetValue('ClockDeviation')));
+checkTrue('A4 landet nicht mehr im Rohpfad', !isset($device->variables['RAW_A4']));
+
+// Unlesbares faellt zurueck in den Rohpfad, statt eine falsche Uhrzeit zu behaupten.
+$device = makeDevice(['RawRegisters' => true]);
+deliver($device, BASE . '/V/A4', '#0018010114');       // Stunde 24
+checkTrue('Ungueltige Uhr erzeugt keine Uhrvariable', !isset($device->variables['DeviceClock']));
+check('Ungueltige Uhr landet im Rohpfad', $device->GetValue('RAW_A4'), '#0018010114');
+
+/* Verwaiste Rohwerte aus aelteren Versionen muessen verschwinden, sobald das Register
+   wieder ankommt. Der Ausgangszustand wird hier kuenstlich hergestellt. */
+$device = makeDevice(['RawRegisters' => true]);
+foreach (['A7', 'A8', 'AE', 'A3', 'A2', 'B1'] as $reg) {
+    $device->TEST_MaintainVariable('RAW_' . $reg, 'Alt', VARIABLETYPE_STRING, '', 100, true);
+}
+deliver($device, BASE . '/V/A7', '#0C1F071A0C10081A32');
+deliver($device, BASE . '/V/A8', '#062C09E4176C1FA4');
+deliver($device, BASE . '/V/AE', '#E2ACF924');
+deliver($device, BASE . '/V/A3', '#2000000000000000');
+deliver($device, BASE . '/V/A2', '#00');
+deliver($device, BASE . '/V/B1', '#436F6D65742057696669205665722E20362E31');
+foreach (['A7', 'A8', 'AE', 'A3', 'A2', 'B1'] as $reg) {
+    checkTrue('Verwaister RAW_' . $reg . ' ist weg', !isset($device->variables['RAW_' . $reg]));
+}
+
+// Ein wirklich unbekanntes Register behaelt seine Rohfassung.
+deliver($device, BASE . '/V/BE', '#FF6300');
+check('Unbekanntes Register behaelt die Rohfassung', $device->GetValue('RAW_BE'), '#FF6300');
+
 /* ------------------------------------------------------------------ Ergebnis */
+
 
 
 echo "\n";

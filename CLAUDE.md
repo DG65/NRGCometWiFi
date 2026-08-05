@@ -163,8 +163,8 @@ Vollständig in `../EMS/SUITE.md`, hier nur die für dieses Repo relevanten:
 ## Prüfstände
 
 ```
-php .tools/test-libs.php           # Topic-Bau, MAC-Normalisierung, Dekodierung   (190)
-php .tools/test-thermostat.php     # Empfangs- und Sendepfad des Geräts          (135)
+php .tools/test-libs.php           # Topic-Bau, MAC-Normalisierung, Dekodierung   (224)
+php .tools/test-thermostat.php     # Empfangs- und Sendepfad des Geräts          (163)
 php .tools/test-configurator.php   # Erkennung, Instanz-Zuordnung, Zeitsync        (57)
 php .tools/test-tile.php           # Kachel-Nutzlast: Ist/Soll, Namen, Ausfälle    (32)
 ```
@@ -185,6 +185,10 @@ auffällt. Genau so wurden hier schon drei Lücken gefunden:
   gefüllt war: `refreshStatus()` lief nur bei `ApplyChanges()`, nicht beim Fund.
 - Rückgabetypen schwankten zwischen `int` und `float`, weil PHPs `/` bei glatt teilbaren
   Ganzzahlen ein `int` liefert.
+- Der Platzhalter für „noch unbekanntes Register" musste zweimal weiterziehen: erst `A3`,
+  dann `A4` — beide sind inzwischen entschlüsselt, und der Test brach jeweils erst beim
+  nächsten Lauf. Wer ein Register deutet, sucht in `.tools/test-thermostat.php` nach dem
+  Rohpfad-Abschnitt und wählt dort eines, das laut `.docs/protokoll.md` noch offen ist.
 
 ## Testen am Live-System
 

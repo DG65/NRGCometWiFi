@@ -2,6 +2,28 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.6.0] – Die Uhr im Gerät
+
+### Neu
+- **`A4` ist die Echtzeituhr des Geräts** — belegt, nicht vermutet. Zwei Messungen desselben
+  Thermostats im Abstand von 3 h 19 min 57 s ergaben eine Zunahme von 3 h 20 min; über zehn
+  Geräte blieb die Abweichung zur echten Zeit je Gerät stundenlang auf ±1 Minute stabil.
+  Format `MM HH TT MM JJ`, dieselbe Reihenfolge wie beim Urlaub.
+- **Geräteuhr und Uhrabweichung als Variablen.** Die Abweichung ist der eigentliche Nutzwert:
+  Das Wochenprogramm läuft im Gerät, nicht in Symcon, und schaltet um genau diese Spanne
+  versetzt. An einer Anlage mit zehn Geräten lagen die Uhren zwischen 24 Minuten und über
+  neun Stunden vor. Wer seine Heizzeiten für falsch hält, sieht jetzt sofort, woran es liegt.
+- **Verwaiste Rohwerte verschwinden.** Register, die inzwischen eine belegte Deutung haben,
+  räumen ihre `RAW_`-Variable beim nächsten Empfang ab. In gewachsenen Instanzen standen
+  `RAW_A7` und `RAW_A8`–`RAW_AE` noch neben dem längst entschlüsselten Urlaub und
+  Wochenprogramm — zwei Variablen für denselben Wert, von denen die ältere obendrein
+  aktueller aussah.
+
+### Zurückgenommen
+- **Die Rücknahme der Uhr-Deutung aus 0.3.0 war selbst falsch.** Sie stützte sich darauf, dass
+  ein Zeit-Rundruf ohne Wirkung blieb — das sagt aber nur, dass sich die Uhr über diesen Kanal
+  nicht stellen lässt, nicht dass es keine ist. Das Stellen bleibt offen.
+
 ## [0.5.0] – Geräteauskunft in Klarschrift
 
 ### Neu

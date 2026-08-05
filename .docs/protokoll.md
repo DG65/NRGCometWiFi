@@ -188,26 +188,47 @@ Einstellung abbilden — was immer sie bedeuten, sie sind für dieses Modul wert
 weiter verfolgen. `BE` variiert dagegen leicht (Byte 2 zwischen `0x61` und `0x64`), ist also
 gerätespezifisch und bleibt einen Blick wert.
 
-### `A4` — frei laufende Uhr? 🟡
+### `A4` — Uhr des Geräts ✅
 
-Aufbau über zehn Geräte, alle im selben Zeitfenster empfangen:
+Format `MM HH TT MM JJ`, dieselbe Reihenfolge wie `A7`. Byte 1 ist die Minute, Byte 2 die
+Stunde.
 
-| Gerät | Byte 1 | Byte 2 | Rest |
-|---|---|---|---|
-| acht Geräte | 15–58, je Gerät verschieden | `0x12` (18) | `01 01 14` |
-| Kind 2 | 14 | `0x03` (3) | `01 01 14` |
-| Windfang | 13 | `0x14` (20) | `01 01 14` |
+**Am Gerät belegt (05.08.2026).** Zwei Messungen desselben Thermostats:
 
-Die letzten drei Byte sind auf allen zehn Geräten identisch. Liest man sie als Datum in der
-Reihenfolge, die `A7` verwendet, ergibt `01 01 14` den **1. Januar 2020** — der typische
-Ruhestand einer nie gestellten Echtzeituhr. Byte 2 wäre dann die Stunde: Acht Geräte stimmen
-überein, und die beiden Ausreißer sind genau die mit abweichender Einschaltgeschichte
-(Windfang kam zuletzt ans Netz).
+| Empfangen | Payload | ergibt |
+|---|---|---|
+| 17:51:42 | `#2112010114` | 18:33 |
+| 21:11:39 | `#3515010114` | 21:53 |
 
-**Nicht belegt.** Dafür bräuchte es zwei Messungen desselben Geräts mit bekanntem Abstand —
-läuft Byte 1 im Minutentakt, ist die Deutung erledigt. Der batteriefreie Weg dahin: die
-Variable `RAW_A4` archivieren und die Werte auflaufen lassen, die Geräte senden das Register
-von sich aus.
+Verstrichen sind 3 h 19 min 57 s, der Wert nahm um 3 h 20 min zu — auf drei Sekunden genau.
+Gegenprobe über zehn Geräte: Jedes lieferte eine gültige Uhrzeit, und die Abweichung zur
+echten Zeit blieb je Gerät über mehr als drei Stunden auf ±1 Minute stabil.
+
+Damit ist auch die frühere Rücknahme erledigt: `A4` **ist** eine Uhr. Der damalige Schluss
+war falsch, weil er aus einem misslungenen Stellversuch gezogen wurde — dass sich die Uhr
+über den erprobten Kanal nicht stellen ließ, sagt nichts darüber, ob es eine ist.
+
+**Die praktische Bedeutung ist erheblich.** Die Uhren laufen richtig, stehen aber falsch:
+
+| Gerät | Abweichung |
+|---|---|
+| fünf Geräte | +41 bis +43 min |
+| zwei Geräte | +24 bis +25 min |
+| je eines | +31 min · +60 min |
+| eines | **+9 h 24 min** |
+
+Das Wochenprogramm läuft **im Gerät**, nicht in Symcon. Jeder Schaltpunkt feuert um genau
+diese Spanne zu früh. Wer die Heizzeiten für falsch hält, sollte deshalb zuerst hierher
+sehen. Das Modul führt die Abweichung seit 0.6.0 als eigene Variable.
+
+**Offen bleibt das Stellen.** Der Rundruf auf `02/FFFFFFFF/000000000004/T/B7` blieb wirkungslos
+(siehe offene Frage weiter unten). Solange das nicht gelöst ist, lässt sich die Abweichung nur
+anzeigen, nicht beheben — oder man verzichtet auf das Wochenprogramm im Gerät und schaltet
+aus Symcon heraus.
+
+Die letzten drei Byte sind auf allen Geräten `01 01 14` und bewegen sich nicht, obwohl die
+Uhren längst über Mitternacht gelaufen sind. Als Datum gelesen wäre das der 1. Januar 2020 —
+bewiesen ist das nicht, und für die Uhrzeit spielt es keine Rolle.
 
 ### `A5` — Empfindlichkeit der Lüftungserkennung 🟡
 

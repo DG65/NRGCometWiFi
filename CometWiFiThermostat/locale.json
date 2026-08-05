@@ -37,7 +37,9 @@
             "Firmware": "Firmware",
             "IP address": "IP-Adresse",
             "Wi-Fi access point": "WLAN-Zugangspunkt",
-            "Wi-Fi encryption": "WLAN-Verschlüsselung"
+            "Wi-Fi encryption": "WLAN-Verschlüsselung",
+            "Device clock": "Geräteuhr",
+            "Clock deviation": "Uhrabweichung"
         }
     }
 }

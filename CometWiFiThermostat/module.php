@@ -167,6 +167,12 @@ class CometWiFiThermostat extends IPSModule
 
         $this->markAlive();
 
+        // Muss VOR die Weichen: Urlaub, Wochenprogramm, Optionen und Offset springen unten
+        // jeweils mit return heraus. Wird das Register überhaupt gedeutet, ist eine
+        // Rohfassung daneben überflüssig — und aus früheren Versionen liegen genau solche
+        // verwaisten Variablen in den Instanzen herum.
+        $this->dropStaleRaw($register);
+
         // Optionen und Offset haben ein eigenes Format und stehen deshalb nicht in der
         // allgemeinen Registertabelle.
         if ($register === CWIFI_Registers::REG_OPTIONS) {
@@ -187,6 +193,11 @@ class CometWiFiThermostat extends IPSModule
             if ($value !== null) {
                 $this->SetValue(CWIFI_Registers::IDENT_OFFSET, $value);
             }
+            return;
+        }
+
+        if (strtoupper($register) === CWIFI_Registers::REG_CLOCK) {
+            $this->handleClock($payload);
             return;
         }
 
@@ -279,6 +290,86 @@ class CometWiFiThermostat extends IPSModule
     }
 
     /**
+     * Entfernt die Rohfassung eines Registers, sobald es eine belegte Deutung hat.
+     *
+     * Zwei Variablen für denselben Wert können sich widersprechen, und die ältere gewinnt
+     * dabei optisch: Sie steht weiter oben und trägt einen Zeitstempel, der nach Aktualität
+     * aussieht. Läuft bei jedem Empfang; `MaintainVariable` mit `false` ist auf eine bereits
+     * fehlende Variable wirkungslos.
+     */
+    private function dropStaleRaw(string $register): void
+    {
+        $reg = strtoupper($register);
+        $entschluesselt = $reg === CWIFI_Registers::REG_CLOCK
+            || $reg === CWIFI_Registers::REG_OPTIONS
+            || $reg === CWIFI_Registers::REG_OFFSET
+            || $reg === CWIFI_Registers::REG_HOLIDAY
+            || isset(CWIFI_Registers::INFO_REGISTERS[$reg])
+            || in_array($reg, CWIFI_Registers::SCHEDULE_REGISTERS, true)
+            || CWIFI_Registers::byRegister($reg) !== null;
+
+        if (!$entschluesselt) {
+            return;
+        }
+        $ident = 'RAW_' . preg_replace('/[^0-9A-Z]/', '', $reg);
+        if ($ident !== 'RAW_') {
+            $this->MaintainVariable($ident, '', VARIABLETYPE_STRING, '', 0, false);
+        }
+    }
+
+    /**
+     * Geräteuhr aus `A4` — und vor allem, wie weit sie danebenliegt.
+     *
+     * Die Abweichung ist der eigentliche Nutzwert: Das Wochenprogramm läuft im Gerät und
+     * schaltet um genau diese Spanne zu früh oder zu spät. Ohne die Anzeige sucht man den
+     * Fehler beim Programm statt bei der Uhr.
+     */
+    private function handleClock(string $payload): void
+    {
+        $clock = CWIFI_Registers::decodeClock($payload);
+        if ($clock === null) {
+            $this->SendDebug('Geräteuhr', 'nicht lesbar: ' . $payload, 0);
+            $this->handleUnknownRegister(CWIFI_Registers::REG_CLOCK, $payload);
+            return;
+        }
+
+        $this->MaintainVariable(
+            CWIFI_Registers::IDENT_CLOCK,
+            $this->Translate('Device clock'),
+            VARIABLETYPE_STRING,
+            ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION],
+            97,
+            true
+        );
+        $this->SetValue(
+            CWIFI_Registers::IDENT_CLOCK,
+            sprintf('%02d:%02d', $clock['hour'], $clock['minute'])
+        );
+
+        $this->MaintainVariable(
+            CWIFI_Registers::IDENT_CLOCK_DEV,
+            $this->Translate('Clock deviation'),
+            VARIABLETYPE_INTEGER,
+            [
+                'PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION,
+                'SUFFIX'       => ' min'
+            ],
+            98,
+            true
+        );
+        $this->SetValue(CWIFI_Registers::IDENT_CLOCK_DEV, $clock['deviation']);
+
+        if (abs($clock['deviation']) >= 15) {
+            $this->SendDebug(
+                'Geräteuhr',
+                sprintf('%02d:%02d — %+d min gegenüber Symcon. Das Wochenprogramm schaltet entsprechend versetzt.',
+                    $clock['hour'], $clock['minute'], $clock['deviation']),
+                0
+            );
+        }
+    }
+
+    /**
      * Geräteauskunft: Modell, Firmware, IP, Zugangspunkt, Verschlüsselung, Gruppe.
      *
      * Die Variable entsteht erst, wenn das Register das erste Mal ankommt — sonst stünde in
@@ -309,9 +400,6 @@ class CometWiFiThermostat extends IPSModule
         );
         $this->SetValue($ident, $text);
 
-        // Die Rohfassung desselben Registers ist damit überflüssig. Sie wird entfernt,
-        // damit nicht beide nebeneinander stehen und sich widersprechen können.
-        $this->MaintainVariable('RAW_' . $register, '', VARIABLETYPE_STRING, '', 0, false);
     }
 
     /** Rohdatenpfad für alles, was (noch) keine belegte Bedeutung hat. */
