@@ -220,7 +220,8 @@ check('Sollwert und Nachzieher gesendet', count(IPSTestState::$sentPackets), 2);
 $packet = IPSTestState::$sentPackets[0];
 $follow = IPSTestState::$sentPackets[1];
 check('Nachzieher geht auf S/AF', $follow['Topic'], BASE . '/S/AF');
-check('Nachzieher fordert alle Felder an', $follow['Payload'], '#FFFFFFFF');
+// Gezielt nur A0 statt des kompletten Feld-Dumps — das genügt und weckt das Gerät kürzer.
+check('Nachzieher fordert gezielt A0 an', $follow['Payload'], '#01000000');
 check('Topic ist das Set-Topic', $packet['Topic'], BASE . '/S/A0');
 check('Payload 21,5 °C = #2B', $packet['Payload'], '#2B');
 // Ein retaintes Kommando würde bei jedem Reconnect erneut zugestellt und das

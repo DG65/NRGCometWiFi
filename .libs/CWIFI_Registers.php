@@ -45,6 +45,29 @@ class CWIFI_Registers
     /** Datenabruf: alle Felder. Weckt das Gerät spürbar — nie auf einem Timer verwenden. */
     public const REQUEST_ALL = '#FFFFFFFF';
 
+    /**
+     * Feldauswahl für `S/AF`: Das erste Byte ist eine Bitmaske der Register, Bit n = A(n).
+     *
+     *   0x01 = A0 (Sollwert) · 0x02 = A1 (Isttemperatur) · 0x04 = A2 (Offset)
+     *   0x08 = A3 (Optionen) · 0x10 = A4 · 0x20 = A5 · 0x40 = A6 (Batterie) · 0x80 = A7
+     *
+     * Gegenprobe: Das aus den Foren als „Batterie, Tastensperre, Sommerzeit, Rotation"
+     * beschriebene `#48000000` ist 0x40|0x08 — also genau A6 und A3.
+     *
+     * @param string ...$registers Register wie 'A0', 'A3'.
+     */
+    public static function requestFields(string ...$registers): string
+    {
+        $mask = 0;
+        foreach ($registers as $register) {
+            $n = hexdec(substr(strtoupper($register), 1));
+            if (strtoupper($register)[0] === 'A' && $n >= 0 && $n <= 7) {
+                $mask |= (1 << $n);
+            }
+        }
+        return '#' . sprintf('%02X', $mask) . '000000';
+    }
+
     /** Batterie-Dekodierung, umschaltbar solange die Kodierung nicht bewiesen ist. */
     public const BATTERY_HEX     = 0;
     public const BATTERY_DECIMAL = 1;

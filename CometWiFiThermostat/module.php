@@ -322,9 +322,11 @@ class CometWiFiThermostat extends IPSModule
         }
 
         // Ohne diese zweite Nachricht verwirft das Gerät den Sollwert wieder — siehe oben.
+        // Angefordert wird gezielt NUR A0, nicht der komplette Feld-Dump: Das genügt (am
+        // Gerät geprüft) und weckt es deutlich kürzer. Die Hersteller-App macht es ebenso.
         // Der Rückgabewert wird bewusst nicht geprüft: Der Sollwert ist raus, und ein
         // fehlgeschlagener Nachzieher wird von sendMQTT() bereits protokolliert.
-        $this->sendRequest(CWIFI_Registers::REQUEST_ALL);
+        $this->sendRequest(CWIFI_Registers::requestFields(CWIFI_Registers::REG_SETPOINT));
 
         $this->SetValue(CWIFI_Registers::IDENT_SETPOINT, $applied);
         $this->SetBuffer(self::BUFFER_PENDING, $applied . '|' . time());

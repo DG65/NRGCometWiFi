@@ -229,6 +229,19 @@ check('Plausibilität: ohne Raute', CWIFI_Registers::isPlausible('2C'), false);
 check('Plausibilität: leer', CWIFI_Registers::isPlausible(''), false);
 check('Zeitstempel-Kodierung', CWIFI_Registers::encodeTimestamp(1078822800), '#04.03.09-09:00');
 
+/* ------------------------------------------------ 12. Feldauswahl fuer S/AF */
+
+// Bit n = Register A(n). Am Geraet und gegen die Foren-Angabe geprueft.
+check('Feldauswahl A0', CWIFI_Registers::requestFields('A0'), '#01000000');
+check('Feldauswahl A1', CWIFI_Registers::requestFields('A1'), '#02000000');
+check('Feldauswahl A3', CWIFI_Registers::requestFields('A3'), '#08000000');
+check('Feldauswahl A6', CWIFI_Registers::requestFields('A6'), '#40000000');
+// Das aus den Foren als "Batterie, Tastensperre, Sommerzeit, Rotation" beschriebene
+// #48000000 ist genau A6 plus A3 - unabhaengige Bestaetigung der Deutung.
+check('Feldauswahl A3+A6 ergibt #48000000', CWIFI_Registers::requestFields('A6', 'A3'), '#48000000');
+check('Feldauswahl A0+A1', CWIFI_Registers::requestFields('A0', 'A1'), '#03000000');
+check('Feldauswahl ohne Register', CWIFI_Registers::requestFields(), '#00000000');
+
 /* ------------------------------------------------------------------ Ergebnis */
 
 echo "\n";
