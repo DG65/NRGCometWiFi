@@ -31,6 +31,7 @@ class CWIFI_Registers
     public const REG_TEMPERATURE = 'A1';
     public const REG_OFFSET      = 'A2';
     public const REG_OPTIONS     = 'A3';
+    public const REG_HOLIDAY     = 'A7';
     public const REG_BATTERY     = 'A6';
     public const REG_RSSI        = 'B3';
     public const REG_COMM        = 'XX';
@@ -63,6 +64,11 @@ class CWIFI_Registers
     public const IDENT_ROTATE     = 'RotateDisplay';
     public const IDENT_DST        = 'AutoDST';
     public const IDENT_OFFSET     = 'Offset';
+    public const IDENT_HOLIDAY      = 'Holiday';
+    public const IDENT_HOLIDAY_FROM = 'HolidayFrom';
+    public const IDENT_HOLIDAY_TO   = 'HolidayTo';
+    public const IDENT_HOLIDAY_TEMP = 'HolidayTemperature';
+    public const IDENT_SCHEDULE     = 'Schedule';
 
     /* --------------------------------------------------------- Sollwertskala
      *
@@ -283,6 +289,130 @@ class CWIFI_Registers
     public static function encodeTimestamp(int $timestamp): string
     {
         return '#' . gmdate('y.m.d-H:i', $timestamp);
+    }
+
+    /* -------------------------------------------------------- Urlaub (A7)
+     *
+     * Neun Byte: `HH TT MM JJ` für den Beginn, dasselbe für das Ende, dann die
+     * Solltemperatur × 2. Am Gerät gegen die Hersteller-App geprüft (05.08.2026):
+     * `#0C1F071A0C10081A32` entspricht exakt „31.7.2026 12:00 bis 16.8.2026 12:00, 25,0 °C".
+     *
+     * Neun Byte `FF` bedeuten: kein Urlaub gesetzt.
+     */
+
+    /** Urlaub lesen. @return array{start:int,end:int,temperature:float}|null null = nicht gesetzt */
+    public static function decodeHoliday(string $payload): ?array
+    {
+        if (!self::isPlausible($payload)) {
+            return null;
+        }
+        $body = substr($payload, 1);
+        if (strlen($body) !== 18 || !ctype_xdigit($body)) {
+            return null;
+        }
+        if (strtoupper($body) === str_repeat('F', 18)) {
+            return null;                       // ausdrücklich „kein Urlaub"
+        }
+        $b = array_map('hexdec', str_split($body, 2));
+
+        // Zweistellige Jahre: das Gerät kennt nur 20xx.
+        $start = @mktime($b[0], 0, 0, $b[2], $b[1], 2000 + $b[3]);
+        $end   = @mktime($b[4], 0, 0, $b[6], $b[5], 2000 + $b[7]);
+        if ($start === false || $end === false) {
+            return null;
+        }
+        return ['start' => $start, 'end' => $end, 'temperature' => (float) ($b[8] / 2)];
+    }
+
+    /** Urlaub schreiben. Beide Zeitpunkte werden auf die volle Stunde abgeschnitten. */
+    public static function encodeHoliday(int $start, int $end, float $temperature): string
+    {
+        return '#' . sprintf(
+            '%02X%02X%02X%02X%02X%02X%02X%02X%02X',
+            (int) date('H', $start), (int) date('j', $start),
+            (int) date('n', $start), (int) date('y', $start),
+            (int) date('H', $end),   (int) date('j', $end),
+            (int) date('n', $end),   (int) date('y', $end),
+            (int) round(max(0.0, min(30.0, $temperature)) * 2)
+        );
+    }
+
+    /** „Kein Urlaub" — neun Byte FF. */
+    public static function encodeNoHoliday(): string
+    {
+        return '#' . str_repeat('FF', 9);
+    }
+
+    /* ----------------------------------------------- Wochenprogramm (A8–AE)
+     *
+     * Ein Register je Wochentag, `A8` = Montag bis `AE` = Sonntag. Je Schaltpunkt zwei
+     * Byte, big-endian:
+     *
+     *   Bit 15–6   Minuten seit Montag 00:00, geteilt durch 10
+     *   Bit  5–0   Solltemperatur × 2
+     *
+     * Die Zeit zählt also über die ganze Woche durch, nicht je Tag — deshalb steigen die
+     * Werte von `A8` bis `AE` gleichmäßig an. Die Registerlänge ergibt sich aus der Anzahl
+     * der Schaltpunkte: vier ergeben acht Byte, zwei ergeben vier.
+     *
+     * Am Gerät gegen die Hersteller-App geprüft (05.08.2026): `#062C09E4176C1FA4` ergibt
+     * 04:00→22,0 · 06:30→18,0 · 15:30→22,0 · 21:00→18,0 — exakt der angezeigte Plan.
+     */
+
+    /** Register je Wochentag, Montag zuerst. */
+    public const SCHEDULE_REGISTERS = ['A8', 'A9', 'AA', 'AB', 'AC', 'AD', 'AE'];
+
+    /**
+     * Einen Wochentag lesen.
+     *
+     * @param int $weekday 0 = Montag … 6 = Sonntag (für die Plausibilitätsprüfung).
+     * @return array<int,array{time:string,minutes:int,temperature:float}>|null
+     */
+    public static function decodeSchedule(string $payload, int $weekday): ?array
+    {
+        if (!self::isPlausible($payload)) {
+            return null;
+        }
+        $body = substr($payload, 1);
+        if ($body === '' || strlen($body) % 4 !== 0 || !ctype_xdigit($body)) {
+            return null;
+        }
+
+        $points = [];
+        foreach (str_split($body, 4) as $word) {
+            $value   = (int) hexdec($word);
+            $minutes = ($value >> 6) * 10;          // seit Montag 00:00
+            $temp    = ($value & 0x3F) / 2;
+
+            // Der Schaltpunkt muss in den erwarteten Wochentag fallen — sonst stimmt die
+            // Deutung nicht, und dann soll lieber gar nichts angezeigt werden.
+            if (intdiv($minutes, 1440) !== $weekday) {
+                return null;
+            }
+            $inDay = $minutes % 1440;
+            $points[] = [
+                'time'        => sprintf('%02d:%02d', intdiv($inDay, 60), $inDay % 60),
+                'minutes'     => $inDay,
+                'temperature' => (float) $temp
+            ];
+        }
+        return $points;
+    }
+
+    /** Einen Wochentag als lesbaren Text. */
+    public static function scheduleToText(?array $points): string
+    {
+        if ($points === null) {
+            return '–';
+        }
+        if ($points === []) {
+            return 'keine Schaltzeiten';
+        }
+        $parts = [];
+        foreach ($points as $p) {
+            $parts[] = $p['time'] . ' → ' . number_format($p['temperature'], 1, ',', '') . ' °C';
+        }
+        return implode(' · ', $parts);
     }
 
     /* ------------------------------------------------------ Optionen (A3) */

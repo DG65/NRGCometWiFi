@@ -26,7 +26,12 @@
             "Plus": "Plus",
             "Rotate display by 180°": "Anzeige um 180° drehen",
             "Automatic daylight saving time": "Automatische Sommer-/Winterzeit",
-            "Temperature offset": "Temperatur-Offset"
+            "Temperature offset": "Temperatur-Offset",
+            "Holiday active": "Urlaub aktiv",
+            "Holiday from": "Urlaub von",
+            "Holiday until": "Urlaub bis",
+            "Holiday temperature": "Urlaubstemperatur",
+            "Weekly schedule": "Wochenprogramm"
         }
     }
 }

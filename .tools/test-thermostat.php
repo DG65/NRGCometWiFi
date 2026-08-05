@@ -183,6 +183,49 @@ deliver($device, BASE . '/V/XX', '#COMM-TEST');
 check('COMM-TEST setzt Erreichbarkeit zurück', $device->GetValue('Reachable'), true);
 check('COMM-TEST setzt Status wieder aktiv', $device->GetStatus(), IS_ACTIVE);
 
+/* ------------------------------------------ Urlaub und Wochenprogramm empfangen */
+
+$device = makeDevice();
+
+// Payload aus dem Mitschnitt, Sollwerte aus dem App-Screenshot.
+deliver($device, BASE . '/V/A7', '#0C1F071A0C10081A32');
+check('Urlaub erkannt', $device->GetValue('Holiday'), true);
+check('Urlaubsbeginn', date('d.m.Y H:i', $device->GetValue('HolidayFrom')), '31.07.2026 12:00');
+check('Urlaubsende', date('d.m.Y H:i', $device->GetValue('HolidayTo')), '16.08.2026 12:00');
+check('Urlaubstemperatur', $device->GetValue('HolidayTemperature'), 25.0);
+
+// Neun Byte FF ist ein gueltiger Zustand ("kein Urlaub"), keine Stoerung.
+deliver($device, BASE . '/V/A7', '#FFFFFFFFFFFFFFFFFF');
+check('Kein Urlaub gesetzt', $device->GetValue('Holiday'), false);
+check('Zeitraum zurueckgesetzt', $device->GetValue('HolidayFrom'), 0);
+
+// Wochenprogramm: je Tag ein Register, zusammengesetzt zu einer lesbaren Uebersicht.
+deliver($device, BASE . '/V/A8', '#062C09E4176C1FA4');
+deliver($device, BASE . '/V/AD', '#BEACD524');
+$plan = $device->GetValue('Schedule');
+checkTrue('Montag im Wochenprogramm', strpos($plan, 'Montag: 04:00 → 22,0 °C') !== false);
+checkTrue('Samstag im Wochenprogramm', strpos($plan, 'Samstag: 07:00 → 22,0 °C') !== false);
+checkTrue('Noch nicht gelesene Tage bleiben leer', strpos($plan, 'Dienstag: –') !== false);
+
+// Urlaub setzen erzeugt genau den Payload der App.
+IPSTestState::$sentPackets = [];
+checkTrue('Urlaub setzen meldet Erfolg',
+    $device->SetHoliday(mktime(12,0,0,7,31,2026), mktime(12,0,0,8,16,2026), 25.0));
+check('Urlaub geht auf S/A7', IPSTestState::$sentPackets[0]['Topic'], BASE . '/S/A7');
+check('Urlaub-Payload wie in der App',
+    IPSTestState::$sentPackets[0]['Payload'], '#0C1F071A0C10081A32');
+
+// Ein Ende vor dem Beginn ist ein Bedienfehler und darf nichts senden.
+IPSTestState::$sentPackets = [];
+checkTrue('Ende vor Beginn wird abgelehnt',
+    !$device->SetHoliday(mktime(12,0,0,8,16,2026), mktime(12,0,0,7,31,2026), 25.0));
+check('Bei Ablehnung wird nichts gesendet', count(IPSTestState::$sentPackets), 0);
+
+IPSTestState::$sentPackets = [];
+$device->ClearHoliday();
+check('Urlaub loeschen sendet neun FF',
+    IPSTestState::$sentPackets[0]['Payload'], '#FFFFFFFFFFFFFFFFFF');
+
 /* ================================================== 3. Rohdaten und Unbekanntes */
 
 // A4 ist noch nicht gedeutet - anders als A3, das seit dem App-Mitschnitt entschluesselt

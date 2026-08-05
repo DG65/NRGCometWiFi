@@ -300,6 +300,58 @@ check('7,5 ist Endanschlag', CWIFI_Registers::isEndstop(7.5), true);
 check('28,5 ist Endanschlag', CWIFI_Registers::isEndstop(28.5), true);
 check('20,0 ist kein Endanschlag', CWIFI_Registers::isEndstop(20.0), false);
 
+/* ---------------------------------------------------- 16. Urlaub (A7) */
+
+// Der Payload stammt aus dem Mitschnitt, die Sollwerte aus dem App-Screenshot:
+// "Beginn 31.7.2026 12:00, Ende 16.8.2026 12:00, 25,0 Grad".
+$h = CWIFI_Registers::decodeHoliday('#0C1F071A0C10081A32');
+check('Urlaub wird gelesen', is_array($h), true);
+check('Urlaubsbeginn', date('d.m.Y H:i', $h['start']), '31.07.2026 12:00');
+check('Urlaubsende', date('d.m.Y H:i', $h['end']), '16.08.2026 12:00');
+check('Urlaubstemperatur', $h['temperature'], 25.0);
+
+// Neun Byte FF heisst ausdruecklich "kein Urlaub" - so stand es im Voll-Dump.
+check('Kein Urlaub gesetzt', CWIFI_Registers::decodeHoliday('#FFFFFFFFFFFFFFFFFF'), null);
+check('Kein-Urlaub kodieren', CWIFI_Registers::encodeNoHoliday(), '#FFFFFFFFFFFFFFFFFF');
+check('Urlaub falsche Laenge', CWIFI_Registers::decodeHoliday('#0C1F07'), null);
+
+// Rundlauf gegen genau den Payload, den die App gesendet hat.
+check('Urlaub kodieren ergibt den App-Payload',
+    CWIFI_Registers::encodeHoliday(mktime(12,0,0,7,31,2026), mktime(12,0,0,8,16,2026), 25.0),
+    '#0C1F071A0C10081A32');
+
+/* ------------------------------------------- 17. Wochenprogramm (A8-AE) */
+
+// Payload aus dem Voll-Dump, Sollwerte aus dem App-Screenshot des Zeitplans.
+$mo = CWIFI_Registers::decodeSchedule('#062C09E4176C1FA4', 0);
+check('Montag hat vier Schaltpunkte', count($mo), 4);
+check('Montag 1. Schaltpunkt', $mo[0]['time'] . '/' . $mo[0]['temperature'], '04:00/22');
+check('Montag 2. Schaltpunkt', $mo[1]['time'] . '/' . $mo[1]['temperature'], '06:30/18');
+check('Montag 3. Schaltpunkt', $mo[2]['time'] . '/' . $mo[2]['temperature'], '15:30/22');
+check('Montag 4. Schaltpunkt', $mo[3]['time'] . '/' . $mo[3]['temperature'], '21:00/18');
+
+// Samstag und Sonntag haben nur zwei Schaltpunkte - daher die kuerzeren Register.
+$sa = CWIFI_Registers::decodeSchedule('#BEACD524', 5);
+check('Samstag hat zwei Schaltpunkte', count($sa), 2);
+check('Samstag 1. Schaltpunkt', $sa[0]['time'] . '/' . $sa[0]['temperature'], '07:00/22');
+check('Samstag 2. Schaltpunkt', $sa[1]['time'] . '/' . $sa[1]['temperature'], '22:00/18');
+
+$so = CWIFI_Registers::decodeSchedule('#E2ACF924', 6);
+check('Sonntag 1. Schaltpunkt', $so[0]['time'] . '/' . $so[0]['temperature'], '07:00/22');
+
+// Die Zeit zaehlt ueber die ganze Woche durch. Ein Payload am falschen Tag ist deshalb ein
+// Zeichen dafuer, dass die Deutung nicht stimmt - dann lieber nichts anzeigen als Unsinn.
+check('Montags-Payload als Dienstag gelesen wird verworfen',
+    CWIFI_Registers::decodeSchedule('#062C09E4176C1FA4', 1), null);
+check('Ungerade Laenge wird verworfen', CWIFI_Registers::decodeSchedule('#062C0', 0), null);
+
+check('Sieben Register fuer sieben Tage', count(CWIFI_Registers::SCHEDULE_REGISTERS), 7);
+check('Montag ist A8', CWIFI_Registers::SCHEDULE_REGISTERS[0], 'A8');
+check('Sonntag ist AE', CWIFI_Registers::SCHEDULE_REGISTERS[6], 'AE');
+
+check('Text fuer einen Tag', CWIFI_Registers::scheduleToText($sa), '07:00 → 22,0 °C · 22:00 → 18,0 °C');
+check('Text ohne Daten', CWIFI_Registers::scheduleToText(null), '–');
+
 /* ------------------------------------------------------------------ Ergebnis */
 
 echo "\n";

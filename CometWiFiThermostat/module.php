@@ -27,6 +27,7 @@ class CometWiFiThermostat extends IPSModule
 
     private const BUFFER_PENDING  = 'PendingSetpoint';
     private const BUFFER_RECENT   = 'RecentMessages';
+    private const BUFFER_SCHEDULE = 'ScheduleDays';
 
     /** So lange nach dem Senden gilt eine Abweichung als „nicht übernommen". */
     private const PENDING_GRACE_SECONDS = 120;
@@ -172,6 +173,15 @@ class CometWiFiThermostat extends IPSModule
             $this->handleOptions($payload);
             return;
         }
+        if ($register === CWIFI_Registers::REG_HOLIDAY) {
+            $this->handleHoliday($payload);
+            return;
+        }
+        $day = array_search($register, CWIFI_Registers::SCHEDULE_REGISTERS, true);
+        if ($day !== false) {
+            $this->handleSchedule((int) $day, $payload);
+            return;
+        }
         if ($register === CWIFI_Registers::REG_OFFSET) {
             $value = CWIFI_Registers::decodeOffset($payload);
             if ($value !== null) {
@@ -218,6 +228,49 @@ class CometWiFiThermostat extends IPSModule
         $this->SetValue(CWIFI_Registers::IDENT_ROTATE, (bool) ($options & CWIFI_Registers::OPT_ROTATE));
         $this->SetValue(CWIFI_Registers::IDENT_DST, (bool) ($options & CWIFI_Registers::OPT_DST));
         $this->SetValue(CWIFI_Registers::IDENT_KEYLOCK, CWIFI_Registers::keyLockLevel($options));
+    }
+
+    /** Urlaubszeitraum aus Register A7. */
+    private function handleHoliday(string $payload): void
+    {
+        $holiday = CWIFI_Registers::decodeHoliday($payload);
+        if ($holiday === null) {
+            // Neun Byte FF heißt ausdrücklich „kein Urlaub" — das ist ein gültiger
+            // Zustand und keine Störung.
+            $this->SetValue(CWIFI_Registers::IDENT_HOLIDAY, false);
+            $this->SetValue(CWIFI_Registers::IDENT_HOLIDAY_FROM, 0);
+            $this->SetValue(CWIFI_Registers::IDENT_HOLIDAY_TO, 0);
+            return;
+        }
+        $this->SetValue(CWIFI_Registers::IDENT_HOLIDAY, true);
+        $this->SetValue(CWIFI_Registers::IDENT_HOLIDAY_FROM, $holiday['start']);
+        $this->SetValue(CWIFI_Registers::IDENT_HOLIDAY_TO, $holiday['end']);
+        $this->SetValue(CWIFI_Registers::IDENT_HOLIDAY_TEMP, $holiday['temperature']);
+    }
+
+    /**
+     * Wochenprogramm: je Tag ein Register. Die sieben Tage werden zu einer lesbaren
+     * Übersicht zusammengesetzt und in einer Textvariable gehalten.
+     *
+     * Bewusst nur lesend: Das Schreiben eines Wochenprogramms greift tief in die
+     * Heizungssteuerung ein und braucht eine eigene Bedienoberfläche.
+     */
+    private function handleSchedule(int $weekday, string $payload): void
+    {
+        $days = json_decode($this->GetBuffer(self::BUFFER_SCHEDULE), true);
+        if (!is_array($days)) {
+            $days = [];
+        }
+        $points = CWIFI_Registers::decodeSchedule($payload, $weekday);
+        $days[$weekday] = CWIFI_Registers::scheduleToText($points);
+        $this->SetBuffer(self::BUFFER_SCHEDULE, json_encode($days));
+
+        $namen = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'];
+        $zeilen = [];
+        foreach ($namen as $i => $name) {
+            $zeilen[] = $name . ': ' . ($days[$i] ?? '–');
+        }
+        $this->SetValue(CWIFI_Registers::IDENT_SCHEDULE, implode("\n", $zeilen));
     }
 
     /** Rohdatenpfad für alles, was (noch) keine belegte Bedeutung hat. */
@@ -393,6 +446,54 @@ class CometWiFiThermostat extends IPSModule
         $this->sendRequest(CWIFI_Registers::requestFields(CWIFI_Registers::REG_OFFSET));
         $this->SetValue(CWIFI_Registers::IDENT_OFFSET, round($Kelvin * 2) / 2);
         return true;
+    }
+
+    /**
+     * Urlaubszeitraum setzen.
+     *
+     * Der Urlaub gilt geräteübergreifend: Die Hersteller-App schickt denselben Befehl an
+     * alle Thermostate des Kontos. Dieses Modul setzt ihn nur am eigenen Gerät — wer den
+     * Urlaub für alle will, ruft die Funktion je Instanz auf.
+     */
+    public function SetHoliday(int $From, int $Until, float $Temperature): bool
+    {
+        if ($Until <= $From) {
+            $this->SendDebug('SetHoliday', 'Ende liegt nicht nach dem Beginn', 0);
+            return false;
+        }
+        $topic = $this->topicFor(CWIFI_Registers::REG_HOLIDAY);
+        if ($topic === '' || !$this->sendMQTT($topic, CWIFI_Registers::encodeHoliday($From, $Until, $Temperature))) {
+            return false;
+        }
+        $this->sendRequest(CWIFI_Registers::requestFields(CWIFI_Registers::REG_HOLIDAY));
+        return true;
+    }
+
+    /** Urlaub löschen. */
+    public function ClearHoliday(): bool
+    {
+        $topic = $this->topicFor(CWIFI_Registers::REG_HOLIDAY);
+        if ($topic === '' || !$this->sendMQTT($topic, CWIFI_Registers::encodeNoHoliday())) {
+            return false;
+        }
+        $this->sendRequest(CWIFI_Registers::requestFields(CWIFI_Registers::REG_HOLIDAY));
+        return true;
+    }
+
+    /**
+     * Wochenprogramm und Urlaub vom Gerät abrufen.
+     *
+     * Eigener Knopf statt automatischer Abfrage: Beides ändert sich selten, und jede
+     * Abfrage weckt ein Batteriegerät.
+     */
+    public function RequestSchedule(): bool
+    {
+        $topic = $this->topicFor(CWIFI_Registers::REG_REQUEST);
+        if ($topic === '') {
+            return false;
+        }
+        // A8-AE liegen ausserhalb der A0-A7-Maske, deshalb der komplette Feld-Dump.
+        return $this->sendMQTT($topic, CWIFI_Registers::REQUEST_ALL);
     }
 
     /**
@@ -712,6 +813,52 @@ class CometWiFiThermostat extends IPSModule
             true
         );
         $this->EnableAction(CWIFI_Registers::IDENT_OFFSET);
+
+        /* ------------------------------------------------ Urlaub (Register A7) */
+
+        $this->MaintainVariable(
+            CWIFI_Registers::IDENT_HOLIDAY,
+            $this->Translate('Holiday active'),
+            VARIABLETYPE_BOOLEAN,
+            $this->booleanPresentation('Yes', 'No', false),
+            100,
+            true
+        );
+        $this->MaintainVariable(
+            CWIFI_Registers::IDENT_HOLIDAY_FROM,
+            $this->Translate('Holiday from'),
+            VARIABLETYPE_INTEGER,
+            '~UnixTimestamp',
+            101,
+            true
+        );
+        $this->MaintainVariable(
+            CWIFI_Registers::IDENT_HOLIDAY_TO,
+            $this->Translate('Holiday until'),
+            VARIABLETYPE_INTEGER,
+            '~UnixTimestamp',
+            102,
+            true
+        );
+        $this->MaintainVariable(
+            CWIFI_Registers::IDENT_HOLIDAY_TEMP,
+            $this->Translate('Holiday temperature'),
+            VARIABLETYPE_FLOAT,
+            ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION, 'SUFFIX' => ' °C', 'DIGITS' => 1],
+            103,
+            true
+        );
+
+        /* --------------------------------- Wochenprogramm (Register A8–AE, nur lesend) */
+
+        $this->MaintainVariable(
+            CWIFI_Registers::IDENT_SCHEDULE,
+            $this->Translate('Weekly schedule'),
+            VARIABLETYPE_STRING,
+            ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION],
+            110,
+            true
+        );
     }
 
     /** Zweiwertige Darstellung ohne Ampelfarbe — für Betriebsarten statt Zuständen. */

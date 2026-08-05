@@ -2,6 +2,32 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.3.0] – Wochenprogramm, Urlaub und Gruppen
+
+Entschlüsselt anhand von Bildschirmfotos der Hersteller-App: Was dort angezeigt wird, ließ
+sich Zeichen für Zeichen gegen die mitgeschnittenen Payloads rechnen.
+
+### Neu
+- **Wochenprogramm** (`A8`–`AE`) wird gelesen und als Übersicht je Wochentag angezeigt.
+  Format: je Schaltpunkt 16 Bit — obere 10 Bit Minuten seit Montag 00:00 geteilt durch 10,
+  untere 6 Bit Solltemperatur × 2. Gegen den angezeigten Plan geprüft (04:00, 06:30, 15:30,
+  21:00 werktags; 07:00 und 22:00 am Wochenende).
+- **Urlaub** (`A7`) lesen und setzen — Beginn, Ende, Temperatur. Format `HH TT MM JJ` je
+  Zeitpunkt plus Temperatur × 2, gegen die Anzeige „31.7.2026 12:00 bis 16.8.2026 12:00,
+  25,0 °C" geprüft. Neun Byte `FF` heißen „kein Urlaub".
+- Knopf **„Wochenprogramm & Urlaub abrufen"** — bewusst manuell, weil beides sich selten
+  ändert und jede Abfrage ein Batteriegerät weckt.
+
+### Erkannt und dokumentiert
+- **Register `B0` ist die Gruppenzuordnung.** `S` + MAC des Gruppenkopfs bei gekoppelten
+  Geräten, `U000000000000` bei Einzelgeräten. Über zehn Geräte gegen die Raumaufteilung
+  geprüft. Erklärt die bislang unverstandenen `G/`-Topics und warum sich Thermostate eines
+  Raums in der App nicht einzeln schalten lassen.
+- **`A4` bleibt unbekannt.** Das Register zählt hoch und sah nach einer Geräteuhr aus; die
+  App bietet aber keine Zeiteinstellung, und die Cloud sendet über den dafür vorgesehenen
+  Kanal nie etwas. Ein selbst gesendeter Zeit-Rundruf erreichte alle Geräte, blieb aber ohne
+  Wirkung. Die frühere Deutung als Uhr ist damit zurückgenommen.
+
 ## [0.2.0] – Registerentschlüsselung
 
 Ergebnis einer Mitschnitt-Sitzung an der Hersteller-App: Jede Einstellung wurde einmal

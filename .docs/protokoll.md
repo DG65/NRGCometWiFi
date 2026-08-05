@@ -86,7 +86,7 @@ Kodierung ist je Register verschieden und muss einzeln bestimmt werden.
 | `A1` | Isttemperatur | `#2C` = 22,0 °C | ✅ | live |
 | `A2` | Temperatur-Offset, Wert × 2 | `#02` = +1,0 K | ✅ | App-Mitschnitt 05.08.2026; negative Werte noch ungeprüft |
 | `A3` | Optionen-Bitfeld — **vollständig entschlüsselt**, siehe unten | `#2182` | ✅ | App-Mitschnitt 05.08.2026, alle Bits beidseitig |
-| `A4` | unbekannt | `#3B11010114` (5 Byte) | ❓ | live |
+| `A4` | unbekannt, zählt hoch | `#3B11010114` (5 Byte) | ❓ | Erste Bytes ändern sich im Minutentakt, die letzten drei sind bei allen Geräten gleich. Sah nach einer Geräteuhr aus — die Hersteller-App bietet aber gar keine Zeiteinstellung, und die Cloud sendet nie einen Zeit-Rundruf. Deutung offen. |
 | `A5` | Fenster-offen-Erkennung | `#040A`, `#800A` | 🟡 | Werte gesehen, Bedeutung offen — die App überträgt die Einstellung nur verzögert |
 | `A6` | Batteriestand in Prozent | `#5F` = 95 % | ✅ | live, 10 Geräte 05.08.2026 |
 | `A7` | Urlaubsmodus | — | 🟡 | Foren |
@@ -178,27 +178,60 @@ Aus dem Voll-Dump, teils direkt lesbar:
 | `B0` `B4` `B5` `B7` `BB` `BC` `BE` | | unbekannt | ❓ |
 | `BD` | `#0840` / `#0800` | wechselt mit der Tastensperre — Statusspiegel | 🟡 |
 
-### Wochenprogramm A8–AE
+### Wochenprogramm A8–AE ✅
 
-Sieben Register, aber **zwei verschiedene Längen**: `A8`–`AC` je 8 Byte, `AD`–`AE` je 4 Byte.
+Ein Register je Wochentag: `A8` = Montag bis `AE` = Sonntag. Je Schaltpunkt **zwei Byte**,
+big-endian:
+
+| Bits | Inhalt |
+|---|---|
+| 15–6 | Minuten seit **Montag 00:00**, geteilt durch 10 |
+| 5–0 | Solltemperatur × 2 |
+
+Die Zeit zählt über die ganze Woche durch, nicht je Tag — deshalb steigen die Werte von `A8`
+bis `AE` gleichmäßig an. Die Registerlänge ergibt sich aus der Zahl der Schaltpunkte: vier
+ergeben 8 Byte, zwei ergeben 4.
+
+**Gegen die App geprüft** (05.08.2026). `#062C09E4176C1FA4` ergibt:
 
 ```
-A8 #062C09E4176C1FA4      AD #BEACD524
-A9 #2A2C2DE43B6C43A4      AE #E2ACF924
-AA #4E2C51E45F6C67A4
-AB #722C75E4836C8BA4
-AC #962C99E4A76CAFA4
+0x062C → (1580>>6)=24  → 240 min  = Mo 04:00   0x2C&0x3F=44 → 22,0 °C
+0x09E4 → 39            → 390 min  = Mo 06:30   0x24        → 18,0 °C
+0x176C → 93            → 930 min  = Mo 15:30   0x2C        → 22,0 °C
+0x1FA4 → 126           → 1260 min = Mo 21:00   0x24        → 18,0 °C
 ```
 
-Auffällig: In den 8-Byte-Registern taucht `2C` mehrfach auf — das ist genau der aktuelle
-Sollwert (22,0 °C). Das Format ist noch nicht entschlüsselt; dafür braucht es einen gezielten
-Durchgang mit bekannten Schaltzeiten.
+Exakt die im Zeitplan angezeigten Schaltzeiten. Ebenso `AD` (Samstag): `0xBEAC` → 762 → 7620
+min = 127 h = **Sa 07:00** bei 22,0 °C, `0xD524` → 852 → 142 h = **Sa 22:00** bei 18,0 °C.
 
-### Urlaub A7
+Das Modul liest den Plan nur. Schreiben wäre ein eigener Brocken mit Bedienoberfläche.
 
-`#FFFFFFFFFFFFFFFFFF` (9 Byte, alle FF) = **nicht gesetzt**. Ein gesetzter Urlaub sah so aus:
-`#0C1F071A0C10081A32`, gesendet an fünf Geräte gleichzeitig — offenbar eine kontoweite
-Einstellung. Format noch nicht entschlüsselt.
+### Urlaub A7 ✅
+
+Neun Byte: `HH TT MM JJ` für den Beginn, dasselbe für das Ende, dann Solltemperatur × 2.
+
+**Gegen die App geprüft** (05.08.2026): `#0C1F071A 0C10081A 32` entspricht Zeichen für Zeichen
+der Anzeige „Beginn 31.7.2026 12:00 — Ende 16.8.2026 12:00 — 25,0 °C".
+
+Neun Byte `FF` bedeuten **kein Urlaub gesetzt** — ein gültiger Zustand, keine Störung. Die
+Hersteller-App schickt den Urlaub an alle Geräte des Kontos gleichzeitig; er ist also eine
+kontoweite Einstellung, auch wenn jedes Gerät ihn einzeln speichert.
+
+### Gruppen: Register B0 ✅
+
+`B0` sagt, zu welcher Gruppe ein Gerät gehört:
+
+| Wert | Bedeutung |
+|---|---|
+| `#S` + MAC | gehört zur Gruppe mit diesem Gruppenkopf |
+| `#U000000000000` | ungekoppeltes Einzelgerät |
+
+Über zehn Geräte gegen die Raumaufteilung in der App geprüft: Genau die beiden Räume mit zwei
+Thermostaten zeigen auf denselben Gruppenkopf, die acht Einzelräume tragen `U`. Das erklärt
+auch die `G/`-Topics — sie sind der Abgleich innerhalb einer Gruppe.
+
+**Folge für die Bedienung:** Die App steuert Räume, nicht Geräte. Bei einer Gruppe lässt sich
+ein einzelnes Thermostat dort gar nicht ansprechen.
 
 ### Ein Sollwert braucht zwei Nachrichten
 

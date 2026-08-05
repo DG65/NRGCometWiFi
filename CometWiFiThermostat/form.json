@@ -253,6 +253,11 @@
             "onClick": "CWIFI_RequestAllFields($id);"
         },
         {
+            "type": "Button",
+            "caption": "📅  Wochenprogramm & Urlaub abrufen",
+            "onClick": "CWIFI_RequestSchedule($id);"
+        },
+        {
             "type": "TestCenter"
         }
     ],
