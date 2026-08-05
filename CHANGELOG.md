@@ -30,6 +30,12 @@ Alle nennenswerten Änderungen an diesem Modul. Versionierung nach [SemVer](http
   die Geräte bekommen die leere Nachricht zugestellt und ignorieren sie, und bei `both`-
   Brücken geht das Löschen mit Retain-Flag zum Hersteller hinaus (hier erwünscht, sonst
   käme die Kopie beim nächsten Reconnect zurück).
+- **Bestandsaufnahme der unbekannten Register über zehn Geräte.** `B4`, `B5`, `B7`, `BB` und
+  `BC` tragen auf allen zehn denselben Wert — sie können damit weder Zustand noch Einstellung
+  abbilden und werden nicht weiter verfolgt. `A4`, `A5` und `BE` variieren und bleiben offen,
+  jeweils mit dokumentiertem Weg zur Auflösung.
+- **`B0` stand in der Diagnosetabelle noch unter „unbekannt"**, obwohl es seit 0.3.0 als
+  Gruppenzuordnung entschlüsselt ist. Korrigiert.
 - **`V/`-Topics werden nicht retained.** Bestandsaufnahme über zehn Geräte: null Treffer.
   Damit ist geklärt, warum eine frisch angelegte Instanz leer bleibt, bis das Gerät das
   nächste Mal von sich aus sendet — das ist kein Fehler.

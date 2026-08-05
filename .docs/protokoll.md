@@ -175,8 +175,52 @@ Aus dem Voll-Dump, teils direkt lesbar:
 | `B6` | `#00C0A8022A01445F0301` | enthält die IP (`C0A8022A` = 192.168.2.42) | ✅ |
 | `BA` | `24:f5:a2:74:7b:ab` | MAC des WLAN-Zugangspunkts | ✅ |
 | `BF` | `#5B575041322D50534B2D43434D505D5B4553535D` | ASCII „[WPA2-PSK-CCMP][ESS]" | ✅ |
-| `B0` `B4` `B5` `B7` `BB` `BC` `BE` | | unbekannt | ❓ |
+| `B0` | `#U000000000000` / `#S<MAC>` | Gruppenzuordnung, siehe eigener Abschnitt | ✅ |
+| `B4` `B5` `B7` `BB` `BC` | `#00000000` `#FF` `#00` `#00` `#FF` | Konstanten, siehe unten | ❓ |
+| `BE` | `#FF6300` / `#FF6400` / `#FF6100` | unbekannt, variiert leicht je Gerät | ❓ |
 | `BD` | `#0840` / `#0800` | wechselt mit der Tastensperre — Statusspiegel | 🟡 |
+
+**Bestandsaufnahme über zehn Geräte (05.08.2026).** `B4`, `B5`, `B7`, `BB` und `BC` tragen auf
+allen zehn Geräten denselben Wert. Sie können damit weder einen Gerätezustand noch eine
+Einstellung abbilden — was immer sie bedeuten, sie sind für dieses Modul wertlos. Nicht
+weiter verfolgen. `BE` variiert dagegen leicht (Byte 2 zwischen `0x61` und `0x64`), ist also
+gerätespezifisch und bleibt einen Blick wert.
+
+### `A4` — frei laufende Uhr? 🟡
+
+Aufbau über zehn Geräte, alle im selben Zeitfenster empfangen:
+
+| Gerät | Byte 1 | Byte 2 | Rest |
+|---|---|---|---|
+| acht Geräte | 15–58, je Gerät verschieden | `0x12` (18) | `01 01 14` |
+| Kind 2 | 14 | `0x03` (3) | `01 01 14` |
+| Windfang | 13 | `0x14` (20) | `01 01 14` |
+
+Die letzten drei Byte sind auf allen zehn Geräten identisch. Liest man sie als Datum in der
+Reihenfolge, die `A7` verwendet, ergibt `01 01 14` den **1. Januar 2020** — der typische
+Ruhestand einer nie gestellten Echtzeituhr. Byte 2 wäre dann die Stunde: Acht Geräte stimmen
+überein, und die beiden Ausreißer sind genau die mit abweichender Einschaltgeschichte
+(Windfang kam zuletzt ans Netz).
+
+**Nicht belegt.** Dafür bräuchte es zwei Messungen desselben Geräts mit bekanntem Abstand —
+läuft Byte 1 im Minutentakt, ist die Deutung erledigt. Der batteriefreie Weg dahin: die
+Variable `RAW_A4` archivieren und die Werte auflaufen lassen, die Geräte senden das Register
+von sich aus.
+
+### `A5` — Empfindlichkeit der Lüftungserkennung 🟡
+
+Zwei Byte, das zweite auf allen zehn Geräten `0x0A`. Das erste variiert:
+
+| Wert | Geräte |
+|---|---|
+| `0x04` | acht |
+| `0x0C` | Esszimmer |
+| `0x80` | Wohnzimmer Rechts |
+
+Ein Bitfeld also, kein Zahlenwert — `0x04` und `0x0C` unterscheiden sich in einem Bit. Das ist
+das einzige noch unbekannte Register mit einer sichtbaren Entsprechung in der App. **Weg zur
+Auflösung:** in der App an einem Gerät die Empfindlichkeit der Lüftungserkennung über alle
+Stufen stellen und `A5` dabei mitlesen.
 
 ### Wochenprogramm A8–AE ✅
 
