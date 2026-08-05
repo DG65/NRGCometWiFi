@@ -70,6 +70,37 @@ Feste Regeln:
   eingeschaltete Zeitsynchronisation).
 - `#FFFFFFFF` (alle Felder) nur als bestätigungspflichtiger Knopf, nie auf einem Timer.
 
+## Keine Methodennamen erfinden, die IPSModule schon führt
+
+**Der teuerste Fehler dieses Repos bisher.** Ein selbst geschriebenes
+`private function hasActiveParent()` im MQTT-Trait kollidierte mit dem geerbten
+`IPSModule::HasActiveParent()` — PHP vergleicht Methodennamen **ohne Rücksicht auf
+Groß-/Kleinschreibung**, und `private` verengt die Sichtbarkeit der geerbten `protected`-Methode.
+Das ist ein Fatal Error beim Laden der Bibliothek.
+
+Das Tückische daran war nicht der Fehler, sondern wie er sich zeigte: Symcon verwarf **beide**
+Module kommentarlos. Die Bibliothek erschien in der Modulverwaltung mit korrekter Version, die
+Dateien lagen vollständig auf der Platte, `php -l` meldete nichts — nur ließ sich im Objektbaum
+keine Instanz anlegen. `IPS_GetModuleList()` kannte die Module schlicht nicht.
+
+**Wo die Ursache stand:** ausschließlich in Symcons eigener Logdatei unter
+`/…/symcon/log/logfile*.log`. Nicht im Meldungsprotokoll der Konsole, nicht über den
+MCP-Connector. Bei „Modul wird nicht registriert" also **zuerst** dort nachsehen — die Datei
+ist mehrere hundert MB groß, deshalb mit `grep` statt sie zu laden:
+
+```bash
+grep -ai -e comet -e cwifi /Volume1/Docker/symcon/log/logfile*.log | tail -25
+```
+
+**Vorbeugung:** `.tools/ips-stub.php` führt die echten SDK-Methoden mit **korrekter
+Sichtbarkeit** — auch solche, die dieses Modul gar nicht benutzt. Eine gleichnamige
+Eigenbau-Methode lässt damit sofort den Prüfstand scheitern, mit derselben Fehlermeldung wie
+auf dem Zielsystem. Wer eine Hilfsmethode ergänzt, prüft vorher gegen diese Liste; wer eine
+SDK-Methode vermisst, trägt sie dort nach.
+
+Und die einfachere Lehre: `HasActiveParent()` gab es längst. Vor dem Nachbauen einer
+Selbstverständlichkeit erst in der SDK-Referenz nachsehen.
+
 ## MQTT-Fallstricke, die hier schon Zeit gekostet haben
 
 **Retain bei `S/`-Topics ist verboten.** Ein retaintes Kommando wird bei jedem Reconnect erneut

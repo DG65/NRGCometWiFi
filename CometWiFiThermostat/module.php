@@ -654,7 +654,7 @@ class CometWiFiThermostat extends IPSModule
 
     private function refreshStatus(): void
     {
-        if (!$this->hasActiveParent()) {
+        if (!$this->HasActiveParent()) {
             $this->SetStatus(203);
             return;
         }

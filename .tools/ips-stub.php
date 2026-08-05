@@ -352,4 +352,96 @@ abstract class IPSModule
     {
         return $text;
     }
+
+    /* ------------------------------------------------- Echte SDK-Methodennamen
+     *
+     * Diese Methoden benutzt unser Code teils gar nicht — sie stehen hier, damit eine
+     * gleichnamige Eigenbau-Methode SOFORT auffällt statt erst auf dem Zielsystem.
+     *
+     * Anlass: Ein selbst geschriebenes `private function hasActiveParent()` kollidierte mit
+     * dem geerbten `HasActiveParent()` (PHP vergleicht Methodennamen ohne Rücksicht auf
+     * Groß-/Kleinschreibung) und verengte dessen Sichtbarkeit. Die Folge war ein Fatal Error
+     * beim Laden, Symcon verwarf beide Module kommentarlos, und in der Konsole ließ sich
+     * schlicht keine Instanz anlegen. Sichtbar war die Ursache nur in Symcons eigener
+     * Logdatei. Die Sichtbarkeit (protected) ist hier entscheidend — sie ist es, die den
+     * Fehler auslöst.
+     */
+
+    protected function HasActiveParent(): bool
+    {
+        $parentId = IPS_GetInstance($this->InstanceID)['ConnectionID'] ?? 0;
+        if ($parentId === 0) {
+            return false;
+        }
+        return (IPS_GetInstance($parentId)['InstanceStatus'] ?? 0) === IS_ACTIVE;
+    }
+
+    protected function ConnectParent(string $guid): void
+    {
+    }
+
+    protected function ForceParent(string $guid): void
+    {
+    }
+
+    protected function RequireParent(string $guid): void
+    {
+    }
+
+    protected function GetIDForIdent(string $ident): int
+    {
+        return isset($this->variables[$ident]) ? crc32($ident) : 0;
+    }
+
+    protected function MaintainAction(string $ident, bool $enable): void
+    {
+        if ($enable) {
+            $this->enabledActions[$ident] = true;
+        } else {
+            unset($this->enabledActions[$ident]);
+        }
+    }
+
+    protected function DisableAction(string $ident): void
+    {
+        unset($this->enabledActions[$ident]);
+    }
+
+    protected function SendDataToChildren(string $data)
+    {
+        return true;
+    }
+
+    protected function SetForwardDataFilter(string $filter): void
+    {
+    }
+
+    protected function RegisterOnceTimer(string $name, string $script): void
+    {
+    }
+
+    protected function RegisterMessage(int $senderId, int $message): void
+    {
+    }
+
+    protected function UnregisterMessage(int $senderId, int $message): void
+    {
+    }
+
+    protected function RegisterReference(int $id): void
+    {
+    }
+
+    protected function UnregisterReference(int $id): void
+    {
+    }
+
+    protected function ReloadForm(): void
+    {
+    }
+
+    protected function LogMessage(string $message, int $type): void
+    {
+        IPSTestState::$logMessages[] = $message;
+    }
 }

@@ -54,18 +54,16 @@ trait CWIFI_MQTT
         return true;
     }
 
-    /**
-     * Hängt eine aktive MQTT-Instanz über uns?
+    /*
+     * Ob eine aktive MQTT-Instanz darüber hängt, beantwortet IPSModule::HasActiveParent()
+     * bereits selbst — hier bewusst NICHT nachgebaut.
      *
-     * Ohne verbundenen Elternteil läuft zwar alles fehlerfrei durch, es kommt aber nie etwas
-     * an — ein Zustand, den der Nutzer sonst nicht erklärt bekommt.
+     * Ein eigenes hasActiveParent() hat das Modul zunächst unbrauchbar gemacht: PHP
+     * behandelt Methodennamen case-insensitiv, die Eigenbau-Fassung kollidierte also mit
+     * der geerbten HasActiveParent() und verengte deren Sichtbarkeit von protected auf
+     * private. Ergebnis war ein Fatal Error beim Laden der Bibliothek, worauf Symcon beide
+     * Module verwarf: Die Bibliothek erschien in der Verwaltung, im Objektbaum ließ sich
+     * aber keine Instanz anlegen. Sichtbar war das ausschließlich in Symcons eigener
+     * Logdatei, nicht im Meldungsprotokoll der Konsole.
      */
-    private function hasActiveParent(): bool
-    {
-        $parentId = IPS_GetInstance($this->InstanceID)['ConnectionID'];
-        if ($parentId === 0) {
-            return false;
-        }
-        return IPS_GetInstance($parentId)['InstanceStatus'] === IS_ACTIVE;
-    }
 }
