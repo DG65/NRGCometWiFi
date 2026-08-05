@@ -97,6 +97,29 @@ class CWIFI_Registers
     public const IDENT_CLOCK     = 'DeviceClock';
     public const IDENT_CLOCK_DEV = 'ClockDeviation';
 
+    /**
+     * Register ohne Informationsgehalt.
+     *
+     * Über zehn Geräte hinweg tragen sie alle denselben Wert (`#00000000`, `#FF`, `#00`,
+     * `#00`, `#FF`) — sie können damit weder einen Gerätezustand noch eine Einstellung
+     * abbilden. Die Client-ID der Geräte beginnt mit `da16x`, dem Renesas DA16200; die
+     * Diagnoseregister sehen durchweg nach durchgereichten Antworten dieses WLAN-Chips aus.
+     *
+     * Sie werden deshalb nicht als Rohwert geführt, außer man verlangt es ausdrücklich.
+     */
+    public const SILENT_REGISTERS = ['B4', 'B5', 'B7', 'BB', 'BC'];
+
+    /**
+     * Register, deren Zweck bekannt ist, deren Nutzdaten aber nicht.
+     *
+     * Sie bekommen einen sprechenden Namen statt „Rohwert XY" — das ist eine Benennung und
+     * keine Deutung: Was in den Bytes steht, behauptet hier niemand.
+     */
+    public const NAMED_RAW = [
+        'A5' => 'Ventilation detection (undecoded)',
+        'AF' => 'Register request (undecoded)'
+    ];
+
     public const REG_GROUP    = 'B0';
     public const REG_MODEL    = 'B1';
     public const REG_FIRMWARE = 'B2';

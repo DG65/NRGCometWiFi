@@ -46,6 +46,20 @@ class IPSTestState
     public static ?string $visualization = null;
     public static array $registeredMessages = [];
 
+    /** Übersetzungstabelle des geprüften Moduls, oder null zum Durchreichen. */
+    public static ?array $locale = null;
+
+    /** Lädt die locale.json eines Moduls, damit Translate() wirklich übersetzt. */
+    public static function useLocale(string $modulVerzeichnis, string $sprache = 'de'): void
+    {
+        $datei = $modulVerzeichnis . '/locale.json';
+        if (!is_file($datei)) {
+            throw new RuntimeException('locale.json nicht gefunden: ' . $datei);
+        }
+        $json = json_decode((string) file_get_contents($datei), true);
+        self::$locale = $json['translations'][$sprache] ?? [];
+    }
+
     public static function reset(): void
     {
         self::$instances         = [];
@@ -55,6 +69,7 @@ class IPSTestState
         self::$objects           = [];
         self::$visualization     = null;
         self::$registeredMessages = [];
+        // $locale bleibt bewusst stehen: Sie beschreibt das Modul, nicht den Prüffall.
     }
 
     /** Legt eine Variable an einer fremden Instanz an und gibt ihre Objekt-ID zurück. */
@@ -408,9 +423,20 @@ abstract class IPSModule
         $this->formFieldUpdates[] = [$name, $field, $value];
     }
 
+    /**
+     * Übersetzt über die echte locale.json des jeweiligen Moduls.
+     *
+     * Der Stub könnte den Quellstring einfach durchreichen — dann prüfte aber kein Test je,
+     * ob es den Eintrag überhaupt gibt. Ein fehlender Eintrag fällt sonst erst beim Nutzer
+     * auf, der plötzlich englische Variablennamen sieht. IPSTestState::$locale sagt, welche
+     * Datei gilt; ohne Angabe wird durchgereicht wie zuvor.
+     */
     protected function Translate(string $text): string
     {
-        return $text;
+        if (IPSTestState::$locale === null) {
+            return $text;
+        }
+        return IPSTestState::$locale[$text] ?? $text;
     }
 
     /* ------------------------------------------------- Echte SDK-Methodennamen

@@ -39,7 +39,9 @@
             "Wi-Fi access point": "WLAN-Zugangspunkt",
             "Wi-Fi encryption": "WLAN-Verschlüsselung",
             "Device clock": "Geräteuhr",
-            "Clock deviation": "Uhrabweichung"
+            "Clock deviation": "Uhrabweichung",
+            "Ventilation detection (undecoded)": "Lüftungserkennung (unentschlüsselt)",
+            "Register request (undecoded)": "Registerabruf (unentschlüsselt)"
         }
     }
 }

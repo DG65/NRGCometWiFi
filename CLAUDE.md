@@ -163,11 +163,16 @@ Vollständig in `../EMS/SUITE.md`, hier nur die für dieses Repo relevanten:
 ## Prüfstände
 
 ```
-php .tools/test-libs.php           # Topic-Bau, MAC-Normalisierung, Dekodierung   (224)
-php .tools/test-thermostat.php     # Empfangs- und Sendepfad des Geräts          (163)
+php .tools/test-libs.php           # Topic-Bau, MAC-Normalisierung, Dekodierung   (242)
+php .tools/test-thermostat.php     # Empfangs- und Sendepfad des Geräts          (197)
 php .tools/test-configurator.php   # Erkennung, Instanz-Zuordnung, Zeitsync        (57)
 php .tools/test-tile.php           # Kachel-Nutzlast: Ist/Soll, Namen, Ausfälle    (32)
 ```
+
+`IPSTestState::useLocale('<Modulverzeichnis>')` schaltet `Translate()` auf die echte
+`locale.json` um. Ohne das reicht der Stub den englischen Quellstring durch, und ein
+vergessener Übersetzungseintrag fällt niemandem auf — außer dem Nutzer, der dann englische
+Variablennamen sieht.
 
 `.tools/ips-stub.php` bildet so viel IP-Symcon nach (Properties, Attribute, Buffer, Variablen,
 Timer, Status, Datenversand), dass die Modulklassen **wirklich ausgeführt** werden. Grund:

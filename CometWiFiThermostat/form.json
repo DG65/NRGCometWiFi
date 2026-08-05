@@ -230,6 +230,15 @@
                 },
                 {
                     "type": "Label",
+                    "caption": "Diese fünf tragen über zehn geprüfte Geräte hinweg denselben Wert und können deshalb weder Zustand noch Einstellung abbilden — vermutlich durchgereichte Zustände des WLAN-Chips. Sie werden normalerweise nicht angelegt."
+                },
+                {
+                    "type": "CheckBox",
+                    "name": "RawSilentRegisters",
+                    "caption": "Auch die nachweislich leeren Register erfassen (B4, B5, B7, BB, BC)"
+                },
+                {
+                    "type": "Label",
                     "caption": "Legt je unbekanntem Register eine Textvariable an. Wer diese archiviert, liefert das Material, mit dem sich Wochenprogramm, Fenstererkennung und Optionen-Bitfeld nachträglich entschlüsseln lassen."
                 },
                 {

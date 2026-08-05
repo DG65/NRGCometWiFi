@@ -14,6 +14,9 @@ declare(strict_types=1);
 require_once __DIR__ . '/ips-stub.php';
 require_once __DIR__ . '/../CometWiFiThermostat/module.php';
 
+// Echte Übersetzungstabelle verwenden — so prüfen die Captions auch, ob der Eintrag existiert.
+IPSTestState::useLocale(__DIR__ . '/../CometWiFiThermostat');
+
 $failed = 0;
 $passed = 0;
 
@@ -646,7 +649,57 @@ deliver($device, BASE . '/V/A4', sprintf('#%02X%02X010114',
     (int) date('i', time() + 10800), (int) date('G', time() + 10800)));
 checkTrue('Schwelle 0 meldet nichts', $device->GetStatus() !== 207);
 
+
+/* ==================================================== Rohwerte aufraeumen */
+
+// Die nachweislich leeren Register entstehen gar nicht erst.
+$device = makeDevice(['RawRegisters' => true]);
+foreach (['B4', 'B5', 'B7', 'BB', 'BC'] as $reg) {
+    deliver($device, BASE . '/V/' . $reg, '#00');
+    checkTrue('Leeres Register ' . $reg . ' wird nicht angelegt', !isset($device->variables['RAW_' . $reg]));
+}
+// Die uebrigen unbekannten schon — sonst verlöre man die Grundlage zum Entschluesseln.
+deliver($device, BASE . '/V/BE', '#FF6300');
+check('BE bleibt erhalten', $device->GetValue('RAW_BE'), '#FF6300');
+
+// Wer sie ausdruecklich will, bekommt sie.
+$device = makeDevice(['RawRegisters' => true, 'RawSilentRegisters' => true]);
+deliver($device, BASE . '/V/B5', '#FF');
+check('Auf Wunsch doch erfasst', $device->GetValue('RAW_B5'), '#FF');
+
+/* Das Abraeumen muss beim Uebernehmen greifen und nicht erst, wenn das Register wieder
+   ankommt: Diese Geraete melden sich von sich aus selten, und ein Voll-Dump kostet
+   Batterie. Genau daran ist die erste Fassung gescheitert. */
+$device = makeDevice(['RawRegisters' => true]);
+foreach (['B4', 'B5', 'BB', 'A7', 'AA', 'B1', 'A4'] as $reg) {
+    $device->TEST_MaintainVariable('RAW_' . $reg, 'Alt', VARIABLETYPE_STRING, '', 100, true);
+}
+$device->ApplyChanges();
+foreach (['B4', 'B5', 'BB', 'A7', 'AA', 'B1', 'A4'] as $reg) {
+    checkTrue('Uebernehmen raeumt RAW_' . $reg . ' ab', !isset($device->variables['RAW_' . $reg]));
+}
+
+// Ohne Rohdatenerfassung darf gar nichts stehen bleiben.
+$device = makeDevice(['RawRegisters' => false]);
+foreach (['A5', 'AF', 'BD', 'BE'] as $reg) {
+    $device->TEST_MaintainVariable('RAW_' . $reg, 'Alt', VARIABLETYPE_STRING, '', 100, true);
+}
+$device->ApplyChanges();
+foreach (['A5', 'AF', 'BD', 'BE'] as $reg) {
+    checkTrue('Abgeschaltet raeumt RAW_' . $reg . ' ab', !isset($device->variables['RAW_' . $reg]));
+}
+
+// Wo der Zweck bekannt ist, traegt der Rohwert einen Namen statt "Rohwert XY".
+$device = makeDevice(['RawRegisters' => true]);
+deliver($device, BASE . '/V/A5', '#0C0A');
+check('A5 heisst nach seinem Zweck',
+    $device->variables['RAW_A5']['caption'], 'Lüftungserkennung (unentschlüsselt)');
+deliver($device, BASE . '/V/BE', '#FF6300');
+check('Ohne bekannten Zweck bleibt es beim Rohwert',
+    $device->variables['RAW_BE']['caption'], 'Rohwert BE');
+
 /* ------------------------------------------------------------------ Ergebnis */
+
 
 
 

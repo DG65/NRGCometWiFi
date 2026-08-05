@@ -2,6 +2,26 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.8.1] – Rohwerte aufräumen
+
+### Behoben
+- **Das Abräumen alter Rohwerte griff erst, wenn das Register wieder ankam.** Bei Geräten,
+  die sich von sich aus selten melden, hieß das: gar nicht. Es läuft jetzt bei jedem
+  Übernehmen — wer eine Einstellung ändert, sieht die Wirkung sofort und nicht beim nächsten
+  Voll-Dump.
+- **Die nachweislich leeren Register entstehen nicht mehr.** `B4`, `B5`, `B7`, `BB` und `BC`
+  tragen über zehn geprüfte Geräte hinweg denselben Wert und können damit weder Zustand noch
+  Einstellung abbilden. Wer sie trotzdem mitschreiben will, schaltet sie im Formular ein.
+
+### Neu
+- **Rohwerte mit bekanntem Zweck tragen einen Namen.** `A5` heißt „Lüftungserkennung
+  (unentschlüsselt)", `AF` „Registerabruf (unentschlüsselt)". Das ist eine Benennung und
+  keine Deutung — was in den Bytes steht, behauptet weiterhin niemand.
+- **Der Prüfstand übersetzt jetzt echt.** `Translate()` liest die `locale.json` des Moduls,
+  statt den englischen Quellstring durchzureichen. Damit fällt ein fehlender
+  Übersetzungseintrag im Prüflauf auf und nicht erst dem Nutzer, der plötzlich englische
+  Variablennamen sieht. Gegengeprobt.
+
 ## [0.8.0] – Uhr nachführen, Kachel warnt
 
 ### Neu

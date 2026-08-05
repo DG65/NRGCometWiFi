@@ -183,7 +183,7 @@ sie kommen nur bei einem ohnehin stattfindenden Voll-Dump mit und kosten keine B
 | `BD` | `#0800` (alle zehn Geräte) | unbekannt. Eine fremde Umsetzung deutet Byte 1 als Batterie (Skala 0–8) — hier widerlegt, siehe Abgleich | ❓ |
 
 **Bestandsaufnahme über zehn Geräte (05.08.2026).** `B4`, `B5`, `B7`, `BB` und `BC` tragen auf
-allen zehn Geräten denselben Wert. Sie können damit weder einen Gerätezustand noch eine
+allen zehn Geräten denselben Wert. Das Modul legt sie ab 0.8.1 nicht mehr als Rohwert an. Sie können damit weder einen Gerätezustand noch eine
 Einstellung abbilden — was immer sie bedeuten, sie sind für dieses Modul wertlos. Nicht
 weiter verfolgen. `BE` variiert dagegen leicht (Byte 2 zwischen `0x61` und `0x64`), ist also
 gerätespezifisch und bleibt einen Blick wert.

@@ -60,6 +60,9 @@ class CometWiFiThermostat extends IPSModule
         $this->RegisterPropertyInteger('TimeoutMinutes', 180);
         $this->RegisterPropertyBoolean('ForceManualOnSet', true);
         $this->RegisterPropertyBoolean('RawRegisters', false);
+        // B4/B5/B7/BB/BC tragen über zehn Geräte hinweg denselben Wert. Wer trotzdem
+        // mitschreiben will, kann — aber nicht als Vorgabe.
+        $this->RegisterPropertyBoolean('RawSilentRegisters', false);
         // Ab dieser Abweichung meldet die Instanz einen Hinweis. 15 Minuten, weil das
         // Wochenprogramm in Viertelstunden gedacht ist und darunter niemand etwas merkt.
         $this->RegisterPropertyInteger('ClockWarnMinutes', 15);
@@ -85,6 +88,7 @@ class CometWiFiThermostat extends IPSModule
         $user = trim($this->ReadPropertyString('MQTTUser'));
 
         $this->maintainVariables();
+        $this->sweepRawVariables();
 
         // Ohne vollständige Zuordnung nichts empfangen — ein zu weiter Filter würde sonst
         // fremde Geräte in diese Instanz schreiben.
@@ -420,27 +424,84 @@ class CometWiFiThermostat extends IPSModule
     /** Rohdatenpfad für alles, was (noch) keine belegte Bedeutung hat. */
     private function handleUnknownRegister(string $register, string $payload): void
     {
+        $reg = strtoupper($register);
+
         if ($this->ReadPropertyBoolean('DebugUnknown')) {
-            $this->SendDebug('Unbekanntes Register', $register . ' = ' . $payload, 0);
+            $this->SendDebug('Unbekanntes Register', $reg . ' = ' . $payload, 0);
         }
         if (!$this->ReadPropertyBoolean('RawRegisters')) {
             return;
         }
+        if (!$this->rawWanted($reg)) {
+            return;
+        }
 
-        $ident = 'RAW_' . preg_replace('/[^0-9A-Z]/', '', strtoupper($register));
+        $ident = 'RAW_' . preg_replace('/[^0-9A-Z]/', '', $reg);
         if ($ident === 'RAW_') {
             return;
         }
 
         $this->MaintainVariable(
             $ident,
-            $this->Translate('Raw value') . ' ' . strtoupper($register),
+            $this->rawCaption($reg),
             VARIABLETYPE_STRING,
             ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION],
             100,
             true
         );
         $this->SetValue($ident, $payload);
+    }
+
+    /** Soll dieses Register überhaupt als Rohwert geführt werden? */
+    private function rawWanted(string $register): bool
+    {
+        if (!in_array($register, CWIFI_Registers::SILENT_REGISTERS, true)) {
+            return true;
+        }
+        return $this->ReadPropertyBoolean('RawSilentRegisters');
+    }
+
+    /** Sprechender Name, wo der Zweck bekannt ist — sonst schlicht „Rohwert XY". */
+    private function rawCaption(string $register): string
+    {
+        if (isset(CWIFI_Registers::NAMED_RAW[$register])) {
+            return $this->Translate(CWIFI_Registers::NAMED_RAW[$register]);
+        }
+        return $this->Translate('Raw value') . ' ' . $register;
+    }
+
+    /**
+     * Räumt Rohwerte ab, die es nicht mehr geben soll.
+     *
+     * Muss bei jedem Übernehmen laufen und nicht erst beim nächsten Eintreffen des
+     * Registers: Diese Geräte melden sich von sich aus selten, und ein Voll-Dump kostet
+     * Batterie. Wer eine Einstellung ändert, will die Wirkung sofort sehen und nicht
+     * irgendwann.
+     */
+    private function sweepRawVariables(): void
+    {
+        foreach (CWIFI_Registers::SILENT_REGISTERS as $reg) {
+            if (!$this->rawWanted($reg)) {
+                $this->MaintainVariable('RAW_' . $reg, '', VARIABLETYPE_STRING, '', 0, false);
+            }
+        }
+
+        // Alles, was inzwischen eine belegte Deutung hat, ebenfalls — sonst bleiben nach
+        // einer Modulaktualisierung Karteileichen aus älteren Fassungen stehen.
+        foreach (array_merge(
+            ['A2', 'A3', 'A4', 'A7'],
+            CWIFI_Registers::SCHEDULE_REGISTERS,
+            array_keys(CWIFI_Registers::INFO_REGISTERS)
+        ) as $reg) {
+            $this->MaintainVariable('RAW_' . $reg, '', VARIABLETYPE_STRING, '', 0, false);
+        }
+
+        if (!$this->ReadPropertyBoolean('RawRegisters')) {
+            foreach (array_merge(CWIFI_Registers::SILENT_REGISTERS,
+                     array_keys(CWIFI_Registers::NAMED_RAW), ['BD', 'BE']) as $reg) {
+                $this->MaintainVariable('RAW_' . $reg, '', VARIABLETYPE_STRING, '', 0, false);
+            }
+        }
     }
 
     /**
