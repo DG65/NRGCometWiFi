@@ -1,0 +1,16 @@
+{
+    "id": "{098A9F88-605C-434A-AB0D-737C7760D7E3}",
+    "name": "CometWiFiTile",
+    "type": 3,
+    "vendor": "Eurotronic",
+    "aliases": [
+        "Comet WiFi Kachel",
+        "NRG-Stack Comet WiFi Kachel",
+        "Heizungsübersicht"
+    ],
+    "url": "https://github.com/DG65/NRGCometWiFi",
+    "parentRequirements": [],
+    "childRequirements": [],
+    "implemented": [],
+    "prefix": "CWIFIT"
+}

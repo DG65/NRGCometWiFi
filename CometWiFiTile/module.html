@@ -1,0 +1,248 @@
+<style>
+    .cw-wrap {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        color: var(--ui-text, #e8eaed);
+        padding: 4px 2px 8px;
+    }
+
+    .cw-head {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-bottom: 10px;
+        padding: 0 2px;
+    }
+    .cw-head .avg { font-size: 1.6em; font-weight: 600; line-height: 1; }
+    .cw-head .avg small { font-size: .5em; font-weight: 400; opacity: .65; margin-left: 3px; }
+    .cw-head .note { font-size: .8em; opacity: .6; margin-left: auto; }
+    .cw-head .warn { color: #ff8a65; opacity: 1; }
+
+    .cw-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+        gap: 8px;
+    }
+
+    .cw-room {
+        background: var(--ui-elevation-1, rgba(255, 255, 255, .06));
+        border-radius: 10px;
+        padding: 10px 11px 11px;
+        display: flex;
+        flex-direction: column;
+        gap: 7px;
+        min-width: 0;
+    }
+    .cw-room.offline { opacity: .45; }
+
+    .cw-name {
+        font-size: .95em;
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .cw-temp { display: flex; align-items: baseline; gap: 6px; }
+    .cw-temp .is { font-size: 1.5em; font-weight: 600; line-height: 1; }
+    .cw-temp .soll { font-size: .82em; opacity: .7; }
+    .cw-temp .soll b { font-weight: 600; opacity: 1; }
+
+    .cw-bar {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .cw-bar button {
+        flex: 0 0 auto;
+        width: 26px;
+        height: 26px;
+        border: none;
+        border-radius: 6px;
+        background: var(--ui-elevation-2, rgba(255, 255, 255, .1));
+        color: inherit;
+        font-size: 1em;
+        line-height: 1;
+        cursor: pointer;
+    }
+    .cw-bar button:hover { background: var(--ui-elevation-3, rgba(255, 255, 255, .18)); }
+    .cw-bar button:disabled { opacity: .3; cursor: default; }
+    .cw-bar .val {
+        flex: 1 1 auto;
+        text-align: center;
+        font-size: .9em;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .cw-meta {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: .74em;
+        opacity: .62;
+        flex-wrap: wrap;
+    }
+    .cw-meta .low { color: #ff8a65; opacity: 1; font-weight: 600; }
+    .cw-meta .off { color: #ef5350; opacity: 1; font-weight: 600; }
+    .cw-meta .man { color: var(--ui-primary, #4fc3f7); opacity: .95; }
+
+    .cw-empty { opacity: .6; font-size: .9em; padding: 14px 4px; }
+</style>
+
+<div class="cw-wrap">
+    <div class="cw-head" id="cwHead"></div>
+    <div class="cw-grid" id="cwGrid"></div>
+</div>
+
+<script>
+    var CW = { rooms: [], control: false, minTemp: 7.5, maxTemp: 28.5 };
+
+    function cwFmt(value, digits) {
+        if (value === null || value === undefined) { return '–'; }
+        return value.toFixed(digits === undefined ? 1 : digits).replace('.', ',');
+    }
+
+    /* Aus und An sind Endanschläge des Geräts, keine Temperaturen — sie werden benannt
+       statt als 7,5 bzw. 28,5 °C angezeigt. */
+    function cwSetpointText(room) {
+        if (room.endstop) { return room.endstop; }
+        if (room.setpoint === null) { return '–'; }
+        return cwFmt(room.setpoint) + ' °C';
+    }
+
+    function cwStep(room, delta) {
+        if (!CW.control) { return; }
+        var base = room.setpoint === null ? 20 : room.setpoint;
+        var next = Math.round((base + delta) * 2) / 2;
+        if (next < CW.minTemp) { next = CW.minTemp; }
+        if (next > CW.maxTemp) { next = CW.maxTemp; }
+        if (next === room.setpoint) { return; }
+        room.setpoint = next;                       // sofort anzeigen, das Gerät bestätigt später
+        cwRender();
+        requestAction('setpoint', JSON.stringify({ id: room.id, value: next }));
+    }
+
+    function cwRender() {
+        var head = document.getElementById('cwHead');
+        var grid = document.getElementById('cwGrid');
+        if (!head || !grid) { return; }
+
+        head.innerHTML = '';
+        grid.innerHTML = '';
+
+        if (!CW.rooms.length) {
+            grid.innerHTML = '<div class="cw-empty">Keine Thermostate gefunden. '
+                + 'Sobald eine Geräteinstanz angelegt ist, erscheint sie hier automatisch.</div>';
+            return;
+        }
+
+        var avg = document.createElement('div');
+        avg.className = 'avg';
+        avg.innerHTML = CW.average === null
+            ? '–'
+            : cwFmt(CW.average) + '<small>°C ⌀</small>';
+        head.appendChild(avg);
+
+        var note = document.createElement('div');
+        note.className = 'note' + (CW.issues > 0 ? ' warn' : '');
+        note.textContent = CW.issues > 0
+            ? CW.issues + (CW.issues === 1 ? ' Gerät braucht Aufmerksamkeit' : ' Geräte brauchen Aufmerksamkeit')
+            : CW.rooms.length + ' Räume';
+        head.appendChild(note);
+
+        CW.rooms.forEach(function (room) {
+            var card = document.createElement('div');
+            card.className = 'cw-room' + (room.reachable ? '' : ' offline');
+
+            var name = document.createElement('div');
+            name.className = 'cw-name';
+            name.textContent = room.name;
+            name.title = room.name;
+            card.appendChild(name);
+
+            var temp = document.createElement('div');
+            temp.className = 'cw-temp';
+            var is = document.createElement('span');
+            is.className = 'is';
+            is.textContent = room.temp === null ? '–' : cwFmt(room.temp) + '°';
+            temp.appendChild(is);
+            var soll = document.createElement('span');
+            soll.className = 'soll';
+            soll.innerHTML = 'Soll <b>' + cwSetpointText(room) + '</b>';
+            temp.appendChild(soll);
+            card.appendChild(temp);
+
+            if (CW.control) {
+                var bar = document.createElement('div');
+                bar.className = 'cw-bar';
+
+                var minus = document.createElement('button');
+                minus.textContent = '−';
+                minus.title = 'Halbes Grad kühler';
+                minus.disabled = !room.reachable;
+                minus.onclick = function () { cwStep(room, -0.5); };
+                bar.appendChild(minus);
+
+                var val = document.createElement('span');
+                val.className = 'val';
+                val.textContent = cwSetpointText(room);
+                bar.appendChild(val);
+
+                var plus = document.createElement('button');
+                plus.textContent = '+';
+                plus.title = 'Halbes Grad wärmer';
+                plus.disabled = !room.reachable;
+                plus.onclick = function () { cwStep(room, 0.5); };
+                bar.appendChild(plus);
+
+                card.appendChild(bar);
+            }
+
+            var meta = document.createElement('div');
+            meta.className = 'cw-meta';
+
+            if (!room.reachable) {
+                var off = document.createElement('span');
+                off.className = 'off';
+                off.textContent = 'nicht erreichbar';
+                meta.appendChild(off);
+            } else if (room.manual) {
+                var man = document.createElement('span');
+                man.className = 'man';
+                man.textContent = 'Handbetrieb';
+                man.title = 'Der Zeitplan ist ausgeschaltet — der Sollwert bleibt stehen.';
+                meta.appendChild(man);
+            }
+
+            if (CW.battery && room.battery !== null) {
+                var bat = document.createElement('span');
+                bat.className = room.batteryLow ? 'low' : '';
+                bat.textContent = '🔋 ' + room.battery + ' %';
+                meta.appendChild(bat);
+            }
+
+            if (CW.signal && room.signal !== null) {
+                var sig = document.createElement('span');
+                sig.textContent = '📶 ' + room.signal + ' dBm';
+                meta.appendChild(sig);
+            }
+
+            if (room.lastText) {
+                var last = document.createElement('span');
+                last.textContent = room.lastText;
+                last.title = 'Letzte Meldung des Geräts';
+                meta.appendChild(last);
+            }
+
+            card.appendChild(meta);
+            grid.appendChild(card);
+        });
+    }
+
+    function handleMessage(payload) {
+        var data = (typeof payload === 'string') ? JSON.parse(payload) : payload;
+        if (!data) { return; }
+        CW = data;
+        cwRender();
+    }
+</script>

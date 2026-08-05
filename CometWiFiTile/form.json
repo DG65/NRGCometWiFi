@@ -1,0 +1,98 @@
+{
+    "elements": [
+        {
+            "type": "ExpansionPanel",
+            "name": "DocsPanel",
+            "caption": "📖  Dokumentation & Hilfe",
+            "expanded": false,
+            "items": [
+                {
+                    "type": "Label",
+                    "caption": "Diese Kachel zeigt alle Comet-WiFi-Thermostate auf einen Blick. Sie sucht sich die Geräte selbst — neue Thermostate erscheinen ohne weiteres Zutun, gelöschte verschwinden."
+                },
+                {
+                    "type": "Label",
+                    "caption": "Die Kachel liest ausschließlich die Variablen der Geräteinstanzen und steuert über deren Funktionen. Sie hat keine eigene MQTT-Verbindung; ein Fehler hier kann die Anbindung der Geräte nicht beeinträchtigen."
+                },
+                {
+                    "type": "Label",
+                    "caption": "„Aus\" und „An\" sind die Endanschläge des Geräts (Ventil zu bzw. auf) und werden benannt statt als Temperatur angezeigt."
+                }
+            ]
+        },
+        {
+            "type": "Label",
+            "name": "FoundLabel",
+            "caption": " "
+        },
+        {
+            "type": "ExpansionPanel",
+            "caption": "🎛️  Anzeige",
+            "expanded": true,
+            "items": [
+                {
+                    "type": "Select",
+                    "name": "SortMode",
+                    "caption": "Reihenfolge",
+                    "width": "260px",
+                    "options": [
+                        { "caption": "Nach Name", "value": "name" },
+                        { "caption": "Nach Isttemperatur (wärmster zuerst)", "value": "temperature" }
+                    ]
+                },
+                {
+                    "type": "CheckBox",
+                    "name": "ShowBattery",
+                    "caption": "Batteriestand anzeigen"
+                },
+                {
+                    "type": "CheckBox",
+                    "name": "ShowSignal",
+                    "caption": "WLAN-Signalstärke anzeigen"
+                },
+                {
+                    "type": "CheckBox",
+                    "name": "ShowOffline",
+                    "caption": "Nicht erreichbare Geräte anzeigen"
+                },
+                {
+                    "type": "Label",
+                    "caption": "Ausgeblendete Geräte fallen nicht auf, wenn sie ausfallen — deshalb sind sie ab Werk sichtbar."
+                },
+                {
+                    "type": "NumberSpinner",
+                    "name": "BatteryWarnBelow",
+                    "caption": "Batterie hervorheben unter … %",
+                    "suffix": "%",
+                    "minimum": 0,
+                    "maximum": 100,
+                    "width": "220px"
+                }
+            ]
+        },
+        {
+            "type": "ExpansionPanel",
+            "caption": "🎚️  Bedienung",
+            "expanded": true,
+            "items": [
+                {
+                    "type": "CheckBox",
+                    "name": "AllowControl",
+                    "caption": "Solltemperatur in der Kachel verstellbar"
+                },
+                {
+                    "type": "Label",
+                    "caption": "Verstellt wird in Halbgrad-Schritten über die Geräteinstanz. Damit gilt auch hier die Umschaltung auf Handbetrieb, sofern dort eingeschaltet — sonst überschriebe das Wochenprogramm den Wert beim nächsten Schaltpunkt."
+                }
+            ]
+        }
+    ],
+    "actions": [],
+    "status": [
+        {
+            "code": 201,
+            "icon": "inactive",
+            "caption": "Noch kein Comet-WiFi-Thermostat vorhanden – die Kachel bleibt leer, bis eine Geräteinstanz angelegt ist."
+        }
+    ]
+}

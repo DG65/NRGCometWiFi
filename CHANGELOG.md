@@ -2,6 +2,21 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.4.0] – Kachel
+
+### Neu
+- **Comet WiFi Kachel** (`CometWiFiTile`): Raumübersicht aller Thermostate mit Ist- und
+  Solltemperatur, Batteriestand, Erreichbarkeit und Handbetriebs-Kennzeichnung.
+  - **Findet die Geräte selbst.** Eine Auswahl von Hand wäre bei zehn Thermostaten lästig und
+    müsste bei jedem neuen Gerät nachgepflegt werden.
+  - Solltemperatur direkt verstellbar, in Halbgrad-Schritten. Die Bedienung läuft über die
+    Geräteinstanz, nicht an ihr vorbei — damit gilt auch hier die Umschaltung auf Handbetrieb.
+  - „Aus" und „An" werden benannt statt als 7,5 bzw. 28,5 °C angezeigt; es sind Endanschläge
+    des Ventils, keine Temperaturen.
+  - Nicht erreichbare Geräte bleiben ab Werk sichtbar — ausgeblendete Ausfälle fallen nicht auf.
+- Von der Datenlogik getrennt (Muster: StromGedachtTile, InverterHubTile): Ein Fehler in der
+  Darstellung kann die MQTT-Anbindung der Geräte nicht beeinträchtigen.
+
 ## [0.3.0] – Wochenprogramm, Urlaub und Gruppen
 
 Entschlüsselt anhand von Bildschirmfotos der Hersteller-App: Was dort angezeigt wird, ließ
