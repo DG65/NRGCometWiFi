@@ -25,14 +25,20 @@ trait CWIFI_MQTT
      *    würde damit dauerhaft auf den alten Sollwert gezwungen und jede Änderung aus der
      *    Hersteller-App oder dem geräteeigenen Wochenprogramm wieder überschrieben.
      *
-     * QoS 1 statt 0 ist Absicht: Die Thermostate verbinden mit cleanSession=0, der Broker
-     * hält also eine persistente Sitzung für sie vor und stellt Nachrichten ab QoS 1 beim
-     * nächsten Verbindungsaufbau nach. Eine QoS-0-Nachricht an ein gerade schlafendes Gerät
-     * verwirft er dagegen stillschweigend. Die Kommandos sind idempotent, eine doppelte
-     * Zustellung schadet daher nicht.
+     * QoS 0, wie es auch die Hersteller-Cloud selbst verwendet (im Broker-Protokoll als `q0`
+     * zu sehen). Eine frühere Fassung sendete mit QoS 1 — theoretisch besser, weil die
+     * Thermostate mit `cleanSession=0` verbunden sind und der Broker Nachrichten ab QoS 1
+     * für ein schlafendes Gerät vorhält. Praktisch nahm Symcons MQTT-Instanz das Paket dann
+     * aber nicht an: `SendDataToParent()` lieferte `false`, es ging nichts hinaus, und weil
+     * der Fehler nur im Debug-Fenster landete, war davon nirgends etwas zu sehen.
      */
-    private function sendMQTT(string $topic, string $payload, int $qos = 1, bool $retain = false): bool
+    private function sendMQTT(string $topic, string $payload, int $qos = 0, bool $retain = false): bool
     {
+        if (!$this->HasActiveParent()) {
+            $this->reportSendFailure($topic, 'keine aktive MQTT-Instanz darüber');
+            return false;
+        }
+
         $packet = [
             'DataID'           => self::$CWIFI_MQTT_TX,
             'PacketType'       => 3,           // PUBLISH
@@ -45,13 +51,27 @@ trait CWIFI_MQTT
         $json = json_encode($packet, JSON_UNESCAPED_SLASHES);
         $this->SendDebug(__FUNCTION__, $json, 0);
 
-        $result = @$this->SendDataToParent($json);
+        $result = $this->SendDataToParent($json);
         if ($result === false) {
-            $error = error_get_last();
-            $this->SendDebug(__FUNCTION__ . ' Fehler', $error['message'] ?? 'unbekannt', 0);
+            $this->reportSendFailure($topic, 'die übergeordnete MQTT-Instanz hat das Paket abgelehnt');
             return false;
         }
         return true;
+    }
+
+    /**
+     * Meldet einen fehlgeschlagenen Sendeversuch sichtbar.
+     *
+     * Bewusst zusätzlich ins Meldungsprotokoll und nicht nur ins Debug-Fenster: Ein still
+     * verworfener Sollwert ist der unangenehmste Fehler dieses Moduls — der Nutzer stellt
+     * einen Wert ein, die Variable übernimmt ihn, und nichts passiert. Genau so blieb eine
+     * abgelehnte QoS-1-Nachricht unbemerkt.
+     */
+    private function reportSendFailure(string $topic, string $reason): void
+    {
+        $message = 'Senden fehlgeschlagen (' . $topic . '): ' . $reason;
+        $this->SendDebug('sendMQTT Fehler', $message, 0);
+        $this->LogMessage($message, KL_ERROR);
     }
 
     /*

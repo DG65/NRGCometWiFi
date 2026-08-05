@@ -219,9 +219,9 @@ check('Payload 21,5 °C = #2B', $packet['Payload'], '#2B');
 // Ein retaintes Kommando würde bei jedem Reconnect erneut zugestellt und das
 // Wochenprogramm des Geräts dauerhaft überschreiben.
 check('Retain ist aus', $packet['Retain'], false);
-// QoS 1, weil die Geräte mit cleanSession=0 verbunden sind: QoS 0 an ein schlafendes
-// Gerät verwirft der Broker still.
-check('QoS 1', $packet['QualityOfService'], 1);
+// QoS 0 wie die Hersteller-Cloud selbst. QoS 1 wurde von Symcons MQTT-Instanz abgelehnt,
+// das Paket ging nicht hinaus.
+check('QoS 0', $packet['QualityOfService'], 0);
 check('PacketType PUBLISH', $packet['PacketType'], 3);
 
 check('Variable folgt sofort (optimistisch)', $device->GetValue('Setpoint'), 21.5);
@@ -281,6 +281,36 @@ $noUser->Create();
 $noUser->TEST_SetProperty('MAC', MAC);
 $noUser->ApplyChanges();
 check('Ohne Benutzer: Status 202', $noUser->GetStatus(), 202);
+
+/* ------------------------------------- Fehlgeschlagenes Senden wird gemeldet */
+
+// Der unangenehmste Fehler dieses Moduls ist ein still verworfener Sollwert: Der Nutzer
+// stellt einen Wert ein, die Variable übernimmt ihn, und nichts passiert. Genau so blieb
+// eine von Symcon abgelehnte QoS-1-Nachricht unbemerkt.
+IPSTestState::reset();
+IPSTestState::$instances[20] = [
+    'InstanceID'     => 20,
+    'ConnectionID'   => 0,          // kein Elternteil
+    'InstanceStatus' => IS_ACTIVE,
+    'ModuleInfo'     => ['ModuleID' => '{DEVICE}']
+];
+$mute = new CometWiFiThermostat(20);
+$mute->Create();
+$mute->TEST_SetProperty('MAC', MAC);
+$mute->TEST_SetProperty('MQTTUser', USER);
+$mute->ApplyChanges();
+
+IPSTestState::$sentPackets = [];
+IPSTestState::$logMessages = [];
+checkTrue('Ohne Elternteil meldet SetTemperature Misserfolg', !$mute->SetTemperature(20.0));
+check('Ohne Elternteil wird nichts gesendet', count(IPSTestState::$sentPackets), 0);
+checkTrue(
+    'Fehlgeschlagenes Senden landet im Protokoll, nicht nur im Debug',
+    (bool) array_filter(
+        IPSTestState::$logMessages,
+        fn ($m) => is_string($m) && stripos($m, 'Senden fehlgeschlagen') !== false
+    )
+);
 
 /* ---------------------------------------------------- Kein aktiver Elternteil */
 

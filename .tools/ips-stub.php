@@ -14,6 +14,10 @@ declare(strict_types=1);
  */
 
 define('IS_ACTIVE', 102);
+define('KL_ERROR', 3);
+define('KL_WARNING', 2);
+define('KL_NOTIFY', 1);
+define('KL_MESSAGE', 0);
 define('IS_INACTIVE', 104);
 
 define('VARIABLETYPE_BOOLEAN', 0);
