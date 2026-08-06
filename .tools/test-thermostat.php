@@ -705,7 +705,56 @@ IPSTestState::$sentPackets = [];
 $device->RequestUpdate();
 check('S/AF wird weiterhin gesendet', IPSTestState::$sentPackets[0]['Topic'], BASE . '/S/AF');
 
+
+/* ============================================ Nachfassen nach Verbindungsabbruch */
+
+/* Der Last Will sagt nur, dass eine Sitzung endete. Er kommt auch bei einer Wiederanmeldung
+   desselben Geraets und gesammelt bei einem Broker-Aussetzer. Ohne Nachfassen bliebe
+   "nicht erreichbar" fuer immer stehen — genau das ist an zehn Geraeten passiert. */
+
+$device = makeDevice(['ProbeAfterLoss' => true]);
+deliver($device, BASE . '/V/A1', '#2C');
+checkTrue('Vor dem Abbruch erreichbar', $device->GetValue('Reachable'));
+check('Vor dem Abbruch ist nichts eingeplant', $device->timers['CWIFI_Probe']['interval'], 0);
+
+deliver($device, BASE . '/V/XX', '#COMM-LOSS');
+checkTrue('Abbruch setzt nicht erreichbar', $device->GetValue('Reachable') === false);
+check('Abbruch meldet Status 204', $device->GetStatus(), 204);
+
+/* Der eigentliche Punkt: Der Abbruch muss die Nachfrage EINPLANEN. Ein Test, der nur
+   ProbeAfterLoss() von Hand aufruft, merkt nicht, wenn das nie jemand tut. */
+checkTrue('Abbruch plant die Nachfrage ein', $device->timers['CWIFI_Probe']['interval'] > 0);
+// Versatz aus der MAC, damit ein Sammelabbruch nicht zehn Geräte gleichzeitig weckt.
+checkTrue('Nachfrage liegt im erwarteten Zeitfenster',
+    $device->timers['CWIFI_Probe']['interval'] >= 90000
+    && $device->timers['CWIFI_Probe']['interval'] < 150000);
+
+IPSTestState::$sentPackets = [];
+$device->ProbeAfterLoss();
+check('Nachfassen entwaffnet seinen Zeitgeber', $device->timers['CWIFI_Probe']['interval'], 0);
+check('Nachfassen sendet genau eine Anfrage', count(IPSTestState::$sentPackets), 1);
+check('Nachfassen geht auf S/AF', IPSTestState::$sentPackets[0]['Topic'], BASE . '/S/AF');
+// Nur die Temperaturen — ein voller Dump waere hier der teuerste Weg zur selben Auskunft.
+check('Nachfassen fragt nur die Temperaturen', IPSTestState::$sentPackets[0]['Payload'], '#0B');
+
+/* Hat sich das Geraet in der Zwischenzeit selbst gemeldet, bleibt es schlafen. */
+$device = makeDevice(['ProbeAfterLoss' => true]);
+deliver($device, BASE . '/V/XX', '#COMM-LOSS');
+deliver($device, BASE . '/V/A1', '#2C');
+IPSTestState::$sentPackets = [];
+$device->ProbeAfterLoss();
+check('Wieder erreichbar: kein unnoetiges Wecken', count(IPSTestState::$sentPackets), 0);
+
+/* Abgeschaltet heisst abgeschaltet — dann bleibt der Zustand eben stehen. */
+$device = makeDevice(['ProbeAfterLoss' => false]);
+deliver($device, BASE . '/V/A1', '#2C');
+IPSTestState::$sentPackets = [];
+deliver($device, BASE . '/V/XX', '#COMM-LOSS');
+check('Abgeschaltet plant nichts ein', $device->timers['CWIFI_Probe']['interval'], 0);
+check('Abgeschaltet sendet auch nichts', count(IPSTestState::$sentPackets), 0);
+
 /* ------------------------------------------------------------------ Ergebnis */
+
 
 
 

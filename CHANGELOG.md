@@ -2,6 +2,28 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.11.0] – „Nicht erreichbar" blieb für immer stehen
+
+### Behoben
+- **Ein Verbindungsabbruch wurde nie zurückgenommen.** Der Last Will des Brokers setzte
+  „nicht erreichbar", und nur eine eigene Meldung des Geräts hätte das aufgehoben — die aber
+  kommt nicht, weil diese Thermostate von sich aus praktisch nichts senden. An einer Anlage
+  mit zehn Geräten stand deshalb Stunden nach einem Sammelabbruch noch überall „ausgefallen",
+  während alle zehn am Broker hingen und Pings beantworteten.
+- **Neu: einmaliges Nachfassen nach einem Abbruch** (ab Werk an). Der Last Will sagt nur, dass
+  eine *Sitzung* endete — er kommt auch, wenn sich dasselbe Gerät neu anmeldet und dabei seine
+  eigene alte Sitzung verdrängt, und gesammelt für alle Geräte, wenn der Broker kurz aussetzt.
+  Gefragt werden nur die Temperaturen; hat sich das Gerät inzwischen selbst gemeldet, bleibt
+  es schlafen. Ist es wirklich fort, verfällt die Frage und der Zustand bleibt richtig.
+  Der Zeitpunkt ist je Gerät aus der MAC versetzt, damit ein Sammelabbruch nicht zehn
+  Thermostate gleichzeitig weckt.
+
+### Dokumentiert
+- **Die Folge der abgeschalteten Abfrage steht jetzt im Formular.** Diese Geräte melden sich
+  beim Verbinden und wenn man sie fragt — sonst nicht. Bei Abfrageintervall 0 können die Werte
+  in Symcon deshalb viele Stunden alt sein. Das ist der Preis der Batterieschonung und kein
+  Fehler, aber man sollte es wissen, bevor man sich wundert.
+
 ## [0.10.2] – Eine Überschrift statt zwei
 
 ### Behoben

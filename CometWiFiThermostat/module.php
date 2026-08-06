@@ -28,6 +28,9 @@ class CometWiFiThermostat extends IPSModule
     /** Letzte gemeldete Uhrabweichung in Minuten — siehe clockOffLimits(). */
     private const ATTR_CLOCK_DEV = 'LastClockDeviation';
 
+    /** Sekunden zwischen Verbindungsabbruch und Nachfrage — Zeit für die Wiederanmeldung. */
+    private const PROBE_DELAY = 90;
+
     private const BUFFER_PENDING  = 'PendingSetpoint';
     private const BUFFER_RECENT   = 'RecentMessages';
     private const BUFFER_SCHEDULE = 'ScheduleDays';
@@ -70,6 +73,9 @@ class CometWiFiThermostat extends IPSModule
         // Ab Werk aus: Schreiben weckt ein Batteriegerät, und ob jemand das will, ist eine
         // Entscheidung und keine Voreinstellung.
         $this->RegisterPropertyInteger('ClockSyncDays', 0);
+        // Ab Werk an: Ohne das bleibt ein Gerät nach jedem Broker-Aussetzer dauerhaft als
+        // ausgefallen stehen, obwohl es längst wieder da ist.
+        $this->RegisterPropertyBoolean('ProbeAfterLoss', true);
         $this->RegisterPropertyBoolean('DebugUnknown', true);
 
         $this->RegisterAttributeString(self::ATTR_SEEN_NEWS, '');
@@ -78,6 +84,7 @@ class CometWiFiThermostat extends IPSModule
         $this->RegisterTimer('CWIFI_Poll', 0, 'CWIFI_Poll($_IPS[\'TARGET\']);');
         $this->RegisterTimer('CWIFI_Alive', 0, 'CWIFI_CheckAlive($_IPS[\'TARGET\']);');
         $this->RegisterTimer('CWIFI_ClockSync', 0, 'CWIFI_SyncClock($_IPS[\'TARGET\']);');
+        $this->RegisterTimer('CWIFI_Probe', 0, 'CWIFI_ProbeAfterLoss($_IPS[\'TARGET\']);');
     }
 
     public function ApplyChanges()
@@ -97,6 +104,7 @@ class CometWiFiThermostat extends IPSModule
             $this->SetTimerInterval('CWIFI_Poll', 0);
             $this->SetTimerInterval('CWIFI_Alive', 0);
             $this->SetTimerInterval('CWIFI_ClockSync', 0);
+            $this->SetTimerInterval('CWIFI_Probe', 0);
             $this->SetStatus($mac === '' ? 201 : 202);
             return;
         }
@@ -172,6 +180,7 @@ class CometWiFiThermostat extends IPSModule
                 $this->SetValue(CWIFI_Registers::IDENT_REACHABLE, false);
                 $this->SetStatus(204);
                 $this->SendDebug('Verbindung', 'Gerät hat sich abgemeldet (COMM-LOSS)', 0);
+                $this->scheduleProbe();
                 return;
             }
             if ($payload === CWIFI_Registers::PAYLOAD_COMM_TEST) {
@@ -873,6 +882,55 @@ class CometWiFiThermostat extends IPSModule
     }
 
     /**
+     * Plant eine einmalige Nachfrage nach einem Verbindungsabbruch.
+     *
+     * **Warum das nötig ist.** Der Last Will sagt nur, dass eine Sitzung endete — nicht, dass
+     * das Gerät weg ist. Er kommt auch, wenn sich dasselbe Gerät neu anmeldet und dabei seine
+     * eigene alte Sitzung verdrängt („session taken over"), und er kommt gesammelt für alle
+     * Geräte, wenn der Broker kurz aussetzt. Danach ist typischerweise jedes Gerät sofort
+     * wieder da — nur sagt es das niemandem: Diese Thermostate senden von sich aus nichts,
+     * sie antworten nur.
+     *
+     * Ohne Nachfassen bliebe „nicht erreichbar" deshalb für immer stehen. Genau das ist an
+     * einer Anlage mit zehn Geräten passiert: ein Sammelabbruch um 19:17, und um 23:00 galten
+     * alle zehn noch als ausgefallen, während sie in Wahrheit am Broker hingen und Pings
+     * beantworteten.
+     *
+     * Die Nachfrage kostet einen kurzen Aufwacher und fragt nur die Temperaturen ab. Ist das
+     * Gerät wirklich fort, verfällt sie (QoS 0) und der Zustand bleibt korrekt auf
+     * „nicht erreichbar".
+     */
+    private function scheduleProbe(): void
+    {
+        if (!$this->ReadPropertyBoolean('ProbeAfterLoss')) {
+            return;
+        }
+        // Versatz aus der MAC: Ein Broker-Aussetzer trifft alle Geräte gleichzeitig, und zehn
+        // Thermostate sollen nicht in derselben Sekunde geweckt werden.
+        $mac     = CWIFI_Topics::normalizeMac($this->ReadPropertyString('MAC'));
+        $versatz = $mac === '' ? 0 : crc32($mac) % 60;
+        $this->SetTimerInterval('CWIFI_Probe', (self::PROBE_DELAY + $versatz) * 1000);
+    }
+
+    /**
+     * Fragt einmalig nach, ob das Gerät wirklich fort ist.
+     *
+     * Läuft nur, solange der Zustand noch auf „nicht erreichbar" steht — meldet sich das Gerät
+     * in der Zwischenzeit von selbst, ist nichts mehr zu tun und es bleibt schlafen.
+     */
+    public function ProbeAfterLoss(): void
+    {
+        $this->SetTimerInterval('CWIFI_Probe', 0);
+
+        if ($this->GetValue(CWIFI_Registers::IDENT_REACHABLE) === true) {
+            $this->SendDebug('Nachfassen', 'Gerät hat sich schon selbst gemeldet', 0);
+            return;
+        }
+        $this->SendDebug('Nachfassen', 'Frage nach dem Verbindungsabbruch einmal nach', 0);
+        $this->sendRequest(CWIFI_Registers::REQUEST_CURRENT);
+    }
+
+    /**
      * Zeitgesteuerte Nachführung der Geräteuhr.
      *
      * Stellt nur, wenn es nötig ist: Steht die Uhr innerhalb der Hinweisschwelle, bleibt das
@@ -947,6 +1005,7 @@ class CometWiFiThermostat extends IPSModule
         $tage = $this->ReadPropertyInteger('ClockSyncDays');
         if ($tage <= 0) {
             $this->SetTimerInterval('CWIFI_ClockSync', 0);
+            $this->SetTimerInterval('CWIFI_Probe', 0);
         } else {
             $intervall = $tage * 86400;
             $this->SetTimerInterval('CWIFI_ClockSync', $intervall * 1000);

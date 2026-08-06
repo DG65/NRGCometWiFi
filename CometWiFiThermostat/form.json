@@ -205,12 +205,25 @@
                     "width": "260px"
                 },
                 {
+                    "type": "Label",
+                    "caption": "⚠️  Bei 0 bleibt es dabei: Diese Thermostate senden von sich aus praktisch nichts. Sie melden sich beim Verbinden und wenn man sie fragt — sonst nicht. Ohne aktive Abfrage können die Werte in Symcon deshalb viele Stunden alt sein. Das ist kein Fehler, sondern der Preis der Batterieschonung."
+                },
+                {
                     "type": "NumberSpinner",
                     "name": "TimeoutMinutes",
                     "caption": "Als nicht erreichbar melden nach … Minuten ohne Meldung",
                     "minimum": 15,
                     "maximum": 10080,
                     "width": "260px"
+                },
+                {
+                    "type": "CheckBox",
+                    "name": "ProbeAfterLoss",
+                    "caption": "Nach einem Verbindungsabbruch einmal nachfragen"
+                },
+                {
+                    "type": "Label",
+                    "caption": "Der Abbruchhinweis des Brokers sagt nur, dass eine Sitzung endete — nicht, dass das Gerät fort ist. Er kommt auch, wenn sich dasselbe Gerät neu anmeldet, und gesammelt für alle Geräte, wenn der Broker kurz aussetzt. Ohne Nachfragen bliebe „nicht erreichbar“ dann für immer stehen. Gefragt werden nur die Temperaturen; ist das Gerät wirklich fort, verfällt die Frage folgenlos."
                 }
             ]
         },

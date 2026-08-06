@@ -141,6 +141,17 @@ Nur `V/`-Topics sind Wahrheit.
 Broker, nicht vom Gerät. Sonderfälle also **vor** der allgemeinen „irgendwas empfangen"-Logik
 behandeln.
 
+**Und `#COMM-LOSS` heißt nicht „das Gerät ist weg".** Er heißt „eine Sitzung endete". Er kommt
+auch, wenn sich dasselbe Gerät neu anmeldet und dabei seine eigene alte Sitzung verdrängt
+(`session taken over`), und gesammelt für alle Geräte, wenn der Broker kurz aussetzt. Wer ihn
+als Endzustand behandelt, hat danach dauerhaft falsche Werte: Diese Thermostate senden von
+sich aus nichts, es kommt also nie eine Richtigstellung. Deshalb fragt das Modul einmal nach.
+
+**Die Geräte senden von sich aus praktisch nichts.** Sie melden sich beim Verbinden und wenn
+man sie fragt. Ohne aktive Abfrage sind die Werte in Symcon regelmäßig viele Stunden alt —
+das ist der Preis der Batterieschonung, gehört aber jedem gesagt, der sich über alte Werte
+wundert.
+
 **Slashes kommen escaped an.** Der Empfangsfilter arbeitet auf dem rohen JSON, dort steht
 `02\/AABBCCDD\/…`. HeishaMons Muster: `str_replace('/', '\\\\/', $topic)`. Zusätzlich auf
 `"Topic":"` ankern, damit kein Payload-Inhalt zufällig matcht.
