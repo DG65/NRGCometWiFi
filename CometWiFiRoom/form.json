@@ -1,0 +1,140 @@
+{
+    "elements": [
+        {
+            "type": "ExpansionPanel",
+            "caption": "📖  Dokumentation & Hilfe",
+            "expanded": false,
+            "items": [
+                {
+                    "type": "Label",
+                    "caption": "Diese Instanz fasst mehrere Thermostate zu einem Raum zusammen: ein Sollwert, eine Betriebsart, ein Batteriewert. Gesetzt wird an jedem Mitglied einzeln — dadurch funktioniert das auch für Thermostate, die in der Hersteller-App gar nicht gekoppelt sind."
+                },
+                {
+                    "type": "Label",
+                    "caption": "Die Geräte kennen zwar eigene Gruppen, aber deren Datenformat ist nicht belegt. Der Weg über die einzelnen Geräteinstanzen ist nachgewiesen und gilt auch dort, wo die Umschaltung auf Handbetrieb eingestellt ist."
+                },
+                {
+                    "type": "Label",
+                    "caption": "Sind sich die Mitglieder beim Sollwert nicht einig, zeigt der Raum den höchsten Wert und setzt „Mitglieder uneinheitlich“. Ein Mittelwert wäre falsch: 20 und 24 ergeben keinen Raum mit 22, sondern einen Raum mit zwei verschiedenen Vorgaben."
+                }
+            ]
+        },
+        {
+            "type": "ExpansionPanel",
+            "caption": "🏠  Mitglieder",
+            "expanded": true,
+            "items": [
+                {
+                    "type": "List",
+                    "name": "Members",
+                    "caption": "Thermostate dieses Raums",
+                    "rowCount": 6,
+                    "add": true,
+                    "delete": true,
+                    "columns": [
+                        {
+                            "caption": "Thermostat",
+                            "name": "DeviceID",
+                            "width": "auto",
+                            "add": 0,
+                            "edit": {
+                                "type": "SelectInstance",
+                                "validModules": [
+                                    "{0F552C16-D685-4C9F-86C0-8D89E4BFD158}"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "type": "Label",
+                    "name": "MembersHint",
+                    "caption": " "
+                },
+                {
+                    "type": "Button",
+                    "caption": "➕  Geräte derselben Gerätegruppe ergänzen",
+                    "onClick": "CWIFIG_AddGroupMembers($id);"
+                },
+                {
+                    "type": "Label",
+                    "caption": "Ergänzt alle Thermostate, die laut Gerät zur selben Gruppe gehören wie die bereits gewählten. Der Vorschlag muss noch mit „Übernehmen“ bestätigt werden."
+                }
+            ]
+        },
+        {
+            "type": "ExpansionPanel",
+            "caption": "🌡️  Werte und Bereich",
+            "expanded": true,
+            "items": [
+                {
+                    "type": "Select",
+                    "name": "Aggregation",
+                    "caption": "Isttemperatur des Raums",
+                    "width": "320px",
+                    "options": [
+                        {
+                            "caption": "Mittel aller Thermostate",
+                            "value": "average"
+                        },
+                        {
+                            "caption": "Kälteste Stelle (Kleinstwert)",
+                            "value": "minimum"
+                        }
+                    ]
+                },
+                {
+                    "type": "Label",
+                    "caption": "Der Kleinstwert ist für die Heizung die ehrlichere Zahl — er ist die kälteste Ecke des Raums."
+                },
+                {
+                    "type": "NumberSpinner",
+                    "name": "SetpointMin",
+                    "caption": "Minimum",
+                    "suffix": "°C",
+                    "digits": 1,
+                    "minimum": 7.5,
+                    "maximum": 28.0,
+                    "width": "200px"
+                },
+                {
+                    "type": "NumberSpinner",
+                    "name": "SetpointMax",
+                    "caption": "Maximum",
+                    "suffix": "°C",
+                    "digits": 1,
+                    "minimum": 8.0,
+                    "maximum": 28.5,
+                    "width": "200px"
+                },
+                {
+                    "type": "Label",
+                    "caption": "Die Skala des Geräts läuft von „Aus“ (7,5) über 8,0–28,0 °C bis „An“ (28,5). Die Endanschläge sind keine Temperaturen, sondern Ventil ganz zu bzw. ganz auf."
+                },
+                {
+                    "type": "NumberSpinner",
+                    "name": "BatteryWarnBelow",
+                    "caption": "Batterie melden unter … %",
+                    "suffix": "%",
+                    "minimum": 0,
+                    "maximum": 100,
+                    "width": "240px"
+                }
+            ]
+        }
+    ],
+    "actions": [
+        {
+            "type": "Button",
+            "caption": "🔄  Alle Mitglieder abfragen",
+            "onClick": "CWIFIG_RequestUpdate($id);"
+        }
+    ],
+    "status": [
+        {
+            "code": 201,
+            "icon": "inactive",
+            "caption": "Kein Thermostat zugeordnet – der Raum bleibt ohne Werte, bis mindestens eines eingetragen ist."
+        }
+    ]
+}

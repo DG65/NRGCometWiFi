@@ -40,16 +40,17 @@ MQTT Client (Symcon-Kernmodul, zeigt auf den lokalen Broker)
 
 Comet WiFi Kachel        (type 3, ohne Elternteil — Übersicht aller Geräte)
 Comet WiFi Raumkachel    (type 3, ohne Elternteil — ein Gerät, groß und bedienbar)
+Comet WiFi Raum          (type 3, ohne Elternteil — mehrere Geräte als eine Instanz)
 ```
 
-Die beiden Kacheln hängen an **keinem** Elternteil. Sie lesen ausschließlich die Variablen der
+Die beiden Kacheln und das Raummodul hängen an **keinem** Elternteil. Sie lesen ausschließlich die Variablen der
 Geräteinstanzen und steuern über deren öffentliche Funktionen — ein Fehler in der Darstellung
 kann die MQTT-Anbindung damit nicht beeinträchtigen.
 
 Thermostat und Konfigurator sind **Kinder des MQTT Clients**, nicht voneinander.
 
 **Eigene Prefixe je Modul:** `CWIFI` (Thermostat), `CWIFIC` (Konfigurator), `CWIFIT`
-(Übersichtskachel), `CWIFIR` (Raumkachel). Im Verbund gibt es
+(Übersichtskachel), `CWIFIR` (Raumkachel), `CWIFIG` (Raum). Im Verbund gibt es
 beide Muster — ShellyV2 teilt einen Prefix über vier Module, MeterHub vergibt eigene
 (`MHUB`/`MHUBD`/`MHUBV`). Hier bewusst die MeterHub-Variante: Bei geteiltem Prefix müsste jeder
 neue öffentliche Methodenname gegen das jeweils andere Modul geprüft werden, weil beide
@@ -123,6 +124,11 @@ Selbstverständlichkeit erst in der SDK-Referenz nachsehen.
 
 ## MQTT-Fallstricke, die hier schon Zeit gekostet haben
 
+**Ein fehlender `PREFIX_`-Wrapper ist ein `Error`, keine Warnung.** `@CWIFI_SetTemperature(...)`
+schützt in PHP 8 nicht: Ist das Gerätemodul nicht geladen, reißt der Aufruf das aufrufende
+Modul mit. Modulübergreifende Aufrufe deshalb immer über `function_exists()` absichern — siehe
+`CometWiFiRoom::callDevice()`.
+
 **Retain bei `S/`-Topics ist verboten.** Ein retaintes Kommando wird bei jedem Reconnect erneut
 zugestellt und überschreibt dann dauerhaft jede App- und Programmänderung. Der Kommentar an der
 Sendefunktion bleibt stehen.
@@ -195,11 +201,12 @@ Vollständig in `../EMS/SUITE.md`, hier nur die für dieses Repo relevanten:
 
 ```
 php .tools/test-libs.php           # Topic-Bau, MAC-Normalisierung, Dekodierung   (242)
-php .tools/test-thermostat.php     # Empfangs- und Sendepfad des Geräts          (197)
+php .tools/test-thermostat.php     # Empfangs- und Sendepfad des Geräts          (216)
 php .tools/test-configurator.php   # Erkennung, Instanz-Zuordnung, Zeitsync        (57)
 php .tools/test-tile.php           # Kachel-Nutzlast: Ist/Soll, Namen, Ausfälle    (32)
 php .tools/test-roomtile.php       # Raumkachel: Zuordnung, Ring, Bedienung        (31)
-php .tools/test-forms.php          # Formularaufrufe aller Module gegen die Klassen (57)
+php .tools/test-room.php           # Raum: Zusammenfassung mehrerer Geräte         (26)
+php .tools/test-forms.php          # Formularaufrufe aller Module gegen die Klassen (70)
 ```
 
 `IPSTestState::useLocale('<Modulverzeichnis>')` schaltet `Translate()` auf die echte

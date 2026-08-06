@@ -1,0 +1,19 @@
+{
+    "translations": {
+        "de": {
+            "Current temperature": "Isttemperatur",
+            "Target temperature": "Solltemperatur",
+            "Members disagree": "Mitglieder uneinheitlich",
+            "Operating mode": "Betriebsart",
+            "Manual": "Handbetrieb",
+            "Schedule": "Zeitplan",
+            "Weakest battery": "Schwächste Batterie",
+            "Battery low": "Batterie schwach",
+            "OK": "In Ordnung",
+            "All reachable": "Alle erreichbar",
+            "Members": "Mitglieder",
+            "Yes": "Ja",
+            "No": "Nein"
+        }
+    }
+}

@@ -2,6 +2,36 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.13.0] – Ein Raum, eine Instanz
+
+### Neu
+- **Comet WiFi Raum** (`CometWiFiRoom`): fasst mehrere Thermostate zu einer bedienbaren
+  Instanz zusammen. Ein Sollwert, eine Betriebsart, ein Batteriewert — genau das, was die
+  Hersteller-App mit ihren Gerätegruppen macht, nur in Symcon und mit vollen Variablen für
+  Skripte und Automationen.
+  - **Geschrieben wird an jedes Mitglied einzeln**, nicht über den Gruppenkanal des Geräts.
+    Zwei Gründe: Das Nutzdatenformat auf `G/` ist nicht belegt, und ein Raum ist nicht immer
+    eine Gerätegruppe — wer zwei Thermostate in einem Zimmer hat, die in der App gar nicht
+    gekoppelt sind, will sie hier trotzdem zusammen schalten.
+  - **Knopf „Geräte derselben Gerätegruppe ergänzen"**: Ein Thermostat auswählen, Knopf
+    drücken, den Rest holt sich das Modul über die Gruppenzuordnung aus Register `B0`.
+  - **Bei uneinheitlichen Sollwerten kein Mittelwert.** 20 und 24 ergeben keinen Raum mit 22,
+    sondern einen Raum mit zwei verschiedenen Vorgaben. Gezeigt wird der höchste Wert, und
+    „Mitglieder uneinheitlich" wird gesetzt.
+  - **Erreichbar nur, wenn alle erreichbar sind.** Ein Raum, in dem ein Ventil nicht
+    antwortet, ist nicht vollständig geschaltet.
+  - **Batterie ist der schlechteste Wert** — genau der bestimmt, wann jemand hin muss.
+  - Isttemperatur wahlweise als Mittel oder als kälteste Stelle. Der Kleinstwert ist für die
+    Heizung die ehrlichere Zahl.
+
+### Prüfstand
+- 26 Prüfungen, Schwerpunkt auf der Zusammenfassung mehrerer Geräte zu einem Wert. Der
+  Prüfstand bildet die Wrapper des Gerätemoduls nach und schreibt mit — geprüft wird also
+  nicht nur, was der Raum anzeigt, sondern ob jedes Mitglied den Befehl bekommt. Vier
+  Sabotagen gegengeprobt.
+- Der Formular-Prüfstand zählt die Module jetzt gegen die Verzeichnisse statt gegen eine
+  feste Zahl: Ein neues Modul soll ihn erweitern, nicht brechen.
+
 ## [0.12.0] – Gruppen vollständig verstanden
 
 ### Erkannt

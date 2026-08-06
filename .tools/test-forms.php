@@ -65,7 +65,11 @@ foreach (glob(__DIR__ . '/../*/module.json') as $datei) {
     ];
 }
 
-check('Alle vier Module gefunden', count($module), 4);
+// Gegen die Verzeichnisse zaehlen statt gegen eine feste Zahl: Ein neues Modul soll den
+// Prüfstand erweitern, nicht brechen — ein vergessenes module.json aber schon auffallen.
+$verzeichnisse = glob(__DIR__ . '/../CometWiFi*', GLOB_ONLYDIR);
+check('Jedes Modulverzeichnis ist erfasst', count($module), count($verzeichnisse));
+check('Es gibt ueberhaupt Module', count($module) >= 4, true);
 
 // Längster Präfix zuerst, sonst schluckt CWIFI die Aufrufe von CWIFIC/CWIFIR/CWIFIT.
 $praefixe = array_keys($module);

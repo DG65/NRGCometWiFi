@@ -1,0 +1,16 @@
+{
+    "id": "{97FFE712-0055-4A8F-9980-C86ECAD57DA7}",
+    "name": "CometWiFiRoom",
+    "type": 3,
+    "vendor": "Eurotronic",
+    "aliases": [
+        "Comet WiFi Raum",
+        "NRG-Stack Comet WiFi Raum",
+        "Thermostatgruppe"
+    ],
+    "url": "https://github.com/DG65/NRGCometWiFi",
+    "parentRequirements": [],
+    "childRequirements": [],
+    "implemented": [],
+    "prefix": "CWIFIG"
+}
