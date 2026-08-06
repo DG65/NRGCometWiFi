@@ -90,7 +90,9 @@ class CometWiFiRoomTile extends IPSModule
 
     public function GetVisualizationTile()
     {
-        $html = file_get_contents(__DIR__ . '/module.html');
+        // Gemeinsame Vorlage: Das Raummodul zeichnet dieselbe Kachel. Zwei Kopien wären
+        // zwei Kacheln, die auseinanderlaufen.
+        $html = file_get_contents(__DIR__ . '/../.libs/CWIFI_RoomTile.html');
         // handleMessage() entsteht erst im HTML — der erste Aufruf muss deshalb dahinter.
         return $html . '<script>handleMessage(' . json_encode($this->buildPayload()) . ');</script>';
     }
@@ -204,6 +206,10 @@ class CometWiFiRoomTile extends IPSModule
             'holiday'    => (bool) $this->valueOf($device, CWIFI_Registers::IDENT_HOLIDAY),
             'clockDev'   => is_numeric($abw) ? (int) $abw : null,
             'clockOff'   => $clockWarn > 0 && is_numeric($abw) && abs((int) $abw) >= $clockWarn,
+            // Nur für Räume von Belang — hier ausdrücklich leer, damit die gemeinsame
+            // Vorlage nicht raten muss.
+            'mixed'      => false,
+            'members'    => null,
             'lastText'   => $last > 0 ? $this->ago($last) : null,
             'control'    => $this->ReadPropertyBoolean('AllowControl'),
             'details'    => $this->ReadPropertyBoolean('ShowDetails'),

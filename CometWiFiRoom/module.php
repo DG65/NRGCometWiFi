@@ -41,7 +41,8 @@ class CometWiFiRoom extends IPSModule
         CWIFI_Registers::IDENT_SETPOINT,
         CWIFI_Registers::IDENT_BATTERY,
         CWIFI_Registers::IDENT_REACHABLE,
-        CWIFI_Registers::IDENT_MODE
+        CWIFI_Registers::IDENT_MODE,
+        CWIFI_Registers::IDENT_CLOCK_DEV
     ];
 
     /* ================================================================== Lebenszyklus */
@@ -56,11 +57,17 @@ class CometWiFiRoom extends IPSModule
 
         $this->RegisterPropertyFloat('SetpointMin', CWIFI_Registers::SETPOINT_OFF);
         $this->RegisterPropertyFloat('SetpointMax', CWIFI_Registers::SETPOINT_ON);
+        $this->RegisterPropertyInteger('ClockWarnMinutes', 15);
+        $this->RegisterPropertyBoolean('AllowControl', true);
+        $this->RegisterPropertyBoolean('ShowDetails', true);
+
+        $this->SetVisualizationType(1);
     }
 
     public function ApplyChanges()
     {
         parent::ApplyChanges();
+        $this->SetVisualizationType(1);
 
         foreach ($this->GetMessageList() as $senderId => $messages) {
             foreach ($messages as $message) {
@@ -85,12 +92,14 @@ class CometWiFiRoom extends IPSModule
 
         $this->SetStatus($mitglieder === [] ? 201 : IS_ACTIVE);
         $this->recalculate();
+        $this->UpdateVisualizationValue($this->buildPayload());
     }
 
     public function MessageSink($TimeStamp, $SenderID, $Message, $Data)
     {
         if ($Message === VM_UPDATE) {
             $this->recalculate();
+            $this->UpdateVisualizationValue($this->buildPayload());
         }
     }
 
@@ -104,7 +113,127 @@ class CometWiFiRoom extends IPSModule
             case self::IDENT_MODE:
                 $this->SetManualMode((bool) $Value);
                 break;
+
+            /* Aus der Kachel. Sie schickt kleingeschriebene Kennungen, damit die Vorlage für
+               Gerät und Raum dieselbe bleiben kann. */
+            case 'setpoint':
+                if ($this->ReadPropertyBoolean('AllowControl')) {
+                    $this->SetTemperature((float) $Value);
+                }
+                break;
+
+            case 'mode':
+                if ($this->ReadPropertyBoolean('AllowControl')) {
+                    $this->SetManualMode((bool) $Value);
+                }
+                break;
+
+            case 'refresh':
+                $this->RequestUpdate();
+                break;
         }
+        $this->UpdateVisualizationValue($this->buildPayload());
+    }
+
+    /* ================================================================== Darstellung */
+
+    public function GetVisualizationTile()
+    {
+        // Dieselbe Vorlage wie die Raumkachel — ein Raum soll aussehen und sich bedienen
+        // lassen wie ein Gerät, sonst ist die Zusammenfassung nur halb gedacht.
+        $html = file_get_contents(__DIR__ . '/../.libs/CWIFI_RoomTile.html');
+        return $html . '<script>handleMessage(' . json_encode($this->buildPayload()) . ');</script>';
+    }
+
+    /**
+     * Nutzlast in genau der Form, die die gemeinsame Kachelvorlage erwartet.
+     *
+     * Felder, die es nur am Einzelgerät gibt — Signalstärke, Tastensperre, Urlaub — bleiben
+     * leer. Die Vorlage lässt sie dann weg, statt Platzhalter zu zeichnen.
+     */
+    private function buildPayload(): string
+    {
+        $mitglieder = $this->members();
+        if ($mitglieder === []) {
+            return json_encode(['ok' => false]);
+        }
+
+        $temp     = $this->GetValue(self::IDENT_TEMPERATURE);
+        $setpoint = $this->GetValue(self::IDENT_SETPOINT);
+        $battery  = $this->GetValue(self::IDENT_BATTERY);
+
+        $abw   = 0;
+        $offen = false;
+        $grenze = $this->ReadPropertyInteger('ClockWarnMinutes');
+        $juengste = 0;
+        foreach ($mitglieder as $id) {
+            $d = $this->valueOf($id, CWIFI_Registers::IDENT_CLOCK_DEV);
+            if (is_numeric($d) && abs((int) $d) > abs($abw)) {
+                $abw = (int) $d;
+            }
+            $l = $this->valueOf($id, CWIFI_Registers::IDENT_LAST_UPDATE);
+            if (is_numeric($l) && (int) $l > $juengste) {
+                $juengste = (int) $l;
+            }
+        }
+        if ($grenze > 0 && abs($abw) >= $grenze) {
+            $offen = true;
+        }
+
+        return json_encode([
+            'ok'         => true,
+            'name'       => IPS_GetName($this->InstanceID),
+            'temp'       => is_numeric($temp) && $temp > 0 ? round((float) $temp, 1) : null,
+            'setpoint'   => is_numeric($setpoint) ? round((float) $setpoint, 1) : null,
+            'endstop'    => is_numeric($setpoint) ? $this->endstopLabel((float) $setpoint) : null,
+            'heating'    => is_numeric($temp) && is_numeric($setpoint) && $temp > 0
+                            && (float) $setpoint > (float) $temp + 0.2,
+            'battery'    => is_numeric($battery) && $battery > 0 ? (int) $battery : null,
+            'batteryLow' => (bool) $this->GetValue(self::IDENT_BATTERY_LOW),
+            'signal'     => null,
+            'reachable'  => (bool) $this->GetValue(self::IDENT_REACHABLE),
+            'manual'     => (bool) $this->GetValue(self::IDENT_MODE),
+            'keylock'    => 0,
+            'offset'     => null,
+            'holiday'    => false,
+            'clockDev'   => $abw,
+            'clockOff'   => $offen,
+            'mixed'      => (bool) $this->GetValue(self::IDENT_MIXED),
+            'members'    => count($mitglieder),
+            'lastText'   => $juengste > 0 ? $this->ago($juengste) : null,
+            'control'    => $this->ReadPropertyBoolean('AllowControl'),
+            'details'    => $this->ReadPropertyBoolean('ShowDetails'),
+            'minTemp'    => $this->ReadPropertyFloat('SetpointMin'),
+            'maxTemp'    => $this->ReadPropertyFloat('SetpointMax')
+        ]);
+    }
+
+    private function endstopLabel(float $setpoint): ?string
+    {
+        if (abs($setpoint - CWIFI_Registers::SETPOINT_OFF) < 0.01) {
+            return 'Aus';
+        }
+        if (abs($setpoint - CWIFI_Registers::SETPOINT_ON) < 0.01) {
+            return 'An';
+        }
+        return null;
+    }
+
+    private function ago(int $timestamp): string
+    {
+        $sekunden = time() - $timestamp;
+        if ($sekunden < 90) {
+            return 'gerade eben';
+        }
+        if ($sekunden < 5400) {
+            return 'vor ' . (int) round($sekunden / 60) . ' min';
+        }
+        if ($sekunden < 86400) {
+            $stunden = (int) round($sekunden / 3600);
+            return 'vor ' . $stunden . ($stunden === 1 ? ' Stunde' : ' Stunden');
+        }
+        $tage = (int) round($sekunden / 86400);
+        return 'vor ' . $tage . ($tage === 1 ? ' Tag' : ' Tagen');
     }
 
     /* ================================================================== Bedienung */

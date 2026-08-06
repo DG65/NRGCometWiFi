@@ -119,6 +119,40 @@
                     "minimum": 0,
                     "maximum": 100,
                     "width": "240px"
+                },
+                {
+                    "type": "NumberSpinner",
+                    "name": "ClockWarnMinutes",
+                    "caption": "Geräteuhr melden ab Abweichung",
+                    "suffix": "min",
+                    "minimum": 0,
+                    "maximum": 720,
+                    "width": "240px"
+                },
+                {
+                    "type": "Label",
+                    "caption": "Gemeldet wird die größte Abweichung unter den Mitgliedern. Das Wochenprogramm läuft im Thermostat — geht dessen Uhr falsch, verschiebt sich jeder Schaltpunkt um dieselbe Spanne."
+                }
+            ]
+        },
+        {
+            "type": "ExpansionPanel",
+            "caption": "🎚️  Kachel",
+            "expanded": true,
+            "items": [
+                {
+                    "type": "Label",
+                    "caption": "Diese Instanz zeichnet dieselbe Kachel wie die Raumkachel eines einzelnen Thermostats — Ring, Feinstufen, Schnellwahl und Betriebsart. Ein Raum soll sich bedienen lassen wie ein Gerät."
+                },
+                {
+                    "type": "CheckBox",
+                    "name": "AllowControl",
+                    "caption": "Bedienbar (Ring, Knöpfe, Betriebsart)"
+                },
+                {
+                    "type": "CheckBox",
+                    "name": "ShowDetails",
+                    "caption": "Fußzeile mit Batterie, Mitgliederzahl und letzter Meldung"
                 }
             ]
         }

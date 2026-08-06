@@ -211,7 +211,63 @@ check('Sollwert uebersetzt', $room->variables['Setpoint']['caption'], 'Solltempe
 check('Uneinheitlich uebersetzt', $room->variables['Mixed']['caption'], 'Mitglieder uneinheitlich');
 check('Batterie uebersetzt', $room->variables['Battery']['caption'], 'Schwächste Batterie');
 
+
+/* ==================================================== 7. Kachel des Raums */
+
+IPSTestState::reset();
+addThermostat(50, 'Wohnzimmer Links', [
+    'Temperature' => 21.0, 'Setpoint' => 22.0, 'Battery' => 80, 'Reachable' => true,
+    'Mode' => true, 'ClockDeviation' => 3, 'LastUpdate' => time() - 300
+]);
+addThermostat(51, 'Wohnzimmer Rechts', [
+    'Temperature' => 23.0, 'Setpoint' => 22.0, 'Battery' => 40, 'Reachable' => true,
+    'Mode' => true, 'ClockDeviation' => 42, 'LastUpdate' => time() - 180
+]);
+$room = makeRoom([50, 51], ['ClockWarnMinutes' => 15]);
+
+$payload = json_decode(IPSTestState::$visualization, true);
+checkTrue('Der Raum liefert eine Kachel-Nutzlast', $payload['ok']);
+checkNum('Kachel zeigt die Raumtemperatur', $payload['temp'], 22.0);
+checkNum('Kachel zeigt den Raumsollwert', $payload['setpoint'], 22.0);
+check('Kachel kennt die Mitgliederzahl', $payload['members'], 2);
+check('Kachel meldet Einigkeit', $payload['mixed'], false);
+
+/* Die groesste Abweichung unter den Mitgliedern zaehlt — eine falsch gehende Uhr verschiebt
+   die Schaltzeiten dieses einen Geraets, und das ist der ganze Raum. */
+check('Kachel meldet die groesste Uhrabweichung', $payload['clockDev'], 42);
+check('Uhrabweichung schlaegt an', $payload['clockOff'], true);
+// Die juengste Meldung, nicht die aelteste: Sie sagt, wie frisch die Daten hoechstens sind.
+check('Kachel nennt die juengste Meldung', $payload['lastText'], 'vor 3 min');
+
+/* Felder, die es nur am Einzelgeraet gibt, muessen leer bleiben — sonst zeichnet die
+   gemeinsame Vorlage Platzhalter. */
+check('Kein Signalwert am Raum', $payload['signal'], null);
+check('Keine Tastensperre am Raum', $payload['keylock'], 0);
+check('Kein Urlaub am Raum', $payload['holiday'], false);
+
+// Uneinheitliche Sollwerte muessen bis in die Kachel durchschlagen.
+SetValue(IPS_GetObjectIDByIdent('Setpoint', 50), 20.0);
+SetValue(IPS_GetObjectIDByIdent('Setpoint', 51), 24.0);
+$room = makeRoom([50, 51]);
+check('Uneinigkeit erreicht die Kachel',
+    json_decode(IPSTestState::$visualization, true)['mixed'], true);
+
+// Ohne Mitglieder darf die Kachel nichts behaupten.
+$room = makeRoom([]);
+check('Ohne Mitglieder keine Kachel-Nutzlast',
+    json_decode(IPSTestState::$visualization, true)['ok'], false);
+
+/* Beide Module muessen DIESELBE Vorlage benutzen. Zwei Kopien waeren zwei Kacheln, die
+   auseinanderlaufen — und genau das war der Anlass, sie in die Bibliothek zu legen. */
+$vorlage = __DIR__ . '/../.libs/CWIFI_RoomTile.html';
+checkTrue('Die gemeinsame Vorlage liegt in der Bibliothek', is_file($vorlage));
+checkTrue('Das Raummodul haelt keine eigene Kopie',
+    !is_file(__DIR__ . '/../CometWiFiRoom/module.html'));
+checkTrue('Die Raumkachel haelt keine eigene Kopie',
+    !is_file(__DIR__ . '/../CometWiFiRoomTile/module.html'));
+
 /* ------------------------------------------------------------------ Ergebnis */
+
 
 if ($failed > 0) {
     printf("\n❌  %d von %d Prüfungen fehlgeschlagen.\n", $failed, $passed + $failed);

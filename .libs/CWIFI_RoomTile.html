@@ -177,6 +177,14 @@
         if (CR.keylock === 1) { head.appendChild(crChip('gesperrt')); }
         if (CR.keylock === 2) { head.appendChild(crChip('gesperrt +')); }
         if (CR.clockOff)      { head.appendChild(crChip('Uhr ' + (CR.clockDev > 0 ? '+' : '') + CR.clockDev + ' min', 'warn')); }
+        /* Nur bei Räumen: Die Mitglieder haben unterschiedliche Sollwerte. Das darf nicht
+           stillschweigend hinter dem angezeigten Wert verschwinden. */
+        if (CR.mixed) {
+            var m = crChip('Sollwerte uneinheitlich', 'warn');
+            m.title = 'Die Thermostate dieses Raums stehen auf verschiedenen Sollwerten. '
+                + 'Angezeigt wird der höchste. Ein Tipp auf den Ring gleicht sie an.';
+            head.appendChild(m);
+        }
 
         // Leere Zeile gar nicht erst anlegen, sonst bleibt oben eine Lücke stehen.
         if (head.childNodes.length > 0) { wrap.appendChild(head); }
@@ -309,6 +317,11 @@
             var off = document.createElement('span');
             off.textContent = 'Offset ' + (CR.offset > 0 ? '+' : '') + crFmt(CR.offset) + ' K';
             meta.appendChild(off);
+        }
+        if (CR.members !== null && CR.members !== undefined) {
+            var mit = document.createElement('span');
+            mit.textContent = CR.members + (CR.members === 1 ? ' Thermostat' : ' Thermostate');
+            meta.appendChild(mit);
         }
         if (CR.lastText) {
             var last = document.createElement('span');

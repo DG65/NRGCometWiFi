@@ -2,6 +2,24 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.13.1] – Der Raum sieht aus wie ein Gerät
+
+### Neu
+- **Das Raummodul zeichnet dieselbe Kachel wie ein einzelnes Thermostat** — Ring, Feinstufen,
+  Schnellwahl „Aus"/„An", Betriebsart. Bisher stand dort eine nackte Variablenliste zwischen
+  lauter Ringen; eine Zusammenfassung, die man nicht bedienen kann wie ein Gerät, ist nur
+  halb gedacht.
+- **Die Kachelvorlage liegt jetzt in der Bibliothek** (`.libs/CWIFI_RoomTile.html`) und wird
+  von beiden Modulen gelesen. Zwei Kopien wären zwei Kacheln, die auseinanderlaufen — der
+  Prüfstand hält ausdrücklich fest, dass keines der Module eine eigene hält.
+- **Zwei Kennzeichen nur für Räume:** „Sollwerte uneinheitlich", wenn die Mitglieder
+  auseinanderlaufen, und die Zahl der Thermostate in der Fußzeile.
+- **Die Uhrabweichung wird über die Mitglieder zusammengefasst** — gemeldet wird die größte.
+  Eine falsch gehende Uhr verschiebt die Schaltzeiten dieses einen Geräts, und das ist der
+  ganze Raum.
+- Die Fußzeile nennt die **jüngste** Meldung der Mitglieder: Sie sagt, wie frisch die Werte
+  höchstens sind.
+
 ## [0.13.0] – Ein Raum, eine Instanz
 
 ### Neu
