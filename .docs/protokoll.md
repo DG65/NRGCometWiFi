@@ -523,6 +523,36 @@ Historie im Brokerlog reichte nicht weit genug zurück. Nach dem Löschen deshal
 einigen Tagen die Bestandsaufnahme wiederholen; kommen sie wieder, veröffentlicht sie
 jemand fortlaufend und die Ursache muss dort gesucht werden.
 
+## Gruppen: die vollständige Adressierung ✅
+
+Aus den Abonnements aller zehn Geräte am Broker (06.08.2026). **Jedes** Gerät abonniert drei
+Topics, Gruppenmitglieder ein viertes:
+
+| Abonnement | Bedeutung |
+|---|---|
+| `02/<benutzer>/<eigene MAC>/S/#` | eigene Kommandos — **hat jedes Gerät, auch in einer Gruppe** |
+| `02/FFFFFFFF/000000000004/T/B7` | Zeit-Rundruf an alle Geräte |
+| `02/FFFFFFFF/<eigene MAC>/S/AF` | Abfrage über den Rundruf-Benutzer |
+| `+/<benutzer>/<KOPF-MAC>/G/#` | **nur Gruppenmitglieder** — der Gruppenkanal |
+
+**Der Gruppenkanal trägt die MAC des Kopfgeräts**, und der Kopf abonniert ihn ebenfalls. Ein
+Publish auf `02/<benutzer>/<KOPF>/G/A0` erreicht damit alle Mitglieder auf einmal, den Kopf
+eingeschlossen. Die Zugehörigkeit steht in `B0` (siehe dort): `S` + Kopf-MAC bei Mitgliedern,
+`U` + Nullen bei Einzelgeräten.
+
+Beispiel einer Anlage mit zehn Geräten:
+
+```
+Wohnzimmer    Links + Rechts    Kopf = Wohnzimmer Rechts
+Schlafzimmer  Links + Rechts    Kopf = Schlafzimmer Rechts
+sechs weitere Einzelgeräte
+```
+
+**Entscheidend: Der eigene `S/`-Kanal bleibt jedem Gerät erhalten.** Die Gruppe ist ein
+*zusätzlicher* Kanal, keine Sperre. Dass sich Geräte in der Hersteller-App nicht einzeln
+schalten lassen, ist eine Entscheidung der App — auf Protokollebene ist jedes Gerät einzeln
+adressierbar.
+
 ## Wie oft die Geräte von sich aus senden — praktisch nie
 
 **Sie senden beim Verbinden und wenn man sie fragt. Sonst nicht.** Das ist keine Vermutung,

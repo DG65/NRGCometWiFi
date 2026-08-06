@@ -2,6 +2,25 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.12.0] – Gruppen vollständig verstanden
+
+### Erkannt
+- **Die Adressierung liegt vollständig offen.** Aus den Abonnements aller zehn Geräte am
+  Broker: Jedes Gerät abonniert seinen eigenen Kommandokanal `…/<eigene MAC>/S/#`, den
+  Zeit-Rundruf und eine Abfrage über den Rundruf-Benutzer. **Gruppenmitglieder abonnieren
+  zusätzlich `+/<benutzer>/<KOPF-MAC>/G/#`** — den Kanal des Kopfgeräts, das ihn selbst
+  ebenfalls abonniert.
+- **Der eigene Kommandokanal bleibt jedem Gerät erhalten.** Die Gruppe ist ein *zusätzlicher*
+  Kanal, keine Sperre. Dass sich gekoppelte Geräte in der Hersteller-App nicht einzeln
+  schalten lassen, ist eine Entscheidung der App — auf Protokollebene ist jedes Gerät einzeln
+  adressierbar.
+
+### Neu
+- **Die Gruppe wird beim Namen genannt.** Statt `Gruppe D4:3D:39:5E:3E:9C` steht jetzt
+  `Gruppe mit Thermostat Wohnzimmer Rechts`, und das Kopfgerät führt sich als `Gruppenkopf`.
+  Findet sich zu der MAC keine Instanz, bleibt die MAC stehen — eine erfundene Zuordnung wäre
+  schlechter als eine ehrliche Hexfolge.
+
 ## [0.11.0] – „Nicht erreichbar" blieb für immer stehen
 
 ### Behoben

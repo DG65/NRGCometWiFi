@@ -26,6 +26,9 @@ class CometWiFiThermostat extends IPSModule
     private const ATTR_HINT_GONE  = 'ReviewHintDismissed';
 
     /** Letzte gemeldete Uhrabweichung in Minuten — siehe clockOffLimits(). */
+    /** Eigene Modul-GUID — zum Auffinden der Geschwisterinstanzen einer Gruppe. */
+    private const MODULE_GUID = '{0F552C16-D685-4C9F-86C0-8D89E4BFD158}';
+
     private const ATTR_CLOCK_DEV = 'LastClockDeviation';
 
     /** Sekunden zwischen Verbindungsabbruch und Nachfrage — Zeit für die Wiederanmeldung. */
@@ -398,6 +401,36 @@ class CometWiFiThermostat extends IPSModule
     }
 
     /**
+     * Macht aus der Gruppen-MAC einen Namen, den man lesen kann.
+     *
+     * `Gruppe D4:3D:39:5E:3E:9C` sagt niemandem etwas — `Gruppe mit Wohnzimmer Rechts` schon.
+     * Findet sich zu der MAC keine Instanz, bleibt die MAC stehen: Eine erfundene Zuordnung
+     * wäre schlechter als eine ehrliche Hexfolge.
+     *
+     * Das Kopfgerät führt sich selbst als Gruppenkopf — im Protokoll steht bei ihm dieselbe
+     * MAC wie bei den Mitgliedern, nämlich seine eigene.
+     */
+    private function namedGroup(string $payload, string $text): string
+    {
+        $kopf = CWIFI_Topics::normalizeMac(substr(ltrim($payload, '#'), 1));
+        if ($kopf === '' || trim($kopf, '0') === '') {
+            return $text;
+        }
+
+        $eigene = CWIFI_Topics::normalizeMac($this->ReadPropertyString('MAC'));
+        if ($kopf === $eigene) {
+            return 'Gruppenkopf';
+        }
+
+        foreach (IPS_GetInstanceListByModuleID(self::MODULE_GUID) as $id) {
+            if (CWIFI_Topics::normalizeMac((string) IPS_GetProperty($id, 'MAC')) === $kopf) {
+                return 'Gruppe mit ' . IPS_GetName($id);
+            }
+        }
+        return $text;
+    }
+
+    /**
      * Geräteauskunft: Modell, Firmware, IP, Zugangspunkt, Verschlüsselung, Gruppe.
      *
      * Die Variable entsteht erst, wenn das Register das erste Mal ankommt — sonst stünde in
@@ -410,6 +443,9 @@ class CometWiFiThermostat extends IPSModule
         [$ident, $quelle] = CWIFI_Registers::INFO_REGISTERS[$register];
 
         $text = CWIFI_Registers::decodeInfo($register, $payload);
+        if ($register === CWIFI_Registers::REG_GROUP && $text !== null) {
+            $text = $this->namedGroup($payload, $text);
+        }
         if ($text === null) {
             // Lässt sich das Register wider Erwarten nicht lesen, geht es in den Rohpfad,
             // statt eine leere oder verstümmelte Auskunft anzuzeigen.

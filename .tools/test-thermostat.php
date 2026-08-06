@@ -753,7 +753,47 @@ deliver($device, BASE . '/V/XX', '#COMM-LOSS');
 check('Abgeschaltet plant nichts ein', $device->timers['CWIFI_Probe']['interval'], 0);
 check('Abgeschaltet sendet auch nichts', count(IPSTestState::$sentPackets), 0);
 
+
+/* ==================================================== Gruppen lesbar benennen */
+
+/* Eine rohe MAC als "Gruppe" hilft niemandem. Steht die Geschwisterinstanz im Objektbaum,
+   soll ihr Name erscheinen — und findet sich keine, bleibt ehrlich die MAC stehen. */
+
+const MAC_KOPF = 'A1B2C3D4E5AA';
+
+function addGeschwister(int $id, string $name, string $mac): void
+{
+    IPSTestState::$instances[$id] = [
+        'InstanceID' => $id, 'ConnectionID' => 10, 'InstanceStatus' => IS_ACTIVE,
+        'ModuleInfo' => ['ModuleID' => '{0F552C16-D685-4C9F-86C0-8D89E4BFD158}'],
+        'Properties' => ['MAC' => $mac], 'Name' => $name
+    ];
+}
+
+$device = makeDevice();
+addGeschwister(60, 'Thermostat Wohnzimmer Rechts', MAC_KOPF);
+deliver($device, BASE . '/V/B0', '#S' . MAC_KOPF);
+check('Gruppe traegt den Namen des Kopfgeraets',
+    $device->GetValue('Group'), 'Gruppe mit Thermostat Wohnzimmer Rechts');
+
+// Ohne passende Instanz bleibt die MAC stehen, statt etwas zu erfinden.
+$device = makeDevice();
+deliver($device, BASE . '/V/B0', '#S' . MAC_KOPF);
+check('Ohne Geschwisterinstanz bleibt die MAC',
+    $device->GetValue('Group'), 'Gruppe A1:B2:C3:D4:E5:AA');
+
+// Das Kopfgeraet fuehrt seine EIGENE MAC — das darf nicht als "Gruppe mit sich selbst" enden.
+$device = makeDevice();
+deliver($device, BASE . '/V/B0', '#S' . MAC);
+check('Kopfgeraet erkennt sich selbst', $device->GetValue('Group'), 'Gruppenkopf');
+
+// Einzelgeraet bleibt Einzelgeraet.
+$device = makeDevice();
+deliver($device, BASE . '/V/B0', '#U000000000000');
+check('Einzelgeraet unveraendert', $device->GetValue('Group'), 'Einzelgerät');
+
 /* ------------------------------------------------------------------ Ergebnis */
+
 
 
 
