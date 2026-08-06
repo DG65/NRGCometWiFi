@@ -93,8 +93,42 @@
        Alles hier ist normalerweise ausgeblendet. Erst wenn Symcon die Kachel aufzieht,
        ist Platz für das, was man selten braucht — und dann muss man es nicht in der
        Verwaltungskonsole suchen. */
+    /* Sichtbar in der Detailansicht (⋯-Knopf) — und zusätzlich, wenn die Kachel
+       wirklich hoch genug ist. Das Aufziehen der Kachel hilft hier NICHT: Es zeigt in
+       Symcon die Standard-Ansicht der Instanz, nie dieses HTML (an der Anlage belegt —
+       eine Instanz ohne Variablen zeigt aufgezogen schlicht nichts). */
     .cr-extra { display: none; width: 100%; margin-top: 4px; }
-    .cr-wrap.gross .cr-extra { display: block; }
+    .cr-wrap.gross .cr-extra, .cr-extra.offen { display: block; }
+
+    .cr-wrap { position: relative; }
+    .cr-mehr {
+        position: absolute;
+        top: 0;
+        right: 2px;
+        width: 30px;
+        height: 30px;
+        border: none;
+        border-radius: 50%;
+        background: transparent;
+        color: inherit;
+        opacity: .45;
+        font-size: 1.1em;
+        line-height: 1;
+        cursor: pointer;
+        z-index: 2;
+    }
+    .cr-mehr:hover { opacity: 1; background: var(--ui-elevation-2, rgba(255, 255, 255, .1)); }
+    /* Die Kachelfläche ist fest — mehr Inhalt als Platz muss rollen, nicht abschneiden. */
+    .cr-wrap.details { overflow-y: auto; max-height: 100vh; box-sizing: border-box; }
+    .cr-detailkopf {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+        font-size: .9em;
+        font-weight: 600;
+        opacity: .8;
+    }
 
     .cr-extra h4 {
         margin: 14px 0 6px;
@@ -134,6 +168,9 @@
 
 <script>
     var CR = { ok: false };
+
+    /* Ring oder Details — überlebt das Neuzeichnen bei Wertänderungen. */
+    var CR_ansicht = 'ring';
 
     var CR_R = 84, CR_CX = 100, CR_CY = 100;
     var CR_UMFANG = 2 * Math.PI * CR_R;
@@ -207,6 +244,29 @@
             return;
         }
         wrap.className = 'cr-wrap' + (CR.reachable ? '' : ' offline');
+
+        var mehr = document.createElement('button');
+        mehr.className = 'cr-mehr';
+        if (CR_ansicht === 'details') {
+            mehr.textContent = '‹';
+            mehr.title = 'Zurück zur Bedienung';
+            mehr.onclick = function () { CR_ansicht = 'ring'; crZeichne(); };
+        } else {
+            mehr.textContent = '⋯';
+            mehr.title = 'Wochenprogramm, Urlaub, Gerät und Aktionen';
+            mehr.onclick = function () { CR_ansicht = 'details'; crZeichne(); };
+        }
+        wrap.appendChild(mehr);
+
+        if (CR_ansicht === 'details') {
+            wrap.classList.add('details');
+            var kopf = document.createElement('div');
+            kopf.className = 'cr-detailkopf';
+            kopf.textContent = CR.name || '';
+            wrap.appendChild(kopf);
+            crExtras(wrap, true);
+            return;
+        }
 
         /* ----------------------------------------------------- Kennzeichen, falls welche */
         var head = document.createElement('div');
@@ -433,9 +493,9 @@
         behaelter.appendChild(b);
     }
 
-    function crExtras(wrap) {
+    function crExtras(wrap, offen) {
         var extra = document.createElement('div');
-        extra.className = 'cr-extra';
+        extra.className = 'cr-extra' + (offen ? ' offen' : '');
 
         /* Wochenprogramm — der Grund, warum die Kachel überhaupt aufgezogen wird. */
         if (CR.schedule) {

@@ -2,6 +2,20 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.14.1] – Der ⋯-Knopf ersetzt das Aufziehen
+
+### Behoben
+- **Die Zusatzangaben aus 0.14.0 waren unerreichbar.** Sie sollten beim Aufziehen der Kachel
+  erscheinen — aber das Aufziehen zeigt in Symcon **immer die Standard-Ansicht der Instanz**,
+  nie das eigene Kachel-HTML. An der Anlage belegt: Eine Rauminstanz zeigt aufgezogen ihre
+  Variablenliste, eine Kachelinstanz ohne Variablen zeigt aufgezogen nichts. Die Annahme
+  „vergrößert = dieselbe Kachel mit mehr Platz" war falsch.
+- **Neu: ein ⋯-Knopf oben rechts in der Kachel** schaltet zwischen Ring und Detailansicht um —
+  Wochenprogramm, Urlaub, Geräteauskunft, Aktionen. Zurück geht es über ‹. Die Detailansicht
+  rollt, wenn der Inhalt die Kachelfläche übersteigt.
+- Die Größenerkennung bleibt als Zugabe bestehen: Ist eine Kachel wirklich hoch genug
+  aufgehängt, erscheinen die Zusatzangaben weiterhin von selbst.
+
 ## [0.14.0] – Die vergrößerte Kachel kann mehr
 
 ### Neu

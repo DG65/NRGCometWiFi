@@ -79,6 +79,17 @@ Feste Regeln:
   eingeschaltete Zeitsynchronisation).
 - `#FFFFFFFF` (alle Felder) nur als bestätigungspflichtiger Knopf, nie auf einem Timer.
 
+## Kachel-Visualisierung: Aufziehen zeigt NICHT das eigene HTML
+
+Das Aufziehen einer Kachel (Pfeil-Symbol) zeigt **immer die Standard-Ansicht der Instanz** —
+ihre Variablenliste. Das eigene HTML aus `GetVisualizationTile()` erscheint ausschließlich in
+der Kachel selbst. An der Anlage belegt (07.08.2026): Eine Instanz mit Variablen zeigt
+aufgezogen die Liste, eine ohne Variablen zeigt aufgezogen **nichts**.
+
+Folgen für den Entwurf: Zusatzinhalte gehören als Umschalter **in** die Kachel (⋯-Knopf in
+`.libs/CWIFI_RoomTile.html`), nicht hinter das Aufziehen. Und eine reine Kachelinstanz ohne
+Variablen liefert beim Aufziehen eine leere Seite — wer das vermeiden will, braucht Variablen.
+
 ## Formularknöpfe: `PREFIX_Name()` gibt es nicht für alles
 
 Symcon erzeugt den globalen Wrapper `PREFIX_Name()` **nur für Methoden, die die Modulklasse
