@@ -523,6 +523,40 @@ Historie im Brokerlog reichte nicht weit genug zurück. Nach dem Löschen deshal
 einigen Tagen die Bestandsaufnahme wiederholen; kommen sie wieder, veröffentlicht sie
 jemand fortlaufend und die Ursache muss dort gesucht werden.
 
+## Wie oft die Geräte von sich aus senden — praktisch nie
+
+**Sie senden beim Verbinden und wenn man sie fragt. Sonst nicht.** Das ist keine Vermutung,
+sondern über 20 Stunden am Broker ausgezählt: Nach einem Sammelabbruch am 06.08.2026 gegen
+19:17 kamen bis 23:00 fast keine `V/`-Meldungen mehr, obwohl alle zehn Geräte durchgehend
+verbunden waren und Pings beantworteten.
+
+Für ein Modul heißt das zweierlei:
+
+1. **Ohne aktive Abfrage sind die Werte regelmäßig viele Stunden alt.** Das ist der Preis der
+   Batterieschonung und kein Fehler — aber es gehört jedem gesagt, der sich über alte Werte
+   wundert. An der Testanlage waren die Werte 13 Stunden alt.
+2. **Eine Abfrage wird nicht sofort beantwortet.** Von zehn gleichzeitig angefragten Geräten
+   antworteten binnen einer Minute nur zwei. Die Funkmodule schlafen zwischen den Lebenszeichen
+   (Keepalive 600 s), und eine QoS-0-Nachricht an ein schlafendes Gerät verwirft der Broker.
+   Wer eine Antwort braucht, muss mit Minuten rechnen und darf ein Ausbleiben nicht als
+   Ausfall werten.
+
+### `#COMM-LOSS` heißt nicht „das Gerät ist weg"
+
+Es heißt „eine Sitzung endete". Der Last Will kommt auch:
+
+- wenn sich **dasselbe Gerät neu anmeldet** und dabei seine eigene alte Sitzung verdrängt
+  (im Brokerlog als `session taken over`),
+- **gesammelt für alle Geräte**, wenn der Broker kurz aussetzt.
+
+In beiden Fällen ist das Gerät unmittelbar danach wieder da — sagt es aber niemandem, weil es
+von sich aus nichts sendet. Wer den Last Will als Endzustand behandelt, hat ab da dauerhaft
+falsche Werte. Genau das ist am 06.08.2026 passiert: Um 19:17 ein Sammelabbruch, um 23:00
+galten in Symcon noch alle zehn Geräte als ausgefallen, während sie am Broker hingen.
+
+Das Modul fragt deshalb nach einem Abbruch einmal nach (nur die Temperaturen, mit einem aus
+der MAC abgeleiteten Versatz).
+
 ## Die eigenen Geräte finden
 
 Die MAC-Adressen der eigenen Thermostate stehen im Verbindungsaufbau am Broker — die Client-ID
