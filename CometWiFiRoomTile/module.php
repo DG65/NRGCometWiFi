@@ -43,7 +43,6 @@ class CometWiFiRoomTile extends IPSModule
         parent::Create();
 
         $this->RegisterPropertyInteger('DeviceID', 0);
-        $this->RegisterPropertyString('RoomName', '');
         $this->RegisterPropertyBoolean('AllowControl', true);
         $this->RegisterPropertyBoolean('ShowDetails', true);
         $this->RegisterPropertyInteger('BatteryWarnBelow', 25);
@@ -184,14 +183,11 @@ class CometWiFiRoomTile extends IPSModule
         $warnBelow = $this->ReadPropertyInteger('BatteryWarnBelow');
         $clockWarn = $this->ReadPropertyInteger('ClockWarnMinutes');
 
-        $name = trim($this->ReadPropertyString('RoomName'));
-        if ($name === '') {
-            $name = IPS_GetName($device);
-        }
-
         return json_encode([
             'ok'         => true,
-            'name'       => $name,
+            // Wird nicht als Überschrift gezeichnet — Symcon setzt den Instanznamen bereits
+            // über die Kachel. Dient nur als Hinweistext beim Überfahren des Rings.
+            'name'       => IPS_GetName($device),
             'temp'       => (is_numeric($temp) && $temp > 0) ? round((float) $temp, 1) : null,
             'setpoint'   => is_numeric($setpoint) ? round((float) $setpoint, 1) : null,
             // „Aus" und „An" sind Endanschläge des Ventils, keine Temperaturen. Die Kachel

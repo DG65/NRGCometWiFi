@@ -204,14 +204,19 @@ $tile = makeTile(['DeviceID' => 50, 'AllowControl' => false]);
 $payload = json_decode(IPSTestState::$visualization, true);
 check('Bedienung abschaltbar', $payload['control'], false);
 
-/* ================================================= 6. Abweichender Name */
+/* ================================================= 6. Name nur als Hinweistext
+ *
+ * Die Kachel zeichnet keine Namenszeile — Symcon setzt den Instanznamen bereits über die
+ * Kachel, eine zweite Überschrift darunter wäre dieselbe Angabe doppelt. Der Name bleibt
+ * trotzdem in der Nutzlast, als Hinweistext beim Überfahren des Rings.
+ */
 
 IPSTestState::reset();
 addThermostat(50, 'Thermostat Bad', ['Temperature' => 20.0, 'Reachable' => true]);
-check('Eigener Name gewinnt',
-    payloadOf(makeTile(['DeviceID' => 50, 'RoomName' => 'Gäste-WC']))['name'], 'Gäste-WC');
-check('Leerer eigener Name faellt auf die Instanz zurueck',
-    payloadOf(makeTile(['DeviceID' => 50, 'RoomName' => '   ']))['name'], 'Thermostat Bad');
+check('Name kommt aus der Instanz', payloadOf(makeTile(['DeviceID' => 50]))['name'], 'Thermostat Bad');
+
+IPSTestState::$instances[50]['Name'] = 'Gäste-WC';
+check('Umbenennen schlaegt durch', payloadOf(makeTile(['DeviceID' => 50]))['name'], 'Gäste-WC');
 
 /* ------------------------------------------------------------------ Ergebnis */
 

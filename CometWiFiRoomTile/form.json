@@ -43,14 +43,8 @@
                     "caption": " "
                 },
                 {
-                    "type": "ValidationTextBox",
-                    "name": "RoomName",
-                    "caption": "Abweichender Name",
-                    "width": "420px"
-                },
-                {
                     "type": "Label",
-                    "caption": "Leer lassen, dann steht der Name der Geräteinstanz in der Kachel."
+                    "caption": "Die Überschrift der Kachel ist der Name dieser Instanz — benenne sie also nach dem Raum. Die Kachel selbst zeigt keinen zweiten Namen, das wäre dieselbe Angabe doppelt."
                 }
             ]
         },

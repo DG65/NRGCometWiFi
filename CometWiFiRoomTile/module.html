@@ -10,22 +10,16 @@
     }
     .cr-wrap.offline { opacity: .5; }
 
+    /* Keine Namenszeile: Symcon setzt den Instanznamen bereits über die Kachel. Eine
+       zweite Überschrift darunter sagt dasselbe noch einmal. Hier stehen nur die
+       Kennzeichen — und wenn es keine gibt, entfällt die Zeile ganz. */
     .cr-head {
-        width: 100%;
         display: flex;
-        align-items: baseline;
-        gap: 8px;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
         flex-wrap: wrap;
         padding: 0 4px;
-    }
-    .cr-head .name {
-        font-size: 1.05em;
-        font-weight: 600;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        min-width: 0;
-        flex: 1 1 auto;
     }
     .cr-badge {
         font-size: .7em;
@@ -174,27 +168,25 @@
         }
         wrap.className = 'cr-wrap' + (CR.reachable ? '' : ' offline');
 
-        /* ---------------------------------------------------------------- Kopf */
+        /* ----------------------------------------------------- Kennzeichen, falls welche */
         var head = document.createElement('div');
         head.className = 'cr-head';
-        var name = document.createElement('div');
-        name.className = 'name';
-        name.textContent = CR.name;
-        name.title = CR.name;
-        head.appendChild(name);
 
-        if (!CR.reachable)  { head.appendChild(crChip('nicht erreichbar', 'off')); }
-        if (CR.holiday)     { head.appendChild(crChip('Urlaub')); }
+        if (!CR.reachable)    { head.appendChild(crChip('nicht erreichbar', 'off')); }
+        if (CR.holiday)       { head.appendChild(crChip('Urlaub')); }
         if (CR.keylock === 1) { head.appendChild(crChip('gesperrt')); }
         if (CR.keylock === 2) { head.appendChild(crChip('gesperrt +')); }
-        if (CR.clockOff)    { head.appendChild(crChip('Uhr ' + (CR.clockDev > 0 ? '+' : '') + CR.clockDev + ' min', 'warn')); }
-        wrap.appendChild(head);
+        if (CR.clockOff)      { head.appendChild(crChip('Uhr ' + (CR.clockDev > 0 ? '+' : '') + CR.clockDev + ' min', 'warn')); }
+
+        // Leere Zeile gar nicht erst anlegen, sonst bleibt oben eine Lücke stehen.
+        if (head.childNodes.length > 0) { wrap.appendChild(head); }
 
         /* ---------------------------------------------------------------- Ring */
         var anteil = crAnteil(CR);
         var zu     = CR.endstop === 'Aus';
 
         var dial = document.createElement('div');
+        dial.title = CR.name;              // beim Überfahren, falls die Kachel ohne Rahmen steht
         dial.className = 'cr-dial'
             + (CR.heating ? ' heating' : '')
             + (zu ? ' closed' : '')

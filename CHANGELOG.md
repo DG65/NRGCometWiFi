@@ -2,6 +2,19 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.10.2] – Eine Überschrift statt zwei
+
+### Behoben
+- **Die Raumkachel trug ihren Namen doppelt.** Symcon setzt den Instanznamen bereits über die
+  Kachel; die eigene Namenszeile darunter sagte dasselbe noch einmal. Sie ist entfernt — die
+  Kennzeichen (Urlaub, gesperrt, nicht erreichbar, schief stehende Uhr) bleiben und stehen
+  jetzt allein in dieser Zeile. Gibt es keine, entfällt die Zeile ganz, statt eine Lücke zu
+  hinterlassen.
+- Die Eigenschaft „Abweichender Name" ist damit gegenstandslos und wurde entfernt. Die
+  Überschrift ist der Name der Instanz — wer den Raum benennen will, benennt die Instanz.
+  Ein Hinweis dazu steht jetzt im Formular.
+- Der Gerätename bleibt in der Nutzlast und erscheint beim Überfahren des Rings.
+
 ## [0.10.1] – Knopf der Raumkachel repariert
 
 ### Behoben
