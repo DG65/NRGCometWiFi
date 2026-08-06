@@ -78,6 +78,18 @@ Feste Regeln:
   eingeschaltete Zeitsynchronisation).
 - `#FFFFFFFF` (alle Felder) nur als bestätigungspflichtiger Knopf, nie auf einem Timer.
 
+## Formularknöpfe: `PREFIX_Name()` gibt es nicht für alles
+
+Symcon erzeugt den globalen Wrapper `PREFIX_Name()` **nur für Methoden, die die Modulklasse
+selbst deklariert** — und **nie** für die vom SDK belegten Namen (`Create`, `ApplyChanges`,
+`RequestAction`, `ReceiveData`, `MessageSink`, `GetConfigurationForm`, `GetVisualizationTile`
+und Verwandte). Ein `onClick` mit `CWIFIR_RequestAction($id, …)` läuft deshalb in einen Fatal
+Error, obwohl die Methode existiert und öffentlich ist.
+
+Wer aus einem Formular heraus etwas auslösen will, gibt dem Modul eine **eigene** öffentliche
+Methode. `.tools/test-forms.php` prüft das für alle Module auf einmal; diese Fehlerklasse
+findet sonst niemand, weil sie erst beim Klicken zuschlägt.
+
 ## Keine Methodennamen erfinden, die IPSModule schon führt
 
 **Der teuerste Fehler dieses Repos bisher.** Ein selbst geschriebenes
@@ -176,6 +188,7 @@ php .tools/test-thermostat.php     # Empfangs- und Sendepfad des Geräts        
 php .tools/test-configurator.php   # Erkennung, Instanz-Zuordnung, Zeitsync        (57)
 php .tools/test-tile.php           # Kachel-Nutzlast: Ist/Soll, Namen, Ausfälle    (32)
 php .tools/test-roomtile.php       # Raumkachel: Zuordnung, Ring, Bedienung        (31)
+php .tools/test-forms.php          # Formularaufrufe aller Module gegen die Klassen (57)
 ```
 
 `IPSTestState::useLocale('<Modulverzeichnis>')` schaltet `Translate()` auf die echte

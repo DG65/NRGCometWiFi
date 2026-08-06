@@ -131,6 +131,24 @@ class CometWiFiRoomTile extends IPSModule
         $this->UpdateVisualizationValue($this->buildPayload());
     }
 
+    /**
+     * Frische Werte beim Gerät anfordern.
+     *
+     * Eigene öffentliche Methode, weil Symcon nur für solche einen `CWIFIR_…`-Wrapper
+     * erzeugt. Für geerbte SDK-Methoden wie `RequestAction` gibt es keinen — ein
+     * Formularknopf, der `CWIFIR_RequestAction(...)` aufruft, läuft in einen Fatal Error.
+     */
+    public function RequestUpdate(): bool
+    {
+        $device = $this->device();
+        if ($device <= 0) {
+            return false;
+        }
+        $ok = (bool) @CWIFI_RequestUpdate($device);
+        $this->UpdateVisualizationValue($this->buildPayload());
+        return $ok;
+    }
+
     /* ===================================================================== Intern */
 
     /** Die eingestellte Geräteinstanz — oder 0, wenn sie fehlt oder keine mehr ist. */

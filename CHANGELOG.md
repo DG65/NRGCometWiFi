@@ -2,6 +2,26 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.10.1] – Knopf der Raumkachel repariert
+
+### Behoben
+- **„Jetzt aktualisieren" in der Raumkachel lief in einen Fatal Error.** Der Knopf rief
+  `CWIFIR_RequestAction(...)` auf — den globalen Wrapper `PREFIX_Name()` erzeugt Symcon aber
+  **nur für Methoden, die die Modulklasse selbst deklariert, und nie für SDK-Namen**.
+  `RequestAction` ist der Weg des Kerns in das Modul hinein, nicht der Weg von außen. Die
+  Kachel hat jetzt eine eigene Methode `RequestUpdate()`.
+
+### Neu
+- **Prüfstand für die Formulare aller Module** (`.tools/test-forms.php`, 57 Prüfungen). Er
+  liest jeden `onClick` und `onChange` aus allen vier `form.json` und prüft gegen die echten
+  Klassen: Gibt es die Methode? Ist sie öffentlich? Ist sie selbst deklariert? Und trägt sie
+  keinen vom SDK belegten Namen?
+  - Diese Fehlerklasse findet weder `php -l` noch ein Test des Empfangspfads — sie schlägt
+    erst zu, wenn jemand im Formular klickt.
+  - Die Gegenprobe brachte eine eigene Lehre: Die Prüfung „selbst deklariert" allein hätte
+    den Fehler **nicht** gefunden, denn die Raumkachel deklariert `RequestAction` sehr wohl.
+    Erst die Liste der belegten SDK-Namen greift.
+
 ## [0.10.0] – Raumkachel für ein einzelnes Thermostat
 
 ### Neu
