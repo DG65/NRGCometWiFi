@@ -52,6 +52,18 @@ function checkNum(string $label, $actual, ?float $expected): void
 
 const GUID_DEVICE = '{0F552C16-D685-4C9F-86C0-8D89E4BFD158}';
 
+/* Die Wrapper des Gerätemoduls nachbilden und mitschreiben — so prüft der Stand, welche
+   Funktion ein Knopf der vergrößerten Kachel wirklich auslöst. */
+$GLOBALS['aufrufe'] = [];
+foreach (['SetTemperature', 'SetManualMode', 'RequestUpdate', 'RequestAllFields',
+          'RequestSchedule', 'SetClock'] as $name) {
+    if (function_exists('CWIFI_' . $name)) {
+        continue;
+    }
+    eval('function CWIFI_' . $name . '(int $id, ...$rest): bool {'
+        . '$GLOBALS["aufrufe"][] = ["' . $name . '", $id, $rest]; return true; }');
+}
+
 function addThermostat(int $id, string $name, array $values): void
 {
     IPSTestState::$instances[$id] = [
@@ -218,7 +230,61 @@ check('Name kommt aus der Instanz', payloadOf(makeTile(['DeviceID' => 50]))['nam
 IPSTestState::$instances[50]['Name'] = 'Gäste-WC';
 check('Umbenennen schlaegt durch', payloadOf(makeTile(['DeviceID' => 50]))['name'], 'Gäste-WC');
 
+
+/* ============================================ 7. Vergrößerte Kachel */
+
+IPSTestState::reset();
+addThermostat(50, 'Bad', [
+    'Temperature' => 21.0, 'Setpoint' => 22.0, 'Reachable' => true,
+    'Schedule'    => "Montag: 04:30 → 22,0 °C",
+    'HolidayFrom' => mktime(12, 0, 0, 7, 31, 2026),
+    'HolidayTo'   => mktime(12, 0, 0, 8, 16, 2026),
+    'HolidayTemperature' => 25.0,
+    'Model'       => 'Comet Wifi Ver. 6.1',
+    'Firmware'    => '2.7.1.0',
+    'IPAddress'   => '192.168.2.45',
+    'Group'       => 'Einzelgerät',
+    'DeviceClock' => '21:53'
+]);
+$payload = payloadOf(makeTile(['DeviceID' => 50]));
+
+/* Diese Felder sind in der kleinen Kachel unsichtbar — fehlen sie in der Nutzlast, bleibt
+   die vergroesserte Ansicht leer, und niemand merkt es beim normalen Hinsehen. */
+check('Wochenprogramm in der Nutzlast', $payload['schedule'], 'Montag: 04:30 → 22,0 °C');
+check('Urlaubsbeginn in der Nutzlast', $payload['holidayFrom'], mktime(12, 0, 0, 7, 31, 2026));
+checkNum('Urlaubstemperatur in der Nutzlast', $payload['holidayTemp'], 25.0);
+check('Modell in der Nutzlast', $payload['model'], 'Comet Wifi Ver. 6.1');
+check('Firmware in der Nutzlast', $payload['firmware'], '2.7.1.0');
+check('IP in der Nutzlast', $payload['ip'], '192.168.2.45');
+check('Gruppe in der Nutzlast', $payload['group'], 'Einzelgerät');
+check('Geraeteuhr in der Nutzlast', $payload['clock'], '21:53');
+
+/* Jeder Knopf muss die Funktion ausloesen, die auf ihm steht. Vertauscht man zwei, faellt
+   das ohne diesen Test niemandem auf — die Kachel sieht in beiden Faellen gleich aus. */
+$tile = makeTile(['DeviceID' => 50]);
+foreach ([
+    'refresh'         => 'RequestUpdate',
+    'requestSchedule' => 'RequestSchedule',
+    'setClock'        => 'SetClock',
+    'requestAll'      => 'RequestAllFields'
+] as $kennung => $erwartet) {
+    $GLOBALS['aufrufe'] = [];
+    $tile->RequestAction($kennung, 0);
+    check('Knopf ' . $kennung . ' loest ' . $erwartet . ' aus',
+        $GLOBALS['aufrufe'][0][0] ?? '(nichts)', $erwartet);
+    check('Knopf ' . $kennung . ' trifft das richtige Geraet',
+        $GLOBALS['aufrufe'][0][1] ?? 0, 50);
+}
+
+// Ohne Bedienrecht darf kein Knopf etwas ausloesen.
+$tile = makeTile(['DeviceID' => 50, 'AllowControl' => false]);
+$GLOBALS['aufrufe'] = [];
+$tile->RequestAction('requestAll', 0);
+$tile->RequestAction('setClock', 0);
+check('Ohne Bedienrecht bleibt alles ruhig', count($GLOBALS['aufrufe']), 0);
+
 /* ------------------------------------------------------------------ Ergebnis */
+
 
 if ($failed > 0) {
     printf("\n❌  %d von %d Prüfungen fehlgeschlagen.\n", $failed, $passed + $failed);

@@ -88,6 +88,46 @@
     .cr-meta .clock { color: #ffb74d; opacity: 1; font-weight: 600; }
 
     .cr-empty { opacity: .6; font-size: .9em; padding: 20px 8px; text-align: center; }
+
+    /* ---------------------------------------------------------- Vergrößerte Kachel
+       Alles hier ist normalerweise ausgeblendet. Erst wenn Symcon die Kachel aufzieht,
+       ist Platz für das, was man selten braucht — und dann muss man es nicht in der
+       Verwaltungskonsole suchen. */
+    .cr-extra { display: none; width: 100%; margin-top: 4px; }
+    .cr-wrap.gross .cr-extra { display: block; }
+
+    .cr-extra h4 {
+        margin: 14px 0 6px;
+        font-size: .72em;
+        font-weight: 600;
+        opacity: .5;
+        text-transform: uppercase;
+        letter-spacing: .06em;
+    }
+    .cr-extra .zeilen { font-size: .82em; line-height: 1.7; }
+    .cr-extra .zeilen div { display: flex; gap: 10px; justify-content: space-between; }
+    .cr-extra .zeilen span:first-child { opacity: .6; }
+    .cr-extra .plan {
+        font-size: .78em;
+        line-height: 1.7;
+        white-space: pre-wrap;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .cr-tasten { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .cr-tasten button {
+        border: none;
+        border-radius: 8px;
+        padding: 8px 12px;
+        background: var(--ui-elevation-2, rgba(255, 255, 255, .1));
+        color: inherit;
+        font-size: .78em;
+        cursor: pointer;
+        text-align: left;
+    }
+    .cr-tasten button:hover { background: var(--ui-elevation-3, rgba(255, 255, 255, .2)); }
+    .cr-tasten button.frage { background: rgba(255, 138, 101, .22); color: #ff8a65; font-weight: 600; }
+    .cr-tasten button.getan { opacity: .5; }
 </style>
 
 <div class="cr-wrap" id="crWrap"></div>
@@ -298,7 +338,10 @@
     }
 
     function crFuss(wrap) {
-        if (!CR.details) { return; }
+        if (!CR.details) {
+            crExtras(wrap);
+            return;
+        }
         var meta = document.createElement('div');
         meta.className = 'cr-meta';
 
@@ -330,6 +373,130 @@
             meta.appendChild(last);
         }
         wrap.appendChild(meta);
+        crExtras(wrap);
+    }
+
+    /* -------------------------------------------------- Vergrößerte Kachel */
+
+    /** Zeitpunkt als Datum, oder null wenn es keinen gibt. */
+    function crDatum(sekunden) {
+        if (!sekunden) { return null; }
+        var d = new Date(sekunden * 1000);
+        var z = function (n) { return (n < 10 ? '0' : '') + n; };
+        return z(d.getDate()) + '.' + z(d.getMonth() + 1) + '.' + d.getFullYear()
+            + ', ' + z(d.getHours()) + ':' + z(d.getMinutes());
+    }
+
+    function crZeile(behaelter, titel, wert) {
+        if (wert === null || wert === undefined || wert === '') { return; }
+        var z = document.createElement('div');
+        var a = document.createElement('span'); a.textContent = titel;
+        var b = document.createElement('span'); b.textContent = wert;
+        z.appendChild(a); z.appendChild(b);
+        behaelter.appendChild(z);
+    }
+
+    function crAbschnitt(behaelter, titel) {
+        var h = document.createElement('h4');
+        h.textContent = titel;
+        behaelter.appendChild(h);
+    }
+
+    /**
+     * Ein Knopf, der beim teuren Abruf einmal nachfragt.
+     *
+     * „Alle Felder anfordern" weckt ein Batteriegerät vollständig. Ein Fehlgriff soll das
+     * nicht auslösen — deshalb der Zwischenschritt, so wie es das Formular auch hält.
+     */
+    function crTaste(behaelter, beschriftung, kennung, rueckfrage) {
+        var b = document.createElement('button');
+        b.textContent = beschriftung;
+        var gefragt = false;
+        b.onclick = function () {
+            if (rueckfrage && !gefragt) {
+                gefragt = true;
+                b.className = 'frage';
+                b.textContent = 'Wirklich? Weckt das Gerät vollständig.';
+                setTimeout(function () {
+                    if (!gefragt) { return; }
+                    gefragt = false;
+                    b.className = '';
+                    b.textContent = beschriftung;
+                }, 6000);
+                return;
+            }
+            gefragt = false;
+            b.className = 'getan';
+            b.textContent = beschriftung + ' ✓';
+            requestAction(kennung, 0);
+        };
+        behaelter.appendChild(b);
+    }
+
+    function crExtras(wrap) {
+        var extra = document.createElement('div');
+        extra.className = 'cr-extra';
+
+        /* Wochenprogramm — der Grund, warum die Kachel überhaupt aufgezogen wird. */
+        if (CR.schedule) {
+            crAbschnitt(extra, 'Wochenprogramm im Gerät');
+            var plan = document.createElement('div');
+            plan.className = 'plan';
+            plan.textContent = CR.schedule;
+            extra.appendChild(plan);
+        }
+
+        var von = crDatum(CR.holidayFrom), bis = crDatum(CR.holidayTo);
+        if (von && bis) {
+            crAbschnitt(extra, 'Urlaub');
+            var u = document.createElement('div');
+            u.className = 'zeilen';
+            crZeile(u, 'von', von);
+            crZeile(u, 'bis', bis);
+            crZeile(u, 'Temperatur', CR.holidayTemp === null ? null : crFmt(CR.holidayTemp) + ' °C');
+            extra.appendChild(u);
+        }
+
+        var info = document.createElement('div');
+        info.className = 'zeilen';
+        crZeile(info, 'Modell', CR.model);
+        crZeile(info, 'Firmware', CR.firmware);
+        crZeile(info, 'IP-Adresse', CR.ip);
+        crZeile(info, 'Gruppe', CR.group);
+        crZeile(info, 'Geräteuhr', CR.clock);
+        if (info.childNodes.length > 0) {
+            crAbschnitt(extra, 'Gerät');
+            extra.appendChild(info);
+        }
+
+        if (CR.control) {
+            crAbschnitt(extra, CR.members ? 'Aktionen für alle Thermostate' : 'Aktionen');
+            var t = document.createElement('div');
+            t.className = 'cr-tasten';
+            crTaste(t, '🔄  Jetzt aktualisieren', 'refresh', false);
+            crTaste(t, '📅  Wochenprogramm & Urlaub abrufen', 'requestSchedule', false);
+            crTaste(t, '🕒  Geräteuhr auf Symcon-Zeit stellen', 'setClock', false);
+            crTaste(t, '📋  Alle Felder anfordern', 'requestAll', true);
+            extra.appendChild(t);
+        }
+
+        wrap.appendChild(extra);
+    }
+
+    /**
+     * Merkt, wenn Symcon die Kachel aufzieht.
+     *
+     * Es gibt keine Meldung „ich bin jetzt groß" — es gibt nur mehr Platz. Also wird der
+     * gemessen. Die Schwelle liegt bewusst über der normalen Kachelhöhe, damit ein schmales
+     * Fenster die Zusatzangaben nicht versehentlich aufklappt.
+     */
+    function crBeobachteGroesse() {
+        var wrap = document.getElementById('crWrap');
+        if (!wrap || typeof ResizeObserver === 'undefined') { return; }
+        new ResizeObserver(function () {
+            var gross = wrap.clientHeight >= 470 || wrap.clientWidth >= 560;
+            wrap.classList.toggle('gross', gross);
+        }).observe(wrap);
     }
 
     function handleMessage(payload) {
@@ -337,5 +504,6 @@
         if (!data) { return; }
         CR = data;
         crZeichne();
+        crBeobachteGroesse();
     }
 </script>

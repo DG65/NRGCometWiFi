@@ -204,7 +204,7 @@ php .tools/test-libs.php           # Topic-Bau, MAC-Normalisierung, Dekodierung 
 php .tools/test-thermostat.php     # Empfangs- und Sendepfad des Geräts          (216)
 php .tools/test-configurator.php   # Erkennung, Instanz-Zuordnung, Zeitsync        (57)
 php .tools/test-tile.php           # Kachel-Nutzlast: Ist/Soll, Namen, Ausfälle    (32)
-php .tools/test-roomtile.php       # Raumkachel: Zuordnung, Ring, Bedienung        (31)
+php .tools/test-roomtile.php       # Raumkachel: Zuordnung, Ring, Aktionen         (48)
 php .tools/test-room.php           # Raum: Zusammenfassung und Kachel              (42)
 php .tools/test-forms.php          # Formularaufrufe aller Module gegen die Klassen (70)
 ```

@@ -116,26 +116,43 @@ class CometWiFiTile extends IPSModule
             case 'setpoint':
                 $data = json_decode((string) $Value, true);
                 if (is_array($data) && isset($data['id'], $data['value']) && $this->owns((int) $data['id'])) {
-                    @CWIFI_SetTemperature((int) $data['id'], (float) $data['value']);
+                    $this->callDevice('CWIFI_SetTemperature', (int) $data['id'], (float) $data['value']);
                 }
                 break;
 
             case 'mode':
                 $data = json_decode((string) $Value, true);
                 if (is_array($data) && isset($data['id'], $data['manual']) && $this->owns((int) $data['id'])) {
-                    @CWIFI_SetManualMode((int) $data['id'], (bool) $data['manual']);
+                    $this->callDevice('CWIFI_SetManualMode', (int) $data['id'], (bool) $data['manual']);
                 }
                 break;
 
             case 'refresh':
                 $id = (int) $Value;
                 if ($this->owns($id)) {
-                    @CWIFI_RequestUpdate($id);
+                    $this->callDevice('CWIFI_RequestUpdate', $id);
                 }
                 break;
         }
 
         $this->UpdateVisualizationValue($this->buildPayload());
+    }
+
+
+    /**
+     * Ruft eine Funktion des Gerätemoduls auf, falls es sie gibt.
+     *
+     * `@` hilft nicht: Ein fehlender Funktionsaufruf ist in PHP 8 ein `Error` und kein
+     * abschaltbarer Hinweis. Ohne diese Prüfung risse ein nicht geladenes Gerätemodul die
+     * Kachel mit — und zwar mitten im Klick des Nutzers.
+     */
+    private function callDevice(string $funktion, int $instanceId, ...$argumente): bool
+    {
+        if (!function_exists($funktion)) {
+            $this->SendDebug('Kachel', 'Gerätemodul nicht geladen: ' . $funktion . ' fehlt', 0);
+            return false;
+        }
+        return (bool) $funktion($instanceId, ...$argumente);
     }
 
     /* ===================================================================== Intern */

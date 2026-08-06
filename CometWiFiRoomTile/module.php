@@ -117,15 +117,29 @@ class CometWiFiRoomTile extends IPSModule
                 if ($wert < CWIFI_Registers::SETPOINT_OFF || $wert > CWIFI_Registers::SETPOINT_ON) {
                     return;
                 }
-                @CWIFI_SetTemperature($device, $wert);
+                $this->callDevice('CWIFI_SetTemperature', $device, $wert);
                 break;
 
             case 'mode':
-                @CWIFI_SetManualMode($device, (bool) $Value);
+                $this->callDevice('CWIFI_SetManualMode', $device, (bool) $Value);
                 break;
 
             case 'refresh':
-                @CWIFI_RequestUpdate($device);
+                $this->callDevice('CWIFI_RequestUpdate', $device);
+                break;
+
+            /* Die Knöpfe der vergrößerten Kachel. Sie tun dasselbe wie im Formular der
+               Geräteinstanz — nur muss man dafür nicht mehr in die Verwaltungskonsole. */
+            case 'requestAll':
+                $this->callDevice('CWIFI_RequestAllFields', $device);
+                break;
+
+            case 'requestSchedule':
+                $this->callDevice('CWIFI_RequestSchedule', $device);
+                break;
+
+            case 'setClock':
+                $this->callDevice('CWIFI_SetClock', $device);
                 break;
         }
 
@@ -145,9 +159,26 @@ class CometWiFiRoomTile extends IPSModule
         if ($device <= 0) {
             return false;
         }
-        $ok = (bool) @CWIFI_RequestUpdate($device);
+        $ok = (bool) $this->callDevice('CWIFI_RequestUpdate', $device);
         $this->UpdateVisualizationValue($this->buildPayload());
         return $ok;
+    }
+
+
+    /**
+     * Ruft eine Funktion des Gerätemoduls auf, falls es sie gibt.
+     *
+     * `@` hilft nicht: Ein fehlender Funktionsaufruf ist in PHP 8 ein `Error` und kein
+     * abschaltbarer Hinweis. Ohne diese Prüfung risse ein nicht geladenes Gerätemodul die
+     * Kachel mit — und zwar mitten im Klick des Nutzers.
+     */
+    private function callDevice(string $funktion, int $instanceId, ...$argumente): bool
+    {
+        if (!function_exists($funktion)) {
+            $this->SendDebug('Kachel', 'Gerätemodul nicht geladen: ' . $funktion . ' fehlt', 0);
+            return false;
+        }
+        return (bool) $funktion($instanceId, ...$argumente);
     }
 
     /* ===================================================================== Intern */
@@ -210,6 +241,18 @@ class CometWiFiRoomTile extends IPSModule
             // Vorlage nicht raten muss.
             'mixed'      => false,
             'members'    => null,
+
+            /* Nur in der vergrößerten Kachel sichtbar — dort ist Platz für das, was man
+               selten braucht, aber ungern woanders sucht. */
+            'schedule'    => $this->valueOf($device, CWIFI_Registers::IDENT_SCHEDULE),
+            'holidayFrom' => (int) $this->valueOf($device, CWIFI_Registers::IDENT_HOLIDAY_FROM),
+            'holidayTo'   => (int) $this->valueOf($device, CWIFI_Registers::IDENT_HOLIDAY_TO),
+            'holidayTemp' => $this->valueOf($device, CWIFI_Registers::IDENT_HOLIDAY_TEMP),
+            'model'       => $this->valueOf($device, CWIFI_Registers::IDENT_MODEL),
+            'firmware'    => $this->valueOf($device, CWIFI_Registers::IDENT_FIRMWARE),
+            'ip'          => $this->valueOf($device, CWIFI_Registers::IDENT_IP),
+            'group'       => $this->valueOf($device, CWIFI_Registers::IDENT_GROUP),
+            'clock'       => $this->valueOf($device, CWIFI_Registers::IDENT_CLOCK),
             'lastText'   => $last > 0 ? $this->ago($last) : null,
             'control'    => $this->ReadPropertyBoolean('AllowControl'),
             'details'    => $this->ReadPropertyBoolean('ShowDetails'),

@@ -2,6 +2,35 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.14.0] – Die vergrößerte Kachel kann mehr
+
+### Neu
+- **Wird die Kachel aufgezogen, erscheinen Wochenprogramm, Urlaub, Geräteauskunft und die
+  Aktionen.** Symcon meldet nicht „ich bin jetzt groß" — es gibt nur mehr Platz. Der wird
+  gemessen; die Schwelle liegt bewusst über der normalen Kachelhöhe, damit ein schmales
+  Fenster nichts versehentlich aufklappt.
+- **Vier Aktionen direkt aus der Kachel**: aktualisieren, Wochenprogramm & Urlaub abrufen,
+  Geräteuhr stellen, alle Felder anfordern. Dieselben Funktionen wie im Formular der
+  Geräteinstanz — nur muss man dafür nicht mehr in die Verwaltungskonsole.
+  - **„Alle Felder anfordern" fragt einmal nach.** Der Abruf weckt ein Batteriegerät
+    vollständig; ein Fehlgriff soll das nicht auslösen. Die Rückfrage verfällt nach sechs
+    Sekunden von selbst.
+  - Am Raum wirken alle vier auf **jedes Mitglied**.
+- Wochenprogramm, Urlaub und Geräteauskunft bleiben am Raum leer: Sie gehören zum einzelnen
+  Thermostat und können sich zwischen den Mitgliedern unterscheiden. Die Kachel lässt die
+  Abschnitte dann weg, statt etwas zu behaupten.
+
+### Behoben
+- **Beide Kacheln hatten denselben Fallstrick wie das Raummodul.** `@CWIFI_SetTemperature(...)`
+  schützt in PHP 8 nicht — ein fehlender Wrapper ist ein `Error`. Wäre das Gerätemodul nicht
+  geladen, hätte ein Klick die Kachel mitgerissen. Jetzt laufen alle modulübergreifenden
+  Aufrufe über `function_exists()`.
+
+### Prüfstand
+- Jeder Knopf wird gegen die Funktion geprüft, die er auslösen soll. Vertauscht man zwei,
+  sieht die Kachel gleich aus und niemand merkt es — deshalb gegengeprobt, indem genau das
+  getan wurde.
+
 ## [0.13.1] – Der Raum sieht aus wie ein Gerät
 
 ### Neu

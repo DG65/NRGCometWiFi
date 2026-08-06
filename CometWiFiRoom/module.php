@@ -131,6 +131,18 @@ class CometWiFiRoom extends IPSModule
             case 'refresh':
                 $this->RequestUpdate();
                 break;
+
+            case 'requestAll':
+                $this->RequestAllFields();
+                break;
+
+            case 'requestSchedule':
+                $this->RequestSchedule();
+                break;
+
+            case 'setClock':
+                $this->SetClock();
+                break;
         }
         $this->UpdateVisualizationValue($this->buildPayload());
     }
@@ -200,6 +212,19 @@ class CometWiFiRoom extends IPSModule
             'clockOff'   => $offen,
             'mixed'      => (bool) $this->GetValue(self::IDENT_MIXED),
             'members'    => count($mitglieder),
+
+            /* Wochenprogramm, Urlaub und Geräteauskunft gehören zum einzelnen Thermostat und
+               können sich zwischen den Mitgliedern unterscheiden. Ein Raum darf hier nichts
+               behaupten — die Kachel lässt die Abschnitte dann weg. */
+            'schedule'    => null,
+            'holidayFrom' => 0,
+            'holidayTo'   => 0,
+            'holidayTemp' => null,
+            'model'       => null,
+            'firmware'    => null,
+            'ip'          => null,
+            'group'       => null,
+            'clock'       => null,
             'lastText'   => $juengste > 0 ? $this->ago($juengste) : null,
             'control'    => $this->ReadPropertyBoolean('AllowControl'),
             'details'    => $this->ReadPropertyBoolean('ShowDetails'),
@@ -291,9 +316,42 @@ class CometWiFiRoom extends IPSModule
     /** Fordert bei allen Mitgliedern frische Werte an. */
     public function RequestUpdate(): bool
     {
+        return $this->allMembers('CWIFI_RequestUpdate');
+    }
+
+    /**
+     * Fordert bei allen Mitgliedern alle Felder an.
+     *
+     * Das ist der teuerste Abruf, den es gibt — er weckt jedes Gerät vollständig. Deshalb
+     * gibt es ihn nur auf ausdrücklichen Knopfdruck und nie auf einem Zeitgeber.
+     */
+    public function RequestAllFields(): bool
+    {
+        return $this->allMembers('CWIFI_RequestAllFields');
+    }
+
+    /** Holt Wochenprogramm und Urlaub aller Mitglieder. */
+    public function RequestSchedule(): bool
+    {
+        return $this->allMembers('CWIFI_RequestSchedule');
+    }
+
+    /** Stellt die Uhr aller Mitglieder auf die Symcon-Zeit. */
+    public function SetClock(): bool
+    {
+        return $this->allMembers('CWIFI_SetClock');
+    }
+
+    /** Ruft dieselbe Funktion an jedem Mitglied auf. */
+    private function allMembers(string $funktion): bool
+    {
+        $mitglieder = $this->members();
+        if ($mitglieder === []) {
+            return false;
+        }
         $alle = true;
-        foreach ($this->members() as $instanceId) {
-            if (!$this->callDevice('CWIFI_RequestUpdate', $instanceId)) {
+        foreach ($mitglieder as $instanceId) {
+            if (!$this->callDevice($funktion, $instanceId)) {
                 $alle = false;
             }
         }
