@@ -2,6 +2,29 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.15.0] – Die Details wohnen jetzt im Doppelpfeil
+
+### Geändert
+- **Der ⋯-Umschalter aus 0.14.1 ist wieder entfernt** — die Kachel zeigt nur noch den Ring.
+  Die Details gehören in die aufgezogene Ansicht, und dafür gibt es jetzt den passenden
+  Mechanismus:
+- **Die aufgezogene Ansicht (Doppelpfeil) ist gefüllt.** Sie zeigt die *Kinder* der Instanz —
+  deshalb legt die Raumkachel Verknüpfungen auf die Variablen ihres Thermostats an:
+  Ist/Soll (mit Schieberegler), Betriebsart, Wochenprogramm, Urlaub, Batterie, Signal,
+  Geräteuhr samt Abweichung, Modell, Firmware, IP, Gruppe. Verknüpfungen statt Kopien: Die
+  Werte bleiben am Gerät, samt Historie, und der Schieberegler bedient das Original.
+  Abschaltbar; beim Gerätewechsel räumen sich die Verknüpfungen selbst auf.
+- **Aktionsauswahl als Variable** („Aktion": aktualisieren · Wochenprogramm & Urlaub abrufen ·
+  Uhr stellen · alle Felder anfordern) — in der aufgezogenen Ansicht bedienbar, springt nach
+  dem Ausführen zurück auf „–". Am Raum wirkt sie auf alle Mitglieder.
+
+### Prüfstand
+- Der SDK-Stub hat eine Namenskollision abgefangen, bevor sie das Live-System erreichte:
+  `maintainAction()` kollidierte mit `IPSModule::MaintainAction` — dieselbe Fehlerklasse wie
+  der teuerste Fehler dieses Repos, diesmal lokal gefunden statt am Zielsystem.
+- Die Rücksetz-Prüfung der Aktionsauswahl war anfangs blind (Variable stand ohnehin auf 0);
+  der Prüffall setzt den gewählten Wert jetzt erst wirklich, und die Gegenprobe schlägt an.
+
 ## [0.14.1] – Der ⋯-Knopf ersetzt das Aufziehen
 
 ### Behoben

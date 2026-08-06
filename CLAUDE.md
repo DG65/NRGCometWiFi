@@ -86,9 +86,10 @@ ihre Variablenliste. Das eigene HTML aus `GetVisualizationTile()` erscheint auss
 der Kachel selbst. An der Anlage belegt (07.08.2026): Eine Instanz mit Variablen zeigt
 aufgezogen die Liste, eine ohne Variablen zeigt aufgezogen **nichts**.
 
-Folgen für den Entwurf: Zusatzinhalte gehören als Umschalter **in** die Kachel (⋯-Knopf in
-`.libs/CWIFI_RoomTile.html`), nicht hinter das Aufziehen. Und eine reine Kachelinstanz ohne
-Variablen liefert beim Aufziehen eine leere Seite — wer das vermeiden will, braucht Variablen.
+Folge für den Entwurf: Wer die aufgezogene Ansicht füllen will, gibt der Instanz **Kinder** —
+eigene Variablen oder Verknüpfungen auf fremde. Die Raumkachel legt deshalb Verknüpfungen auf
+die Variablen ihres Thermostats an (`syncLinks()`), und die Aktionen laufen als
+Auswahl-Variable, weil es in der Standard-Ansicht keine Knöpfe gibt.
 
 ## Formularknöpfe: `PREFIX_Name()` gibt es nicht für alles
 
@@ -215,8 +216,8 @@ php .tools/test-libs.php           # Topic-Bau, MAC-Normalisierung, Dekodierung 
 php .tools/test-thermostat.php     # Empfangs- und Sendepfad des Geräts          (216)
 php .tools/test-configurator.php   # Erkennung, Instanz-Zuordnung, Zeitsync        (57)
 php .tools/test-tile.php           # Kachel-Nutzlast: Ist/Soll, Namen, Ausfälle    (32)
-php .tools/test-roomtile.php       # Raumkachel: Zuordnung, Ring, Aktionen         (48)
-php .tools/test-room.php           # Raum: Zusammenfassung und Kachel              (42)
+php .tools/test-roomtile.php       # Raumkachel: Zuordnung, Ring, Verknüpfungen    (54)
+php .tools/test-room.php           # Raum: Zusammenfassung und Kachel              (46)
 php .tools/test-forms.php          # Formularaufrufe aller Module gegen die Klassen (70)
 ```
 

@@ -46,6 +46,9 @@ class IPSTestState
     public static ?string $visualization = null;
     public static array $registeredMessages = [];
 
+    /** Verknüpfungen: linkID => ['parent'=>int,'target'=>int,'name'=>string,'pos'=>int] */
+    public static array $links = [];
+
     /** Übersetzungstabelle des geprüften Moduls, oder null zum Durchreichen. */
     public static ?array $locale = null;
 
@@ -69,6 +72,7 @@ class IPSTestState
         self::$objects           = [];
         self::$visualization     = null;
         self::$registeredMessages = [];
+        self::$links = [];
         // $locale bleibt bewusst stehen: Sie beschreibt das Modul, nicht den Prüffall.
     }
 
@@ -149,6 +153,72 @@ function SetValue(int $objectId, $value): void
 function IPS_GetProperty(int $id, string $name)
 {
     return IPSTestState::$instances[$id]['Properties'][$name] ?? null;
+}
+
+function IPS_CreateLink(): int
+{
+    $id = 80000 + count(IPSTestState::$links) + 1;
+    IPSTestState::$links[$id] = ['parent' => 0, 'target' => 0, 'name' => '', 'pos' => 0];
+    return $id;
+}
+
+function IPS_SetParent(int $id, int $parent): void
+{
+    if (isset(IPSTestState::$links[$id])) {
+        IPSTestState::$links[$id]['parent'] = $parent;
+    }
+}
+
+function IPS_SetLinkTargetID(int $id, int $target): void
+{
+    IPSTestState::$links[$id]['target'] = $target;
+}
+
+function IPS_SetName(int $id, string $name): void
+{
+    if (isset(IPSTestState::$links[$id])) {
+        IPSTestState::$links[$id]['name'] = $name;
+    }
+}
+
+function IPS_SetPosition(int $id, int $position): void
+{
+    if (isset(IPSTestState::$links[$id])) {
+        IPSTestState::$links[$id]['pos'] = $position;
+    }
+}
+
+function IPS_GetLink(int $id): array
+{
+    return ['LinkID' => $id, 'TargetID' => IPSTestState::$links[$id]['target'] ?? 0];
+}
+
+function IPS_DeleteLink(int $id): void
+{
+    unset(IPSTestState::$links[$id]);
+}
+
+function IPS_GetChildrenIDs(int $parent): array
+{
+    $kinder = [];
+    foreach (IPSTestState::$links as $id => $link) {
+        if ($link['parent'] === $parent) {
+            $kinder[] = $id;
+        }
+    }
+    return $kinder;
+}
+
+/** Nur so viel Objektbaum, wie die Module wirklich abfragen: den Typ. 6 = Verknüpfung. */
+function IPS_GetObject(int $id): array
+{
+    if (isset(IPSTestState::$links[$id])) {
+        return ['ObjectID' => $id, 'ObjectType' => 6, 'ObjectName' => IPSTestState::$links[$id]['name']];
+    }
+    if (isset(IPSTestState::$instances[$id])) {
+        return ['ObjectID' => $id, 'ObjectType' => 1, 'ObjectName' => IPSTestState::$instances[$id]['Name'] ?? ''];
+    }
+    return ['ObjectID' => $id, 'ObjectType' => 2, 'ObjectName' => ''];
 }
 
 function IPS_InstanceExists(int $id): bool
@@ -245,6 +315,12 @@ abstract class IPSModule
     public function TEST_MaintainVariable(string $ident, string $caption, int $type, $presentation, int $position, bool $keep): void
     {
         $this->MaintainVariable($ident, $caption, $type, $presentation, $position, $keep);
+    }
+
+    /** Setzt eine Variable von außen — für Prüffälle, die einen Vorzustand brauchen. */
+    public function TEST_SetValue(string $ident, $value): void
+    {
+        $this->SetValue($ident, $value);
     }
 
     public function TEST_SetProperty(string $name, $value): void

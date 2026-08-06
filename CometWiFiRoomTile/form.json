@@ -84,6 +84,15 @@
                 {
                     "type": "Label",
                     "caption": "Das Wochenprogramm läuft im Thermostat. Geht dessen Uhr falsch, verschiebt sich jeder Schaltpunkt um dieselbe Spanne. 0 schaltet den Hinweis ab."
+                },
+                {
+                    "type": "CheckBox",
+                    "name": "DetailLinks",
+                    "caption": "Aufgezogene Ansicht mit Wochenprogramm, Urlaub und Geräteauskunft füllen"
+                },
+                {
+                    "type": "Label",
+                    "caption": "Das Aufziehen einer Kachel (Doppelpfeil) zeigt die Kinder der Instanz, nicht die Kachel selbst. Deshalb legt das Modul Verknüpfungen auf die Variablen des Thermostats an — samt der Aktionsauswahl (aktualisieren, Programm abrufen, Uhr stellen, alle Felder)."
                 }
             ]
         }

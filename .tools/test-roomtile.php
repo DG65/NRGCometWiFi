@@ -248,16 +248,40 @@ addThermostat(50, 'Bad', [
 ]);
 $payload = payloadOf(makeTile(['DeviceID' => 50]));
 
-/* Diese Felder sind in der kleinen Kachel unsichtbar — fehlen sie in der Nutzlast, bleibt
-   die vergroesserte Ansicht leer, und niemand merkt es beim normalen Hinsehen. */
-check('Wochenprogramm in der Nutzlast', $payload['schedule'], 'Montag: 04:30 → 22,0 °C');
-check('Urlaubsbeginn in der Nutzlast', $payload['holidayFrom'], mktime(12, 0, 0, 7, 31, 2026));
-checkNum('Urlaubstemperatur in der Nutzlast', $payload['holidayTemp'], 25.0);
-check('Modell in der Nutzlast', $payload['model'], 'Comet Wifi Ver. 6.1');
-check('Firmware in der Nutzlast', $payload['firmware'], '2.7.1.0');
-check('IP in der Nutzlast', $payload['ip'], '192.168.2.45');
-check('Gruppe in der Nutzlast', $payload['group'], 'Einzelgerät');
-check('Geraeteuhr in der Nutzlast', $payload['clock'], '21:53');
+/* Das Aufziehen der Kachel zeigt die KINDER der Instanz — deshalb muessen dort
+   Verknuepfungen auf die Geraetevariablen liegen. Ohne sie ist die aufgezogene
+   Ansicht leer, und niemand merkt es beim normalen Hinsehen. */
+$kinder = IPS_GetChildrenIDs(90);
+checkTrue('Verknuepfungen wurden angelegt', count($kinder) >= 5);
+
+$zielIdents = [];
+foreach ($kinder as $kindId) {
+    $ziel = IPS_GetLink($kindId)['TargetID'];
+    foreach (IPSTestState::$objects as $oid => $obj) {
+        if ($oid === $ziel) { $zielIdents[] = $obj['ident']; }
+    }
+}
+foreach (['Setpoint', 'Schedule', 'HolidayFrom', 'Model', 'DeviceClock'] as $ident) {
+    checkTrue('Verknuepfung auf ' . $ident, in_array($ident, $zielIdents, true));
+}
+
+// Zweimal Uebernehmen darf die Verknuepfungen nicht verdoppeln.
+$anzahl = count($kinder);
+$tile->ApplyChanges();
+check('Kein Wildwuchs beim zweiten Uebernehmen', count(IPS_GetChildrenIDs(90)), $anzahl);
+
+// Geraetewechsel: alte Verknuepfungen weg, neue da.
+addThermostat(60, 'Kueche', ['Temperature' => 19.0, 'Setpoint' => 20.0, 'Reachable' => true]);
+$tile = makeTile(['DeviceID' => 60]);
+foreach (IPS_GetChildrenIDs(90) as $kindId) {
+    $ziel = IPS_GetLink($kindId)['TargetID'];
+    checkTrue('Nach Geraetewechsel zeigt nichts mehr auf das alte Geraet',
+        IPSTestState::$objects[$ziel]['instance'] === 60);
+}
+
+// Abschaltbar — dann verschwinden sie wieder.
+$tile = makeTile(['DeviceID' => 60, 'DetailLinks' => false]);
+check('Abgeschaltet raeumt die Verknuepfungen ab', count(IPS_GetChildrenIDs(90)), 0);
 
 /* Jeder Knopf muss die Funktion ausloesen, die auf ihm steht. Vertauscht man zwei, faellt
    das ohne diesen Test niemandem auf — die Kachel sieht in beiden Faellen gleich aus. */
@@ -275,6 +299,23 @@ foreach ([
     check('Knopf ' . $kennung . ' trifft das richtige Geraet',
         $GLOBALS['aufrufe'][0][1] ?? 0, 50);
 }
+
+/* Die Aktionsauswahl — sie ist der bedienbare Teil der aufgezogenen Ansicht. */
+$tile = makeTile(['DeviceID' => 50]);
+checkTrue('Aktionsvariable existiert', isset($tile->variables['Action']));
+
+$GLOBALS['aufrufe'] = [];
+/* Den gewaehlten Wert erst wirklich setzen — sonst steht die Variable ohnehin auf 0 und
+   die Ruecksetz-Pruefung prueft nichts. Genau daran ist die erste Fassung dieses Tests
+   gescheitert: Die Sabotage "Reset entfernt" blieb unbemerkt. */
+$tile->TEST_SetValue('Action', 2);
+$tile->RequestAction('Action', 2);
+check('Auswahl 2 holt das Wochenprogramm', $GLOBALS['aufrufe'][0][0] ?? '(nichts)', 'RequestSchedule');
+check('Auswahl springt zurueck auf Strich', $tile->GetValue('Action'), 0);
+
+$GLOBALS['aufrufe'] = [];
+$tile->RequestAction('Action', 4);
+check('Auswahl 4 fordert alle Felder an', $GLOBALS['aufrufe'][0][0] ?? '(nichts)', 'RequestAllFields');
 
 // Ohne Bedienrecht darf kein Knopf etwas ausloesen.
 $tile = makeTile(['DeviceID' => 50, 'AllowControl' => false]);

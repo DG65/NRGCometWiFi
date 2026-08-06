@@ -132,6 +132,16 @@ class CometWiFiRoom extends IPSModule
                 $this->RequestUpdate();
                 break;
 
+            case 'Action':
+                switch ((int) $Value) {
+                    case 1: $this->RequestUpdate(); break;
+                    case 2: $this->RequestSchedule(); break;
+                    case 3: $this->SetClock(); break;
+                    case 4: $this->RequestAllFields(); break;
+                }
+                $this->SetValue('Action', 0);
+                break;
+
             case 'requestAll':
                 $this->RequestAllFields();
                 break;
@@ -619,6 +629,22 @@ class CometWiFiRoom extends IPSModule
             VARIABLETYPE_INTEGER,
             ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION, 'DIGITS' => 0],
             60, true);
+
+        $optionen = [];
+        foreach ([0 => '–', 1 => 'Refresh now', 2 => 'Fetch schedule & holiday',
+                  3 => 'Set clock to Symcon time', 4 => 'Request all fields'] as $wert => $text) {
+            $optionen[] = [
+                'Value' => $wert, 'Caption' => $this->Translate($text),
+                'IconActive' => false, 'Icon' => '', 'ColorActive' => false, 'ColorValue' => -1
+            ];
+        }
+        // In der aufgezogenen Ansicht bedienbar; wirkt auf ALLE Mitglieder und springt
+        // nach dem Ausführen zurück auf „–".
+        $this->MaintainVariable('Action', $this->Translate('Action'),
+            VARIABLETYPE_INTEGER,
+            ['PRESENTATION' => VARIABLE_PRESENTATION_ENUMERATION, 'OPTIONS' => json_encode($optionen)],
+            70, true);
+        $this->EnableAction('Action');
     }
 
     private function booleanPresentation(string $captionTrue, string $captionFalse, bool $trueIsBad): array

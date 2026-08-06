@@ -74,6 +74,24 @@ function CWIFI_RequestUpdate(int $id): bool
     return true;
 }
 
+function CWIFI_RequestSchedule(int $id): bool
+{
+    $GLOBALS['aufrufe'][] = ['RequestSchedule', $id];
+    return true;
+}
+
+function CWIFI_SetClock(int $id): bool
+{
+    $GLOBALS['aufrufe'][] = ['SetClock', $id];
+    return true;
+}
+
+function CWIFI_RequestAllFields(int $id): bool
+{
+    $GLOBALS['aufrufe'][] = ['RequestAllFields', $id];
+    return true;
+}
+
 function addThermostat(int $id, string $name, array $values, string $mac = ''): void
 {
     IPSTestState::$instances[$id] = [
@@ -201,7 +219,22 @@ check('Nach dem Setzen sind die Mitglieder wieder einig', $room->GetValue('Mixed
 $room = makeRoom([]);
 checkTrue('Ohne Mitglieder wird nichts gesetzt', $room->SetTemperature(21.0) === false);
 
-/* ==================================================== 6. Uebersetzungen vorhanden */
+/* ==================================================== 6. Aktionsauswahl wirkt auf alle */
+
+IPSTestState::reset();
+addThermostat(50, 'Wohnzimmer Links',  ['Temperature' => 21.0, 'Setpoint' => 22.0, 'Reachable' => true]);
+addThermostat(51, 'Wohnzimmer Rechts', ['Temperature' => 23.0, 'Setpoint' => 22.0, 'Reachable' => true]);
+$room = makeRoom([50, 51]);
+checkTrue('Aktionsvariable existiert', isset($room->variables['Action']));
+
+$GLOBALS['aufrufe'] = [];
+$room->TEST_SetValue('Action', 3);
+$room->RequestAction('Action', 3);
+check('Uhr stellen erreicht beide Mitglieder', count($GLOBALS['aufrufe']), 2);
+check('… mit der richtigen Funktion', $GLOBALS['aufrufe'][0][0], 'SetClock');
+check('… und springt zurueck auf Strich', $room->GetValue('Action'), 0);
+
+/* ==================================================== 7. Uebersetzungen vorhanden */
 
 IPSTestState::reset();
 addThermostat(50, 'Wohnzimmer Links', ['Temperature' => 21.0, 'Reachable' => true]);

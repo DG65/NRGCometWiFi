@@ -13,7 +13,13 @@
             "All reachable": "Alle erreichbar",
             "Members": "Mitglieder",
             "Yes": "Ja",
-            "No": "Nein"
+            "No": "Nein",
+            "Action": "Aktion",
+            "Refresh now": "Jetzt aktualisieren",
+            "Fetch schedule & holiday": "Wochenprogramm & Urlaub abrufen",
+            "Set clock to Symcon time": "Geräteuhr auf Symcon-Zeit stellen",
+            "Request all fields": "Alle Felder anfordern",
+            "–": "–"
         }
     }
 }

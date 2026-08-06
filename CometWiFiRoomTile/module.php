@@ -47,6 +47,8 @@ class CometWiFiRoomTile extends IPSModule
         $this->RegisterPropertyBoolean('ShowDetails', true);
         $this->RegisterPropertyInteger('BatteryWarnBelow', 25);
         $this->RegisterPropertyInteger('ClockWarnMinutes', 15);
+        // Verknüpfungen auf die Gerätevariablen — sie füllen die aufgezogene Ansicht.
+        $this->RegisterPropertyBoolean('DetailLinks', true);
 
         $this->SetVisualizationType(1);
     }
@@ -75,8 +77,116 @@ class CometWiFiRoomTile extends IPSModule
             }
         }
 
+        $this->maintainActionChoice();
+        $this->syncLinks($device);
+
         $this->SetStatus($device > 0 ? IS_ACTIVE : 201);
         $this->UpdateVisualizationValue($this->buildPayload());
+    }
+
+    /**
+     * Verknüpfungen für die aufgezogene Ansicht.
+     *
+     * Das Aufziehen einer Kachel zeigt die **Kinder** der Instanz — nicht ihr Kachel-HTML.
+     * Eine Instanz ohne Kinder zeigt aufgezogen schlicht nichts (an der Anlage belegt).
+     * Deshalb bekommt die Kachel Verknüpfungen auf die Variablen ihres Thermostats:
+     * Wochenprogramm, Urlaub, Uhr, Geräteauskunft. Verknüpfungen statt Kopien — die Werte
+     * bleiben am Gerät, samt Historie, und der Schieberegler bedient direkt das Original.
+     */
+    private function syncLinks(int $device): void
+    {
+        // Reihenfolge = Anzeigereihenfolge in der aufgezogenen Ansicht.
+        $wunsch = [
+            CWIFI_Registers::IDENT_TEMPERATURE  => ['Isttemperatur', 10],
+            CWIFI_Registers::IDENT_SETPOINT     => ['Solltemperatur', 20],
+            CWIFI_Registers::IDENT_MODE         => ['Betriebsart', 30],
+            CWIFI_Registers::IDENT_SCHEDULE     => ['Wochenprogramm', 40],
+            CWIFI_Registers::IDENT_HOLIDAY      => ['Urlaub aktiv', 50],
+            CWIFI_Registers::IDENT_HOLIDAY_FROM => ['Urlaub von', 51],
+            CWIFI_Registers::IDENT_HOLIDAY_TO   => ['Urlaub bis', 52],
+            CWIFI_Registers::IDENT_HOLIDAY_TEMP => ['Urlaubstemperatur', 53],
+            CWIFI_Registers::IDENT_BATTERY      => ['Batteriestand', 60],
+            CWIFI_Registers::IDENT_RSSI         => ['WLAN-Signalstärke', 61],
+            CWIFI_Registers::IDENT_CLOCK        => ['Geräteuhr', 70],
+            CWIFI_Registers::IDENT_CLOCK_DEV    => ['Uhrabweichung', 71],
+            CWIFI_Registers::IDENT_MODEL        => ['Modell', 80],
+            CWIFI_Registers::IDENT_FIRMWARE     => ['Firmware', 81],
+            CWIFI_Registers::IDENT_IP           => ['IP-Adresse', 82],
+            CWIFI_Registers::IDENT_GROUP        => ['Gruppe', 83]
+        ];
+
+        $ziele = [];
+        if ($device > 0 && $this->ReadPropertyBoolean('DetailLinks')) {
+            foreach ($wunsch as $ident => $eintrag) {
+                $vid = @IPS_GetObjectIDByIdent($ident, $device);
+                if ($vid !== false && $vid > 0) {
+                    $ziele[$vid] = $eintrag;
+                }
+            }
+        }
+
+        // Bestand einsammeln; was auf ein fremdes Ziel zeigt, fliegt (Gerätewechsel).
+        $vorhanden = [];
+        foreach (IPS_GetChildrenIDs($this->InstanceID) as $kindId) {
+            if (IPS_GetObject($kindId)['ObjectType'] !== 6) {
+                continue;
+            }
+            $ziel = IPS_GetLink($kindId)['TargetID'];
+            if (isset($ziele[$ziel])) {
+                $vorhanden[$ziel] = $kindId;
+            } else {
+                IPS_DeleteLink($kindId);
+            }
+        }
+
+        foreach ($ziele as $ziel => [$name, $position]) {
+            $linkId = $vorhanden[$ziel] ?? 0;
+            if ($linkId === 0) {
+                $linkId = IPS_CreateLink();
+                IPS_SetParent($linkId, $this->InstanceID);
+                IPS_SetLinkTargetID($linkId, $ziel);
+            }
+            IPS_SetName($linkId, $name);
+            IPS_SetPosition($linkId, $position);
+        }
+    }
+
+    /**
+     * Die Aktionsauswahl — eine Variable, damit sie in der aufgezogenen Ansicht bedienbar
+     * ist. Knöpfe gibt es dort nicht; eine Auswahl, die nach dem Ausführen auf „–"
+     * zurückspringt, kommt dem am nächsten.
+     */
+    private function maintainActionChoice(): void
+    {
+        $optionen = [];
+        foreach ([0 => '–', 1 => 'Refresh now', 2 => 'Fetch schedule & holiday',
+                  3 => 'Set clock to Symcon time', 4 => 'Request all fields'] as $wert => $text) {
+            $optionen[] = [
+                'Value' => $wert, 'Caption' => $this->Translate($text),
+                'IconActive' => false, 'Icon' => '', 'ColorActive' => false, 'ColorValue' => -1
+            ];
+        }
+        $this->MaintainVariable(
+            'Action',
+            $this->Translate('Action'),
+            VARIABLETYPE_INTEGER,
+            ['PRESENTATION' => VARIABLE_PRESENTATION_ENUMERATION, 'OPTIONS' => json_encode($optionen)],
+            90,
+            true
+        );
+        $this->EnableAction('Action');
+    }
+
+    /** Führt eine gewählte Aktion aus und stellt die Auswahl zurück auf „–". */
+    private function runAction(int $device, int $aktion): void
+    {
+        switch ($aktion) {
+            case 1: $this->callDevice('CWIFI_RequestUpdate', $device); break;
+            case 2: $this->callDevice('CWIFI_RequestSchedule', $device); break;
+            case 3: $this->callDevice('CWIFI_SetClock', $device); break;
+            case 4: $this->callDevice('CWIFI_RequestAllFields', $device); break;
+        }
+        $this->SetValue('Action', 0);
     }
 
     public function MessageSink($TimeStamp, $SenderID, $Message, $Data)
@@ -140,6 +250,10 @@ class CometWiFiRoomTile extends IPSModule
 
             case 'setClock':
                 $this->callDevice('CWIFI_SetClock', $device);
+                break;
+
+            case 'Action':
+                $this->runAction($device, (int) $Value);
                 break;
         }
 
@@ -241,18 +355,6 @@ class CometWiFiRoomTile extends IPSModule
             // Vorlage nicht raten muss.
             'mixed'      => false,
             'members'    => null,
-
-            /* Nur in der vergrößerten Kachel sichtbar — dort ist Platz für das, was man
-               selten braucht, aber ungern woanders sucht. */
-            'schedule'    => $this->valueOf($device, CWIFI_Registers::IDENT_SCHEDULE),
-            'holidayFrom' => (int) $this->valueOf($device, CWIFI_Registers::IDENT_HOLIDAY_FROM),
-            'holidayTo'   => (int) $this->valueOf($device, CWIFI_Registers::IDENT_HOLIDAY_TO),
-            'holidayTemp' => $this->valueOf($device, CWIFI_Registers::IDENT_HOLIDAY_TEMP),
-            'model'       => $this->valueOf($device, CWIFI_Registers::IDENT_MODEL),
-            'firmware'    => $this->valueOf($device, CWIFI_Registers::IDENT_FIRMWARE),
-            'ip'          => $this->valueOf($device, CWIFI_Registers::IDENT_IP),
-            'group'       => $this->valueOf($device, CWIFI_Registers::IDENT_GROUP),
-            'clock'       => $this->valueOf($device, CWIFI_Registers::IDENT_CLOCK),
             'lastText'   => $last > 0 ? $this->ago($last) : null,
             'control'    => $this->ReadPropertyBoolean('AllowControl'),
             'details'    => $this->ReadPropertyBoolean('ShowDetails'),
