@@ -369,7 +369,7 @@ diesem Dokument „gegen die App geprüft" steht, ist damit immer gemeint: gegen
 gegen die Rückmeldung des Geräts. Wer nur die App ansieht, kann sich täuschen — auch außerhalb
 dieses Registers.
 
-### Wochenprogramm A8–AE ✅
+### Wochenprogramm A8–AE ✅ (lesen UND schreiben)
 
 Ein Register je Wochentag: `A8` = Montag bis `AE` = Sonntag. Je Schaltpunkt **zwei Byte**,
 big-endian:
@@ -382,6 +382,16 @@ big-endian:
 Die Zeit zählt über die ganze Woche durch, nicht je Tag — deshalb steigen die Werte von `A8`
 bis `AE` gleichmäßig an. Die Registerlänge ergibt sich aus der Zahl der Schaltpunkte: vier
 ergeben 8 Byte, zwei ergeben 4.
+
+**Schreiben am Gerät belegt (07.08.2026).** Der Sonntag des Esszimmer-Thermostats wurde von
+`#E2ACF924` auf `#E2ACF923` geändert (22:00 → 17,5 statt 18,0 °C), vom Gerät unverändert
+bestätigt und anschließend byte-identisch wiederhergestellt. Gleiches Format wie beim Lesen,
+gleiches Muster wie überall: `S/<Register>` schreiben, mit `S/AF` nachfordern — von selbst
+bestätigt das Gerät nichts. **Auch `S/A7` (Urlaub) ist damit belegt**: Urlaubstemperatur von
+25,0 auf 24,5 geändert, bestätigt, wiederhergestellt.
+
+Damit ist auch **Byte 2 der Registermaske** am Gerät belegt (`#00400000` lieferte gezielt
+`AE`) — die Vier-Byte-Regel gilt nachgewiesen für Byte 1, 2 und 4.
 
 **Gegen die App geprüft** (05.08.2026). `#062C09E4176C1FA4` ergibt:
 

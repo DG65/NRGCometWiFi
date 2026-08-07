@@ -455,7 +455,55 @@ foreach ([[0,0],[7,3],[12,34],[21,53],[23,59]] as [$std, $min]) {
     check(sprintf('Rundreise %02d:%02d ohne Abweichung', $std, $min), $zurueck['deviation'], 0);
 }
 
+
+/* ------------------------------------------- Wochenprogramm schreiben (Gegenstueck) */
+
+/* Rundreise gegen ECHTE Geraetewerte — nicht gegen selbst ausgedachte: Der Sonntag aller
+   zehn Geraete (#E2ACF924) und der beobachtete Montag mit vier Punkten. */
+check('Sonntag byte-identisch kodiert',
+    CWIFI_Registers::encodeSchedule([
+        ['time' => '07:00', 'temperature' => 22.0],
+        ['time' => '22:00', 'temperature' => 18.0]
+    ], 6), '#E2ACF924');
+check('Montag mit vier Punkten byte-identisch',
+    CWIFI_Registers::encodeSchedule([
+        ['time' => '04:30', 'temperature' => 22.0],
+        ['time' => '06:30', 'temperature' => 18.0],
+        ['time' => '15:30', 'temperature' => 22.0],
+        ['time' => '21:00', 'temperature' => 18.0]
+    ], 0), '#06EC09E4176C1FA4');
+
+// Und die volle Rundreise: kodieren, dekodieren, vergleichen.
+$punkte = [['time' => '05:10', 'temperature' => 21.5], ['time' => '23:50', 'temperature' => 7.5]];
+$rueck = CWIFI_Registers::decodeSchedule(CWIFI_Registers::encodeSchedule($punkte, 3), 3);
+check('Rundreise erhaelt die Zeit', $rueck[0]['time'], '05:10');
+check('Rundreise erhaelt die Temperatur', abs($rueck[1]['temperature'] - 7.5) < 0.001, true);
+
+/* Alles, was nicht aufs Geraet passt, ergibt null — es wird dann gar nicht gesendet. */
+check('Zeit ausserhalb des 10-Minuten-Rasters', CWIFI_Registers::encodeSchedule([['time' => '06:35', 'temperature' => 20.0]], 0), null);
+check('Temperatur ausserhalb des Halbgrad-Rasters', CWIFI_Registers::encodeSchedule([['time' => '06:30', 'temperature' => 20.3]], 0), null);
+check('Temperatur ueber dem Endanschlag', CWIFI_Registers::encodeSchedule([['time' => '06:30', 'temperature' => 29.0]], 0), null);
+check('Unsortierte Punkte', CWIFI_Registers::encodeSchedule([
+    ['time' => '10:00', 'temperature' => 20.0], ['time' => '08:00', 'temperature' => 21.0]], 0), null);
+check('Doppelte Zeit', CWIFI_Registers::encodeSchedule([
+    ['time' => '10:00', 'temperature' => 20.0], ['time' => '10:00', 'temperature' => 21.0]], 0), null);
+check('Fuenf Punkte sind zu viele', CWIFI_Registers::encodeSchedule([
+    ['time' => '06:00', 'temperature' => 20.0], ['time' => '08:00', 'temperature' => 20.0],
+    ['time' => '10:00', 'temperature' => 20.0], ['time' => '12:00', 'temperature' => 20.0],
+    ['time' => '14:00', 'temperature' => 20.0]], 0), null);
+check('Kaputte Uhrzeit', CWIFI_Registers::encodeSchedule([['time' => '25:00', 'temperature' => 20.0]], 0), null);
+check('Leere Liste', CWIFI_Registers::encodeSchedule([], 0), null);
+check('Unsinniger Wochentag', CWIFI_Registers::encodeSchedule([['time' => '06:00', 'temperature' => 20.0]], 7), null);
+
+/* Die erweiterte Registermaske — Byte 2 bis 4 sind am Geraet belegt. */
+check('Maske AE (Byte 2)', CWIFI_Registers::requestFields('AE'), '#00400000');
+check('Maske BE (Byte 4)', CWIFI_Registers::requestFields('BE'), '#00000040');
+check('Maske B0 (Byte 3)', CWIFI_Registers::requestFields('B0'), '#00000100');
+check('Maske A7+alle Programmtage', CWIFI_Registers::requestFields('A7', 'A8', 'A9', 'AA', 'AB', 'AC', 'AD', 'AE'), '#807F0000');
+check('Alte A0-A7-Masken unveraendert', CWIFI_Registers::requestFields('A0'), '#01000000');
+
 /* ------------------------------------------------------------------ Ergebnis */
+
 
 
 

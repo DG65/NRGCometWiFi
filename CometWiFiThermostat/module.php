@@ -792,8 +792,58 @@ class CometWiFiThermostat extends IPSModule
         if ($topic === '') {
             return false;
         }
-        // A8-AE liegen ausserhalb der A0-A7-Maske, deshalb der komplette Feld-Dump.
-        return $this->sendMQTT($topic, CWIFI_Registers::REQUEST_ALL);
+        /* Seit die Registermaske für alle vier Byte belegt ist, genügt die gezielte
+           Anforderung — der Voll-Dump war die teuerste Auskunft für dieselbe Antwort. */
+        return $this->sendMQTT($topic, CWIFI_Registers::requestFields(
+            CWIFI_Registers::REG_HOLIDAY,
+            ...CWIFI_Registers::SCHEDULE_REGISTERS
+        ));
+    }
+
+    /**
+     * Schreibt das Tagesprogramm eines Wochentags.
+     *
+     * $Points im Format "HH:MM=Temperatur;HH:MM=Temperatur", z. B. "06:30=21.0;22:00=17.5".
+     * Angenommen wird nur, was vollständig auf das Gerät passt (10-Minuten-Raster,
+     * Halbgrad-Temperaturen, aufsteigend, höchstens vier Punkte) — sonst wird gar nichts
+     * gesendet. Ein halbgares Wochenprogramm in einer Heizung ist schlimmer als keines.
+     *
+     * Schreibrichtung am Gerät belegt (07.08.2026): geänderter Sonntagspunkt am
+     * WC-Thermostat geschrieben, zurückgelesen, wiederhergestellt.
+     */
+    public function SetScheduleDay(int $Weekday, string $Points): bool
+    {
+        if ($Weekday < 0 || $Weekday > 6) {
+            return false;
+        }
+
+        $liste = [];
+        foreach (array_filter(array_map('trim', explode(';', $Points))) as $eintrag) {
+            $teile = explode('=', $eintrag);
+            if (count($teile) !== 2) {
+                $this->SendDebug('Wochenprogramm', 'Unverständlich: ' . $eintrag, 0);
+                return false;
+            }
+            $liste[] = [
+                'time'        => trim($teile[0]),
+                'temperature' => (float) str_replace(',', '.', trim($teile[1]))
+            ];
+        }
+
+        $payload = CWIFI_Registers::encodeSchedule($liste, $Weekday);
+        if ($payload === null) {
+            $this->SendDebug('Wochenprogramm', 'Abgelehnt — passt nicht auf das Gerät: ' . $Points, 0);
+            return false;
+        }
+
+        $register = CWIFI_Registers::SCHEDULE_REGISTERS[$Weekday];
+        $topic = $this->topicFor($register);
+        if ($topic === '' || !$this->sendMQTT($topic, $payload)) {
+            return false;
+        }
+        // Wie überall: Das Gerät bestätigt erst auf Nachfrage.
+        $this->sendRequest(CWIFI_Registers::requestFields($register));
+        return true;
     }
 
     /**

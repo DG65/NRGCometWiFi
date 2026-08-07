@@ -792,7 +792,35 @@ $device = makeDevice();
 deliver($device, BASE . '/V/B0', '#U000000000000');
 check('Einzelgeraet unveraendert', $device->GetValue('Group'), 'Einzelgerät');
 
+
+/* ==================================================== Wochenprogramm schreiben */
+
+$device = makeDevice();
+IPSTestState::$sentPackets = [];
+checkTrue('Tagesprogramm wird angenommen', $device->SetScheduleDay(6, '07:00=22.0;22:00=17.5'));
+check('Es geht auf das Sonntagsregister', IPSTestState::$sentPackets[0]['Topic'], BASE . '/S/AE');
+check('Byte-genau kodiert', IPSTestState::$sentPackets[0]['Payload'], '#E2ACF923');
+check('Nachzieher fordert genau diesen Tag', IPSTestState::$sentPackets[1]['Payload'], '#00400000');
+checkTrue('Nie mit Retain', IPSTestState::$sentPackets[0]['Retain'] === false);
+
+// Komma als Dezimaltrenner muss gehen — das Formular ist deutsch.
+IPSTestState::$sentPackets = [];
+checkTrue('Komma-Temperaturen gehen', $device->SetScheduleDay(0, '06:30=21,5'));
+
+/* Was nicht passt, verlaesst das Haus nicht. */
+IPSTestState::$sentPackets = [];
+checkTrue('Krummes Raster wird abgelehnt', !$device->SetScheduleDay(0, '06:35=21.0'));
+checkTrue('Unsinniger Tag wird abgelehnt', !$device->SetScheduleDay(9, '06:30=21.0'));
+checkTrue('Kaputtes Format wird abgelehnt', !$device->SetScheduleDay(0, 'morgens warm'));
+check('Bei Ablehnung wird NICHTS gesendet', count(IPSTestState::$sentPackets), 0);
+
+// RequestSchedule braucht keinen Voll-Dump mehr.
+IPSTestState::$sentPackets = [];
+$device->RequestSchedule();
+check('Programmabruf fordert gezielt statt alles', IPSTestState::$sentPackets[0]['Payload'], '#807F0000');
+
 /* ------------------------------------------------------------------ Ergebnis */
+
 
 
 

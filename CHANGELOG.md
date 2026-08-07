@@ -2,6 +2,23 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.16.0] – Das Wochenprogramm ist schreibbar
+
+### Neu
+- **`CWIFI_SetScheduleDay(Wochentag, "HH:MM=Temp;HH:MM=Temp")`** schreibt das Tagesprogramm
+  eines Wochentags — z. B. `CWIFI_SetScheduleDay(id, 6, "07:00=22.0;22:00=18.0")`.
+  **Am Gerät belegt:** Ein geänderter Sonntagspunkt wurde geschrieben, vom Gerät bestätigt
+  und byte-identisch wiederhergestellt. Auch das Schreiben des Urlaubs (`S/A7`, seit 0.3.0
+  eingebaut) ist damit am Gerät nachgewiesen.
+  - Angenommen wird nur, was vollständig auf das Gerät passt: 10-Minuten-Raster,
+    Halbgrad-Temperaturen von „Aus" bis „An", aufsteigend sortiert, höchstens vier Punkte
+    je Tag (mehr wurde nie beobachtet). Sonst wird **gar nichts** gesendet — ein halbgares
+    Wochenprogramm in einer Heizung ist schlimmer als keines.
+  - Komma und Punkt als Dezimaltrenner sind beide zulässig.
+- **Die Registermaske ist auf alle vier Byte erweitert** (`requestFields`), nachdem Byte 2
+  am Gerät belegt wurde. `RequestSchedule` fordert Wochenprogramm und Urlaub jetzt gezielt
+  an (`#807F0000`) statt über den Voll-Dump — derselbe Abruf, deutlich kürzeres Aufwachen.
+
 ## [0.15.0] – Die Details wohnen jetzt im Doppelpfeil
 
 ### Geändert

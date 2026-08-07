@@ -212,8 +212,8 @@ Vollständig in `../EMS/SUITE.md`, hier nur die für dieses Repo relevanten:
 ## Prüfstände
 
 ```
-php .tools/test-libs.php           # Topic-Bau, MAC-Normalisierung, Dekodierung   (242)
-php .tools/test-thermostat.php     # Empfangs- und Sendepfad des Geräts          (216)
+php .tools/test-libs.php           # Topic-Bau, MAC-Normalisierung, Dekodierung   (260)
+php .tools/test-thermostat.php     # Empfangs- und Sendepfad des Geräts          (227)
 php .tools/test-configurator.php   # Erkennung, Instanz-Zuordnung, Zeitsync        (57)
 php .tools/test-tile.php           # Kachel-Nutzlast: Ist/Soll, Namen, Ausfälle    (32)
 php .tools/test-roomtile.php       # Raumkachel: Zuordnung, Ring, Verknüpfungen    (54)

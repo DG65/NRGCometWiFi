@@ -328,14 +328,20 @@ class CWIFI_Registers
      */
     public static function requestFields(string ...$registers): string
     {
-        $mask = 0;
+        /* Die Maske deckt alle vier Byte ab — am Gerät belegt (05.08.2026): #00000040
+           lieferte gezielt BE. Byte 1 = A0–A7, Byte 2 = A8–AF, Byte 3 = B0–B7,
+           Byte 4 = B8–BF, jeweils Bit n für das n-te Register. */
+        $bytes = [0, 0, 0, 0];
         foreach ($registers as $register) {
-            $n = hexdec(substr(strtoupper($register), 1));
-            if (strtoupper($register)[0] === 'A' && $n >= 0 && $n <= 7) {
-                $mask |= (1 << $n);
+            $register = strtoupper($register);
+            $n = hexdec(substr($register, 1));
+            if ($register[0] === 'A') {
+                $bytes[$n <= 7 ? 0 : 1] |= (1 << ($n % 8));
+            } elseif ($register[0] === 'B') {
+                $bytes[$n <= 7 ? 2 : 3] |= (1 << ($n % 8));
             }
         }
-        return '#' . sprintf('%02X', $mask) . '000000';
+        return '#' . sprintf('%02X%02X%02X%02X', ...$bytes);
     }
 
     /** Batterie-Dekodierung, umschaltbar solange die Kodierung nicht bewiesen ist. */
@@ -574,6 +580,57 @@ class CWIFI_Registers
      * @param int $weekday 0 = Montag … 6 = Sonntag (für die Plausibilitätsprüfung).
      * @return array<int,array{time:string,minutes:int,temperature:float}>|null
      */
+    /**
+     * Baut den Payload für ein Tagesprogramm — die exakte Umkehrung von decodeSchedule().
+     *
+     * @param array $points je Punkt ['time' => 'HH:MM', 'temperature' => float]
+     * @param int   $weekday 0 = Montag … 6 = Sonntag; steckt mit in der Kodierung, weil
+     *                       die Minuten seit MONTAG 00:00 zählen, nicht seit Tagesbeginn.
+     *
+     * Gibt null zurück, wenn irgendetwas nicht auf das Gerät passt — lieber gar nicht
+     * senden als ein halbgares Programm in eine Heizung schreiben:
+     * - Zeiten nur im 10-Minuten-Raster (das Format kann nichts Feineres ausdrücken)
+     * - Temperaturen nur 7,5–28,5 im Halbgrad-Raster (6 Bit, Endanschläge eingeschlossen)
+     * - Punkte müssen aufsteigend sortiert sein und dürfen sich nicht wiederholen
+     * - höchstens vier Punkte je Tag — mehr wurde an keinem Gerät je beobachtet, und ein
+     *   Register unbekannter Höchstlänge zu füllen ist genau die Sorte Versuch, die man
+     *   nicht an einer bewohnten Heizung macht
+     */
+    public static function encodeSchedule(array $points, int $weekday): ?string
+    {
+        if ($weekday < 0 || $weekday > 6 || $points === [] || count($points) > 4) {
+            return null;
+        }
+
+        $payload = '#';
+        $vorher  = -1;
+        foreach ($points as $point) {
+            if (!isset($point['time'], $point['temperature'])
+                || !preg_match('/^([01]?\d|2[0-3]):([0-5]\d)$/', (string) $point['time'], $t)) {
+                return null;
+            }
+            $minuten = (int) $t[1] * 60 + (int) $t[2];
+            if ($minuten % 10 !== 0) {
+                return null;
+            }
+            $temperatur = (float) $point['temperature'];
+            $doppelt    = (int) round($temperatur * 2);
+            if (abs($temperatur * 2 - $doppelt) > 0.01
+                || $temperatur < self::SETPOINT_OFF || $temperatur > self::SETPOINT_ON) {
+                return null;
+            }
+
+            $wochenminuten = $weekday * 1440 + $minuten;
+            if ($wochenminuten <= $vorher) {
+                return null;
+            }
+            $vorher = $wochenminuten;
+
+            $payload .= sprintf('%04X', (intdiv($wochenminuten, 10) << 6) | $doppelt);
+        }
+        return $payload;
+    }
+
     public static function decodeSchedule(string $payload, int $weekday): ?array
     {
         if (!self::isPlausible($payload)) {
