@@ -203,6 +203,13 @@ Vollständig in `../EMS/SUITE.md`, hier nur die für dieses Repo relevanten:
   Modulklassen selbst, deren Name exakt dem `name`-Feld der `module.json` entsprechen muss.
 - **`vendor` in `module.json`** = Hersteller des Geräts, hier `Eurotronic`.
 - **`library.json` akzeptiert nur** id, author, name, url, compatibility, version, build, date.
+- **README-Badges (SUITE.md, 18.08.2026):** Badge-Zeile direkt unter der H1. Der
+  „Modul Version"-Badge wird **bei jedem Versions-Bump von Hand mitgepflegt** — er hängt an
+  keiner Automatik. **Der Check-Style-Badge fehlt bewusst**, solange es keinen Workflow gibt —
+  SUITE.md verbietet ein gefälschtes „passing". Die fertige Workflow-Datei (`php -l` **plus**
+  alle Prüfstände) wartet darauf, dass ein Token mit `workflow`-Scope zur Verfügung steht;
+  das `gh`-Token trägt nur `repo` und `read:org`, und GitHub weist Workflow-Dateien ohne
+  diesen Scope beim Push ab.
 - **Keine eigene Anlage als Norm.** Prüffrage bei jedem Formularfeld: „Gilt das für JEDEN
   Nutzer, oder nur für Dietmars Installation?" Konkret hier: Der Benutzername `AABBCCDD` ist
   **Dietmars** Kontokennung, nicht die aller Nutzer — er steht als Vorbelegung im Feld, muss
