@@ -911,6 +911,27 @@ Doku, sobald das Modul veröffentlicht wird):
 Wenige Klicks, aber ein bewusster Nutzereingriff — sollte in der Release-Kommunikation
 (Forum-Post, Doku-Panel) klar benannt werden, nicht stillschweigend vorausgesetzt.
 
+## Repo-Namen und GitHub-Redirects (19.08.2026)
+
+Alle Verbund-Repos wurden auf kanonische `NRG*`-Namen umbenannt (NRGEMS,
+NRGChargerHub, NRGInverterHub, NRGMeterHub, NRGGleitenderMittelwert,
+NRGSteuerboxHub, NRGTessie, NRGMigrationsHub, NRGPrognose, ...). Die alten
+Namen (EMS, ChargerHub, InverterHub, ...) existieren nur noch als
+GitHub-Redirects — sie funktionieren, haengen aber an einem zerbrechlichen
+Mechanismus.
+
+**Harte Regel: Ein alter Repo-Name wird NIEMALS fuer ein neues Repo
+wiederverwendet.** Sobald unter DG65 ein neues Repo mit einem Alt-Namen
+angelegt wird, loescht GitHub die Weiterleitung kommentarlos — und jeder
+Nutzer, der den alten Pfad noch in seiner Modulverwaltung eingetragen hat,
+laedt ab dann ein falsches Repo oder gar Fremd-Code. Vor dem Anlegen JEDES
+neuen Repos gegen die Alt-Namen-Liste oben pruefen.
+
+Ergaenzend gilt seit 19.08.2026: Alle Links und `library.json`/`module.json`-
+URLs im Verbund zeigen direkt auf die kanonischen `NRG*`-Namen (verbundweiter
+Sweep, inkl. der ModulControl-relevanten URLs) — kein neuer Link darf einen
+Alt-Namen verwenden, auch nicht "weil der Redirect ja funktioniert".
+
 ## Lizenz
 
 Alle NRG-Stack-Module stehen unter der **PolyForm Noncommercial License 1.0.0** (privat/nicht-kommerziell frei, gewerblich lizenzpflichtig — Kontakt DG65; Spenden willkommen: [paypal.me/DietmarGureth](https://paypal.me/DietmarGureth)). Kanonischer Text: [`LICENSE`](https://github.com/DG65/NRGEMS/blob/main/LICENSE). Der Wechsel wirkt nur nach vorn: Bei bereits im Store veröffentlichten Modulen gilt PolyForm erst ab dem jeweiligen beta→main-Release; die dort noch gelistete Fassung bleibt MIT, und unter MIT bezogene Altversionen bleiben MIT.
