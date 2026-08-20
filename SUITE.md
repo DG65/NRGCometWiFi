@@ -493,8 +493,46 @@ jedem neuen Modul von Anfang an einhalten:
     Zweite Person/Session prüfen lassen, wo möglich (heute z. B. Dashboard/InverterHub
     gegenseitig) — wer das Formular selbst gebaut hat, übersieht die eigenen blinden Flecken
     strukturell am ehesten, gerade weil die eigene Anlage den Fehler nie auslöst.
+13. **Jede Aktion (Button/`RequestAction`) muss eine sichtbare Rückmeldung geben** (20.08.2026,
+    verbindlich für alle Module — siehe eigener Abschnitt "Sichtbare Rückmeldung bei jeder
+    Aktion" weiter unten). Vor jeder Veröffentlichung: jeden Button im Formular durchklicken
+    und konkret prüfen — ändert sich sichtbar etwas (Text, Popup, Status), oder sieht es aus,
+    als wäre nichts passiert?
 
 Details und Quellenzuordnung je Punkt: Memory `nrg-stack-store-review-erkenntnisse`.
+
+## Sichtbare Rückmeldung bei jeder Aktion (verbindlich, 20.08.2026)
+
+Ausgangspunkt: zwei Live-Funde an EMS selbst am selben Tag — der "🔎 Jetzt neu suchen"-Button
+aktualisierte serverseitig alles korrekt, aber das offene Formular zeigte weiter "Noch nicht
+gesucht" (SUITE.md Stolperfalle 12); der "📅 Tagesplan neu berechnen"-Button gab überhaupt
+keine Rückmeldung. Dietmars Formulierung: *"Rückmeldungen bei allen Aktionen, damit man sieht,
+dass etwas passiert ist."* Das ist keine Empfehlung mehr, sondern eine **Pflicht für jeden
+Button/jede `RequestAction`** in jedem NRG-Stack-Modul, unabhängig davon, ob die Aktion
+fehlschlagen kann oder nicht — auch ein Erfolg ohne jede sichtbare Reaktion wirkt wie ein
+Fehlschlag.
+
+**Zwei zulässige Muster, je nach Aktionstyp:**
+
+1. **Einmalige Aktion mit einem klaren Ergebnis** (Neuberechnung, Test-Verbindung, manueller
+   Trigger) — die aufgerufene Methode gibt einen menschenlesbaren Ergebnistext zurück
+   (✅/⚠️/⛔/ℹ️-Präfix), der `onClick` lautet `echo Prefix_Methode($id, ...);` statt nur
+   `Prefix_Methode($id, ...);` — erzeugt sofort ein Popup mit dem Ergebnis. Kein neues
+   Formularfeld nötig. Referenz: EMS' `BuildDayPlan()` (0.21.11), Vorbild war der schon
+   länger bestehende "Status anzeigen"-Button.
+2. **Wiederkehrender/dauerhafter Status** (Geräte-Discovery, Verbindungsstatus, laufender
+   Prozess) — eigenes benanntes `Label` im Formular plus `UpdateFormField('<Name>', 'caption',
+   $neuerText)` am Ende der aufgerufenen Methode (siehe SUITE.md Stolperfalle 12 für Details
+   und die `ReloadForm()`-Alternative). Referenz: EMS' `getDiscoverySummaryLine()` (0.21.7).
+
+**Faustregel zur Wahl:** Führt der Button eine einmalige Aktion mit einem Ergebnis aus, das
+man einmal lesen und dann wegklicken will → Muster 1 (`echo`). Zeigt ein Formularfeld einen
+Zustand, der auch ohne den Button-Klick relevant bleibt (z. B. "wie viele Geräte sind gerade
+verbunden") → Muster 2 (`UpdateFormField`).
+
+**Pflicht-Check vor jeder Veröffentlichung** (siehe auch Store-Review-Checkliste Punkt 13):
+jeden Button im Formular klicken und fragen: *sehe ich JETZT, ohne das Formular neu zu öffnen,
+dass etwas passiert ist?* Wenn nein — Muster 1 oder 2 nachrüsten, je nach Aktionstyp.
 
 ## Manifest
 
