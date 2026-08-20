@@ -353,6 +353,34 @@ ist dokumentiert, "tooltip" fehlt). Für erklärungsbedürftige Einzelfelder sta
 - Für den Gesamtzusammenhang bleibt das bestehende "📖 Dokumentation & Hilfe"-Panel (Punkt 2
   oben) die richtige Stelle, nicht jedes Feld einzeln kommentieren.
 
+**Einheitliche Verbund-Status-Kopfzeile** (verbundweite Konvention, 20.08.2026 —
+Dietmars Einwand: jedes Modul baut sein "Gefunden/Verbunden"-Statuspanel gerade
+irgendwie anders, EMS' bisheriger technischer Fließtext-Satz — z. B.
+"NRG-Stack Partnermodule: InverterHub=1 MeterHub=1 ChargerHub=1 ..." — gefiel
+ihm sichtbar am wenigsten im Vergleich zu einer anderen, knapperen Anzeige,
+die er bereits in einem Modul gesehen hat). Referenz-Screenshot: ein Panel mit
+Button "GERÄTE JETZT SUCHEN" darüber, direkt darunter eine EINZIGE Zeile
+`✅ 12 Geräte gefunden (zuletzt 16:25:41 Uhr).` — großes Icon, eine Kernzahl,
+Zeitstempel der letzten Suche, KEIN Aufzählungssatz.
+
+Jedes Modul mit einer Discovery-/Geräte-such-Funktion baut sein Status-Panel
+nach demselben Schema:
+1. **Button zuerst** ("🔎 Jetzt neu suchen" / "Geräte jetzt suchen" o. ä.),
+   danach erst die Statuszeile darunter (nicht umgekehrt).
+2. **Eine Kopfzeile**, exakt im Muster `<Icon> <Zahl> <Was> gefunden (zuletzt
+   <HH:MM:SS> Uhr).` — `✅` bei Erfolg (mind. 1 gefunden), `⚠️` bei 0 gefunden
+   trotz vorheriger Suche, `ℹ️` wenn noch nie gesucht wurde. Erfordert ein
+   eigenes `RegisterAttributeInteger('LastDiscoveryTs', 0)`, bei jeder Suche
+   mit `time()` aktualisiert.
+3. **Technische Detailaufschlüsselung** (je Partnermodul-Typ, Instanz-IDs,
+   Verbund-Gesundheit) bleibt erhalten, wandert aber in ein eingeklapptes
+   Unter-Panel ("Details je Partnermodul-Typ" o. ä.) statt Teil der Kopfzeile
+   zu sein — Diagnosewert bleibt, drängt sich aber nicht mehr vor die
+   Kernaussage.
+
+Referenzimplementierung: EMS' `getDiscoverySummaryLine()` + das umgebaute
+"🔗 Verbund-Status"-Panel in `GetConfigurationForm()` (`module.php`, 0.21.5).
+
 ## Grundregel: keine eigene Anlage als Norm annehmen (27.07.2026)
 
 Ausgelöst durch direktes, wiederholtes Nutzer-Feedback an EMS — dieselbe Fehlerklasse trat an
