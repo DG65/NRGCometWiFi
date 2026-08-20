@@ -149,6 +149,7 @@ class CometWiFiConfigurator extends IPSModule
         }
 
         $this->storeDevices($devices);
+        $this->refreshOpenForm();
 
         // Nur beim ersten Auftauchen eines Geräts: Der Status „noch nichts gesehen" wäre
         // sonst dauerhaft zu lesen, obwohl die Liste längst gefüllt ist.
@@ -160,6 +161,27 @@ class CometWiFiConfigurator extends IPSModule
     }
 
     /* ==================================================================== Formular */
+
+    /**
+     * Frischt Kopfzeile und Fundliste in einem BEREITS GEÖFFNETEN Formular auf.
+     *
+     * `GetConfigurationForm()` läuft nur beim Öffnen. Wer das Formular offen stehen lässt,
+     * sähe sonst dauerhaft den Stand von damals — bei uns besonders irreführend, weil die
+     * Kopfzeile eine Uhrzeit nennt und damit Aktualität behauptet, die sie nicht hat.
+     * (Verbundweit als Stolperfalle 12 in SUITE.md, gefunden am EMS-Suchknopf; hier tritt
+     * dieselbe Falle ohne jeden Knopf auf, weil unsere Erkennung passiv nachläuft.)
+     *
+     * Liste und Kopfzeile werden zusammen aktualisiert, nie einzeln: Eine Kopfzeile, die
+     * zehn Geräte meldet, während darunter neun stehen, ist schlechter als beides veraltet.
+     *
+     * Ist kein Formular offen, verpufft `UpdateFormField` folgenlos — geprüft wird das
+     * nicht, weil es das Modul nicht wissen kann.
+     */
+    private function refreshOpenForm(): void
+    {
+        $this->UpdateFormField('Devices', 'values', json_encode($this->buildRows()));
+        $this->UpdateFormField('DiscoveryLine', 'caption', $this->discoverySummaryLine());
+    }
 
     public function GetConfigurationForm()
     {

@@ -369,6 +369,41 @@ deliver($cfg, '02/' . USER . '/' . MAC_A . '/V/A1', '#2D');
 checkTrue('Folgemeldung frischt den Zeitstempel auf',
     $cfg->ReadAttributeInteger('LastDiscoveryTs') > time() - 60);
 
+/* Offenes Formular: GetConfigurationForm() laeuft nur beim Oeffnen. Ohne UpdateFormField
+   bliebe die Kopfzeile stehen und behauptete ueber ihre Uhrzeit eine Aktualitaet, die sie
+   nicht hat (SUITE.md Stolperfalle 12). */
+$cfg = makeConfigurator();
+deliver($cfg, '02/' . USER . '/' . MAC_A . '/V/A1', '#2C');
+
+$felder = [];
+foreach ($cfg->formFieldUpdates as [$name, $feld, $wert]) {
+    $felder[$name . '.' . $feld] = $wert;
+}
+checkTrue('Meldung frischt die Kopfzeile im offenen Formular auf',
+    isset($felder['DiscoveryLine.caption']));
+checkTrue('… und zwar mit dem aktuellen Text',
+    ($felder['DiscoveryLine.caption'] ?? '') === kopfzeile($cfg));
+checkTrue('Meldung frischt auch die Fundliste auf', isset($felder['Devices.values']));
+
+/* Beides zusammen, nie einzeln: eine Kopfzeile, die mehr Geraete meldet als darunter
+   stehen, ist schlechter als beides veraltet. */
+$cfg = makeConfigurator();
+deliver($cfg, '02/' . USER . '/' . MAC_A . '/V/A1', '#2C');
+deliver($cfg, '02/' . USER . '/' . MAC_B . '/V/A1', '#2E');
+$letzte = [];
+foreach ($cfg->formFieldUpdates as [$name, $feld, $wert]) {
+    $letzte[$name] = $wert;
+}
+$zeilen = json_decode($letzte['Devices'] ?? '[]', true);
+checkTrue('Liste im offenen Formular enthaelt beide Geraete', count($zeilen) === 2);
+checkTrue('Kopfzeile nennt dieselbe Anzahl',
+    str_contains($letzte['DiscoveryLine'] ?? '', '2 Thermostate gefunden'));
+
+/* Kommandos duerfen nichts aufblenden — sie stammen aus der App oder von uns selbst. */
+$cfg = makeConfigurator();
+deliver($cfg, '02/' . USER . '/' . MAC_A . '/S/A0', '#2C');
+checkTrue('Kommando frischt das Formular nicht auf', $cfg->formFieldUpdates === []);
+
 /* ------------------------------------------------------------------ Ergebnis */
 
 

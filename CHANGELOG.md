@@ -2,6 +2,21 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.18.1] – Kopfzeile altert nicht mehr im offenen Formular
+
+### Behoben
+- **Kopfzeile und Fundliste frieren ein, solange das Formular offen steht.**
+  `GetConfigurationForm()` läuft nur beim Öffnen; eintreffende Gerätemeldungen wurden zwar
+  korrekt verarbeitet, aber nicht angezeigt. Bei einer Zeile, die eine Uhrzeit nennt, ist das
+  besonders irreführend — sie behauptet eine Aktualität, die sie nicht hat. Beide werden jetzt
+  über `UpdateFormField()` nachgezogen, und zwar **zusammen**: eine Kopfzeile, die zehn Geräte
+  meldet, während darunter neun stehen, wäre schlechter als beides veraltet.
+- Kommandos (`S/`) blenden nichts auf — sie stammen aus der App oder von uns selbst und sagen
+  nichts darüber aus, ob ein Gerät sie je gesehen hat.
+
+Gefunden hat die Fehlerklasse die EMS-Sitzung an ihrem Suchknopf (jetzt Stolperfalle 12 in
+`SUITE.md`). Hier trat sie ohne jeden Knopf auf, weil unsere Erkennung passiv nachläuft.
+
 ## [0.18.0] – Einheitliche Status-Kopfzeile im Konfigurator
 
 ### Neu
