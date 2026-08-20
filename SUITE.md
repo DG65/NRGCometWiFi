@@ -381,6 +381,19 @@ nach demselben Schema:
 Referenzimplementierung: EMS' `getDiscoverySummaryLine()` + das umgebaute
 "🔗 Verbund-Status"-Panel in `GetConfigurationForm()` (`module.php`, 0.21.5).
 
+**Ergänzung fuer passive Erkennung** (CometWiFi, 20.08.2026): nicht jedes Modul hat einen
+aktiven "Jetzt suchen"-Knopf — z. B. wenn jede Abfrage ein Batteriegeraet unnoetig weckt,
+bleibt die Erkennung rein passiv (wartet auf eingehende Meldungen). In diesem Fall **entfaellt
+der Button**, und "zuletzt HH:MM:SS Uhr" bezieht sich auf die letzte EMPFANGENE Meldung, nicht
+auf eine Suche — das gehoert als kurzer Halbsatz ins eingeklappte Detail-Panel, damit das
+fehlende Bedienelement nicht wie ein Versaeumnis wirkt.
+
+**Stolperstein, verbundweit relevant:** der Zeitstempel muss bei JEDER Meldung/jedem Fund
+fortgeschrieben werden, nicht nur beim allerersten — sonst altert die Kopfzeile sichtbar, waehrend
+das System eigentlich munter weiterläuft (sieht aus wie ein haengender Empfang, obwohl alles
+funktioniert). Mit einem Test/einer Gegenprobe gegen genau diesen Fall absichern (CometWiFi: 7
+eigene Pruefungen dafuer).
+
 ## Grundregel: keine eigene Anlage als Norm annehmen (27.07.2026)
 
 Ausgelöst durch direktes, wiederholtes Nutzer-Feedback an EMS — dieselbe Fehlerklasse trat an
