@@ -361,7 +361,9 @@ ihm sichtbar am wenigsten im Vergleich zu einer anderen, knapperen Anzeige,
 die er bereits in einem Modul gesehen hat). Referenz-Screenshot: ein Panel mit
 Button "GERÄTE JETZT SUCHEN" darüber, direkt darunter eine EINZIGE Zeile
 `✅ 12 Geräte gefunden (zuletzt 16:25:41 Uhr).` — großes Icon, eine Kernzahl,
-Zeitstempel der letzten Suche, KEIN Aufzählungssatz.
+Zeitstempel der letzten Suche, KEIN Aufzählungssatz. **Ursprung geklärt
+(20.08.2026): Dashboards Tile-Modul, DiscoveryResult-Panel** — dessen Muster
+existierte schon vor dieser Konvention genau in dieser Form.
 
 Jedes Modul mit einer Discovery-/Geräte-such-Funktion baut sein Status-Panel
 nach demselben Schema:
