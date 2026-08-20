@@ -678,7 +678,11 @@ aufgerufenen Methode `$this->UpdateFormField('<name>', 'caption', $neuerText);` 
 (no-op, wenn gerade kein Formular offen ist — gefahrlos immer aufrufbar). Bereits im Repo als
 Muster etabliert (`AckNews()`/`DismissForumHint()` fuer `visible`, jetzt auch fuer `caption` bei
 `Discover()`/`StartBatteryBoost()`/`StopBatteryBoost()`) — bei jedem neuen Button mit
-Formular-Sichtbarkeit pruefen, ob ein `UpdateFormField()` fehlt.
+Formular-Sichtbarkeit pruefen, ob ein `UpdateFormField()` fehlt. **Gleichwertige Alternative**
+(InverterHub, bestaetigt 20.08.2026): `$this->ReloadForm()` am Ende des Handlers erzwingt einen
+kompletten `GetConfigurationForm()`-Neuaufbau, dann brauchen ALLE Felder darin kein einzelnes
+`UpdateFormField()` mehr — einfacher bei vielen betroffenen Feldern, aber teurer (baut das ganze
+Formular neu), `UpdateFormField()` bleibt die gezieltere Wahl bei wenigen Feldern.
 
 ## GoodWe-Steuerregister (InverterHub, Stand 27.07.2026)
 
