@@ -822,6 +822,20 @@ auf). `65535` (16 Bit, "alle Bits gesetzt") war eine naheliegende, aber falsche 
 fuer "alle 7 Tage" ist `127`. Gilt fuer jedes Modul, das Wochenplan-Events (`IPS_CreateEvent(2)`)
 programmatisch befuellt, nicht nur fuer EMS.
 
+**15. "Keine Daten" und "Wert ist tatsaechlich 0" muessen unterscheidbar bleiben, sonst
+interpretiert die Entscheidungslogik eine Datenluecke als echten Extremwert.** Live gefunden
+(EMS, 20.08.2026): `parsePT15M()` fuellte Zeitslots ohne echte Tibber-Preisangabe mit `0.0` --
+ein Preis von exakt 0ct ist aber immer guenstiger als jede Einspeiseverguetung, was
+`BuildDayPlan()` faelschlich dazu brachte, Abendstunden OHNE Preisdaten als "Export" statt
+"Automatik" zu planen. Fehlende Daten wurden wie ein reales Sonderangebot behandelt. Regel:
+jedes Array/jede Kurve, die aus einer externen Quelle mit LUECKEN befuellt wird (Preise,
+Messwerte, Prognosen), MUSS fehlende Eintraege als `null` (oder einen anderen eindeutig
+unterscheidbaren Sentinel) fuehren, NIE als `0` oder einen anderen "harmlos wirkenden"
+Platzhalter -- jede Entscheidungslogik, die diese Werte konsumiert, muss `null` explizit
+abfangen (z. B. "keine Daten -> Automatik/Ueberspringen"), bevor sie in einen Schwellenwert-
+Vergleich einfliessen. Gilt fuer jedes Modul mit zeitreihenartigen Daten, nicht nur fuer PT15M-
+Preise.
+
 ## GoodWe-Steuerregister (InverterHub, Stand 27.07.2026)
 
 Ident-Tabelle für `IPS_RequestAction($InstanceID, $Ident, $Value)` auf einer InverterHub-Instanz:
