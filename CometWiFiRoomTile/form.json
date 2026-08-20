@@ -101,7 +101,7 @@
         {
             "type": "Button",
             "caption": "🔄  Jetzt aktualisieren",
-            "onClick": "CWIFIR_RequestUpdate($id);"
+            "onClick": "echo CWIFIR_RequestUpdate($id);"
         }
     ],
     "status": [

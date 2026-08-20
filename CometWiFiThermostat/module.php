@@ -20,7 +20,7 @@ class CometWiFiThermostat extends IPSModule
     use CWIFI_MQTT;
 
     /** Inhaltsversion des „Neu in Version"-Panels — nicht die Modulversion. */
-    private const NEWS_VERSION = '0.16';
+    private const NEWS_VERSION = '0.19';
 
     private const ATTR_SEEN_NEWS  = 'SeenNews';
     private const ATTR_HINT_GONE  = 'ReviewHintDismissed';
@@ -757,7 +757,13 @@ class CometWiFiThermostat extends IPSModule
      * unmittelbar danach zurückgefordert — erst die Rückmeldung entscheidet, und die neue
      * Abweichung steht dann in der Variable.
      */
-    public function SetClock(): bool
+    public function SetClock(): string
+    {
+        return $this->actionReport($this->sendClock(), 'Uhrzeit an das Gerät gesendet');
+    }
+
+    /** Kern von SetClock() — maschinell, ohne Anzeigetext. */
+    private function sendClock(): bool
     {
         $topic = $this->topicFor(CWIFI_Registers::REG_CLOCK);
         if ($topic === '') {
@@ -786,7 +792,13 @@ class CometWiFiThermostat extends IPSModule
      * Eigener Knopf statt automatischer Abfrage: Beides ändert sich selten, und jede
      * Abfrage weckt ein Batteriegerät.
      */
-    public function RequestSchedule(): bool
+    public function RequestSchedule(): string
+    {
+        return $this->actionReport($this->sendSchedule(), 'Wochenprogramm und Urlaub angefordert');
+    }
+
+    /** Kern von RequestSchedule() — maschinell, ohne Anzeigetext. */
+    private function sendSchedule(): bool
     {
         $topic = $this->topicFor(CWIFI_Registers::REG_REQUEST);
         if ($topic === '') {
@@ -933,15 +945,53 @@ class CometWiFiThermostat extends IPSModule
     }
 
     /** Fordert die aktuellen Temperaturen an — das schonendste Kommando. */
-    public function RequestUpdate(): bool
+    public function RequestUpdate(): string
     {
-        return $this->sendRequest(CWIFI_Registers::REQUEST_CURRENT);
+        return $this->actionReport($this->SendAction('Update'), 'Temperaturen angefordert');
     }
 
     /** Fordert sämtliche Register an. Weckt das Gerät spürbar — nie auf einem Timer. */
-    public function RequestAllFields(): bool
+    public function RequestAllFields(): string
     {
-        return $this->sendRequest(CWIFI_Registers::REQUEST_ALL);
+        return $this->actionReport($this->SendAction('AllFields'), 'Alle Felder angefordert');
+    }
+
+    /**
+     * Maschinelle Fassung der Knopf-Aktionen — für aufrufende Module, nicht für Formulare.
+     *
+     * Die gleichnamigen öffentlichen Methoden liefern seit 0.19.0 Klartext für die Anzeige
+     * (Verbund-Konvention „Sichtbare Rückmeldung bei jeder Aktion"). Das Raum-Modul braucht
+     * aber ein maschinelles Ja/Nein je Mitglied — und Erfolg aus einem Anzeigetext
+     * herauszulesen wäre genau die Art stiller Fehler, die niemand bemerkt, sobald jemand
+     * eine Formulierung ändert. Deshalb diese eine getrennte Methode statt vier weiterer.
+     */
+    public function SendAction(string $Action): bool
+    {
+        switch ($Action) {
+            case 'Update':    return $this->sendRequest(CWIFI_Registers::REQUEST_CURRENT);
+            case 'AllFields': return $this->sendRequest(CWIFI_Registers::REQUEST_ALL);
+            case 'Schedule':  return $this->sendSchedule();
+            case 'Clock':     return $this->sendClock();
+        }
+        $this->SendDebug('SendAction', 'Unbekannte Aktion: ' . $Action, 0);
+        return false;
+    }
+
+    /**
+     * Formuliert die Rückmeldung eines Knopfes.
+     *
+     * Ehrlich bleiben: Gesendet ist nicht beantwortet. Diese Geräte schlafen, und wer nach
+     * einem Knopfdruck „Erfolg" liest und dann minutenlang unveränderte Werte sieht, hält
+     * das Modul für kaputt. Der Text sagt deshalb ausdrücklich, worauf noch zu warten ist.
+     */
+    private function actionReport(bool $gesendet, string $was): string
+    {
+        if (!$gesendet) {
+            return '⚠️  ' . $was . ' — nicht gesendet. Prüfen Sie MAC-Adresse, '
+                . 'MQTT-Benutzer und ob der übergeordnete MQTT-Client aktiv ist.';
+        }
+        return '✅  ' . $was . ' (' . date('H:i:s') . ' Uhr). Die Werte erscheinen, '
+            . 'sobald das Gerät antwortet — es schläft und meldet sich nicht sofort.';
     }
 
     private function sendRequest(string $payload): bool
@@ -964,7 +1014,7 @@ class CometWiFiThermostat extends IPSModule
 
     public function Poll(): void
     {
-        $this->RequestUpdate();
+        $this->SendAction('Update');
     }
 
     /**
@@ -1033,7 +1083,7 @@ class CometWiFiThermostat extends IPSModule
             return;
         }
         $this->SendDebug('Uhr-Nachführung', 'Abweichung zu groß, Uhr wird gestellt', 0);
-        $this->SetClock();
+        $this->sendClock();
     }
 
     /**
@@ -1449,12 +1499,11 @@ class CometWiFiThermostat extends IPSModule
             'caption'  => '🆕  Neu in Version ' . self::NEWS_VERSION,
             'expanded' => true,
             'items'    => [
-                ['type' => 'Label', 'caption' => '• **Geräteuhr belegt und stellbar.** Register `A4` ist die Echtzeituhr des Thermostats. Sie läuft richtig, steht aber oft falsch — an einer Anlage zwischen 24 Minuten und über neun Stunden. Das Wochenprogramm läuft IM Gerät, jeder Schaltpunkt feuert also um diese Spanne versetzt.'],
-                ['type' => 'Label', 'caption' => '• Neue Variablen „Geräteuhr" und „Uhrabweichung", Knopf zum Stellen, auf Wunsch selbsttätige Nachführung (ab Werk aus — jedes Stellen weckt ein Batteriegerät).'],
-                ['type' => 'Label', 'caption' => '• **Wochenprogramm schreibbar** (`CWIFI_SetScheduleDay`), Urlaub ebenfalls — beides am Gerät nachgewiesen.'],
-                ['type' => 'Label', 'caption' => '• **Geräteauskunft in Klarschrift:** Modell, Firmware, IP-Adresse, WLAN-Zugangspunkt, Verschlüsselung und Gruppenzuordnung statt Hex-Ketten.'],
-                ['type' => 'Label', 'caption' => '• **Nach einem Verbindungsabbruch wird einmal nachgefragt.** Der Abbruchhinweis des Brokers heißt nur „eine Sitzung endete" — ohne Nachfassen blieb „nicht erreichbar" für immer stehen.'],
-                ['type' => 'Label', 'caption' => '• ⚠️ **Ohne aktive Abfrage sind die Werte oft viele Stunden alt.** Diese Geräte senden von sich aus praktisch nichts; sie antworten nur. Das ist der Preis der Batterieschonung.'],
+                ['type' => 'Label', 'caption' => '• **Jeder Knopf meldet jetzt, was er getan hat.** Bisher blieben „Jetzt aktualisieren", „Alle Felder anfordern", „Uhr stellen" und „Wochenprogramm abrufen" stumm — von einem kaputten Knopf war das nicht zu unterscheiden, und jeder unnötige zweite Klick weckt ein Batteriegerät.'],
+                ['type' => 'Label', 'caption' => '• Die Rückmeldung nennt die Uhrzeit und sagt ausdrücklich, dass die Werte erst erscheinen, **sobald das Gerät antwortet**. Gesendet ist nicht beantwortet: Diese Thermostate schlafen.'],
+                ['type' => 'Label', 'caption' => '• Schlägt etwas fehl, steht jetzt dabei, wo zu suchen ist (MAC-Adresse, MQTT-Benutzer, übergeordneter MQTT-Client) — statt einer stummen Nichtreaktion.'],
+                ['type' => 'Label', 'caption' => '• ⚠️ **Für eigene Skripte:** `CWIFI_RequestUpdate`, `CWIFI_RequestAllFields`, `CWIFI_SetClock` und `CWIFI_RequestSchedule` liefern jetzt einen Text statt `true`/`false`. Wer den Rückgabewert auswertet, nutzt dafür ab sofort `CWIFI_SendAction($id, \'Update\'|\'AllFields\'|\'Schedule\'|\'Clock\')` — die liefert weiterhin `true`/`false`.'],
+
                 [
                     'type'    => 'Button',
                     'caption' => 'Verstanden – nicht mehr anzeigen',

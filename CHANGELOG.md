@@ -2,6 +2,46 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.19.0] – Jeder Knopf meldet, was er getan hat
+
+Verbindliche Verbund-Konvention „Sichtbare Rückmeldung bei jeder Aktion" (`SUITE.md`,
+20.08.2026, Store-Review-Checkliste Punkt 13). Anlass waren zwei Live-Funde am EMS; die
+Prüfung hier ergab: **kein einziger der acht Knöpfe zeigte eine Reaktion.** Ein Knopf, der
+nichts sichtbar tut, ist von einem kaputten Knopf nicht zu unterscheiden — der Nutzer klickt
+erneut, und bei Batteriegeräten weckt jeder Klick ein Gerät.
+
+### Neu
+- **Alle acht Formularknöpfe melden ihr Ergebnis in Klartext** (`echo PREFIX_Methode($id)`),
+  mit Uhrzeit und ✅/⚠️/ℹ️.
+- **Die Meldungen bleiben ehrlich:** „gesendet" ist nicht „beantwortet". Jede Erfolgsmeldung
+  sagt ausdrücklich, dass die Werte erst erscheinen, sobald das Gerät antwortet — sonst hält
+  man das Modul für kaputt, wenn nach dem Klick minutenlang nichts passiert.
+- **Fehlschläge nennen den Ort:** MAC-Adresse, MQTT-Benutzer, übergeordneter MQTT-Client.
+- **Der Raum nennt Zahlen:** „an 4 von 5 Geräten" — die einzige ehrliche Auskunft über ein
+  halb geglücktes Sammelkommando, und der Fall, den man am ehesten übersieht.
+- **„Geräte derselben Gerätegruppe ergänzen" sagt jetzt, warum nichts passiert ist** (kein
+  Thermostat zugeordnet / keine Gruppe bekannt / nichts mehr zu ergänzen). Bisher gab es in
+  allen drei Fällen stumm eine 0 zurück.
+- `.tools/test-forms.php` erzwingt die Konvention jetzt **für alle Module auf einmal**: Jeder
+  Knopf muss entweder mit `echo` eine `string`-Methode aufrufen oder nachweislich ein
+  Formularfeld aktualisieren. Ein künftiger stummer Knopf fällt damit vor dem Gerät auf.
+
+### Geändert — Bruch für eigene Skripte
+Diese Methoden liefern jetzt **Text statt `true`/`false`**:
+`CWIFI_RequestUpdate`, `CWIFI_RequestAllFields`, `CWIFI_SetClock`, `CWIFI_RequestSchedule`,
+`CWIFIG_RequestUpdate`, `CWIFIG_RequestAllFields`, `CWIFIG_RequestSchedule`, `CWIFIG_SetClock`,
+`CWIFIR_RequestUpdate`, `CWIFIC_ClearDiscovery` sowie `CWIFIG_AddGroupMembers` (vorher Anzahl).
+
+**Wer den Rückgabewert auswertet, stellt auf `CWIFI_SendAction($id, $aktion)` um** —
+`'Update'`, `'AllFields'`, `'Schedule'` oder `'Clock'`, Rückgabe weiterhin `bool`. Achtung:
+Ein `if (CWIFI_SetClock($id))` bleibt scheinbar funktionsfähig, ist aber **immer** wahr, weil
+auch der Fehlertext ein nicht leerer String ist.
+
+Genau diese Falle war der Grund, die maschinelle Fassung getrennt zu führen statt Erfolg aus
+einem Anzeigetext herauszulesen: Das Raum-Modul wertet je Mitglied aus, und eine geänderte
+Formulierung hätte dort still falsche Ergebnisse erzeugt. Die Gegenprobe dazu steht im
+Prüfstand.
+
 ## [0.18.1] – Kopfzeile altert nicht mehr im offenen Formular
 
 ### Behoben

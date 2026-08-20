@@ -68,28 +68,22 @@ function CWIFI_SetManualMode(int $id, bool $manuell): bool
     return true;
 }
 
-function CWIFI_RequestUpdate(int $id): bool
+/**
+ * Die maschinelle Fassung, ueber die der Raum seine Mitglieder anspricht.
+ *
+ * Bewusst NICHT die gleichnamigen Geraetemethoden: Die liefern seit 0.19.0 Anzeigetext, und
+ * ein nicht leerer Fehlertext waere `true` — der Raum meldete dann Erfolg fuer jedes Geraet,
+ * das gar nichts gesendet hat. Wer diesen Stub auf string umstellt, muss den Raum mit
+ * umstellen; die Gegenprobe dazu steht weiter unten.
+ */
+function CWIFI_SendAction(int $id, string $aktion): bool
 {
-    $GLOBALS['aufrufe'][] = ['RequestUpdate', $id];
-    return true;
-}
-
-function CWIFI_RequestSchedule(int $id): bool
-{
-    $GLOBALS['aufrufe'][] = ['RequestSchedule', $id];
-    return true;
-}
-
-function CWIFI_SetClock(int $id): bool
-{
-    $GLOBALS['aufrufe'][] = ['SetClock', $id];
-    return true;
-}
-
-function CWIFI_RequestAllFields(int $id): bool
-{
-    $GLOBALS['aufrufe'][] = ['RequestAllFields', $id];
-    return true;
+    $GLOBALS['aufrufe'][] = [$aktion, $id];
+    // Pro Instanz steuerbar, damit sich auch der Teilerfolg pruefen laesst.
+    if (isset($GLOBALS['sendActionFehlschlag'][$id])) {
+        return false;
+    }
+    return $GLOBALS['sendActionErfolg'] ?? true;
 }
 
 function addThermostat(int $id, string $name, array $values, string $mac = ''): void
@@ -231,8 +225,52 @@ $GLOBALS['aufrufe'] = [];
 $room->TEST_SetValue('Action', 3);
 $room->RequestAction('Action', 3);
 check('Uhr stellen erreicht beide Mitglieder', count($GLOBALS['aufrufe']), 2);
-check('… mit der richtigen Funktion', $GLOBALS['aufrufe'][0][0], 'SetClock');
+check('… mit der richtigen Aktion', $GLOBALS['aufrufe'][0][0], 'Clock');
 check('… und springt zurueck auf Strich', $room->GetValue('Action'), 0);
+
+/* ============================ 6b. Sichtbare Rueckmeldung (SUITE.md, 20.08.2026) */
+
+/* Jeder Knopf muss ohne Formular-Neuoeffnen zeigen, dass etwas passiert ist. Der Raum nennt
+   dabei Zahlen: "an 4 von 5" ist die einzige ehrliche Meldung fuer ein halb gegluecktes
+   Sammelkommando. */
+IPSTestState::reset();
+addThermostat(50, 'Wohnzimmer Links',  ['Temperature' => 21.0, 'Reachable' => true]);
+addThermostat(51, 'Wohnzimmer Rechts', ['Temperature' => 23.0, 'Reachable' => true]);
+$room = makeRoom([50, 51]);
+
+$GLOBALS['sendActionErfolg'] = true;
+$text = $room->RequestUpdate();
+checkTrue('Erfolg wird gemeldet', str_starts_with($text, '✅'));
+checkTrue('… und nennt die Anzahl', str_contains($text, 'alle 2 Geräte'));
+checkTrue('… und verspricht keine sofortige Antwort', str_contains($text, 'sobald'));
+
+$GLOBALS['sendActionErfolg'] = false;
+$text = $room->SetClock();
+checkTrue('Misserfolg wird gemeldet', str_starts_with($text, '⚠️'));
+checkTrue('… und bleibt nicht stumm', strlen($text) > 30);
+
+/* Teilerfolg: das am schwersten zu bemerkende Ergebnis — ein Geraet ohne MAC faellt sonst
+   unter einem gruenen Haken fuer den ganzen Raum durch. */
+$GLOBALS['sendActionErfolg']     = true;
+$GLOBALS['sendActionFehlschlag'] = [51 => true];
+$text = $room->RequestSchedule();
+checkTrue('Teilerfolg wird als solcher gemeldet', str_starts_with($text, '⚠️'));
+checkTrue('… und nennt beide Zahlen', str_contains($text, 'an 1 von 2 Geräten'));
+$GLOBALS['sendActionFehlschlag'] = [];
+
+/* Ohne Mitglieder darf kein Erfolg gemeldet werden — sonst sieht der Nutzer einen Haken,
+   obwohl nichts gesendet wurde. */
+$leer = makeRoom([]);
+$text = $leer->RequestAllFields();
+checkTrue('Ohne Mitglieder kein Haken', str_starts_with($text, '⚠️'));
+checkTrue('… mit Hinweis auf die Zuordnung', str_contains($text, 'Mitglied'));
+
+/* AddGroupMembers meldete frueher stumm 0 zurueck. */
+$leer = makeRoom([]);
+$text = $leer->AddGroupMembers();
+checkTrue('Gruppenergaenzung ohne Auswahl meldet sich', str_starts_with($text, '⚠️'));
+
+unset($GLOBALS['sendActionErfolg'], $GLOBALS['sendActionFehlschlag']);
 
 /* ==================================================== 7. Uebersetzungen vorhanden */
 

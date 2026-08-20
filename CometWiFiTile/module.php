@@ -30,7 +30,7 @@ class CometWiFiTile extends IPSModule
         CWIFI_Registers::IDENT_CLOCK_DEV
     ];
 
-    private const NEWS_VERSION = '0.16';
+    private const NEWS_VERSION = '0.19';
     private const ATTR_SEEN_NEWS = 'SeenNews';
 
     /* ================================================================== Lebenszyklus */
@@ -357,9 +357,9 @@ class CometWiFiTile extends IPSModule
             'caption'  => '🆕  Neu in Version ' . self::NEWS_VERSION,
             'expanded' => true,
             'items'    => [
-                ['type' => 'Label', 'caption' => '• **Ist und Soll tragen beide ein Etikett.** Vorher stand die Isttemperatur ohne Beschriftung da und wurde als Sollwert gelesen.'],
-                ['type' => 'Label', 'caption' => '• Ein gemeinsamer Wortanfang aller Gerätenamen entfällt — aus „Thermostat Hauswirt…" wird „Hauswirtschaft". Der volle Name bleibt als Tooltip.'],
-                ['type' => 'Label', 'caption' => '• Eine schief stehende Geräteuhr wird gemeldet und zählt zu „braucht Aufmerksamkeit".'],
+                ['type' => 'Label', 'caption' => '• Keine Änderung an dieser Kachel — die Versionsnummer läuft im Verbund mit.'],
+                ['type' => 'Label', 'caption' => '• Neu in den übrigen Modulen: **Jeder Knopf meldet jetzt sichtbar, was er getan hat.**'],
+
                 [
                     'type'    => 'Button',
                     'caption' => 'Verstanden – nicht mehr anzeigen',

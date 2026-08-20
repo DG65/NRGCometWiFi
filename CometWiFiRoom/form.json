@@ -54,7 +54,7 @@
                 {
                     "type": "Button",
                     "caption": "➕  Geräte derselben Gerätegruppe ergänzen",
-                    "onClick": "CWIFIG_AddGroupMembers($id);"
+                    "onClick": "echo CWIFIG_AddGroupMembers($id);"
                 },
                 {
                     "type": "Label",
@@ -161,7 +161,7 @@
         {
             "type": "Button",
             "caption": "🔄  Alle Mitglieder abfragen",
-            "onClick": "CWIFIG_RequestUpdate($id);"
+            "onClick": "echo CWIFIG_RequestUpdate($id);"
         }
     ],
     "status": [

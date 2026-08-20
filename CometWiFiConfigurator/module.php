@@ -21,7 +21,7 @@ class CometWiFiConfigurator extends IPSModule
     /** GUID des Geräte-Moduls — muss zur module.json des Thermostats passen. */
     private const GUID_THERMOSTAT = '{0F552C16-D685-4C9F-86C0-8D89E4BFD158}';
 
-    private const NEWS_VERSION = '0.16';
+    private const NEWS_VERSION = '0.19';
 
     private const ATTR_SEEN_NEWS = 'SeenNews';
     private const ATTR_LAST_DISCOVERY = 'LastDiscoveryTs';
@@ -322,12 +322,22 @@ class CometWiFiConfigurator extends IPSModule
     /* ================================================================== Aktionen */
 
     /** Verwirft die gesammelten Fundstellen. Angelegte Instanzen bleiben unberührt. */
-    public function ClearDiscovery(): void
+    public function ClearDiscovery(): string
     {
+        $vorher = count($this->buildRows());
+
         $this->SetBuffer(self::BUFFER_DEVICES, '{}');
         $this->WriteAttributeString(self::ATTR_DEVICES, '{}');
         $this->SendDebug('Fundliste', 'geleert', 0);
         $this->refreshStatus();
+        $this->refreshOpenForm();
+
+        if ($vorher === 0) {
+            return 'ℹ️  Die Liste war bereits leer.';
+        }
+        return '✅  ' . $vorher . ' ' . ($vorher === 1 ? 'Eintrag' : 'Einträge')
+            . ' verworfen. Angelegte Instanzen bleiben unberührt; die Geräte erscheinen '
+            . 'wieder, sobald sie das nächste Mal senden.';
     }
 
     /** Schreibt den Arbeitsstand ins Attribut (Timer, überlebt den Neustart). */
@@ -433,8 +443,10 @@ class CometWiFiConfigurator extends IPSModule
             'caption'  => '🆕  Neu in Version ' . self::NEWS_VERSION,
             'expanded' => true,
             'items'    => [
-                ['type' => 'Label', 'caption' => '• Unverändert in Funktion: Der Konfigurator hört weiterhin nur passiv mit und sendet von sich aus nichts.'],
-                ['type' => 'Label', 'caption' => '• Neu im Verbund: Es gibt jetzt eine Übersichtskachel, eine Raumkachel für ein einzelnes Gerät und ein Raummodul, das mehrere Thermostate als eine Instanz bedienbar macht.'],
+                ['type' => 'Label', 'caption' => '• **Die Kopfzeile bleibt im offenen Formular aktuell.** Bisher fror sie beim Öffnen ein und nannte trotzdem eine Uhrzeit — sie behauptete also eine Aktualität, die sie nicht hatte. Kopfzeile und Fundliste werden jetzt gemeinsam nachgezogen.'],
+                ['type' => 'Label', 'caption' => '• **„Liste leeren" meldet, wie viele Einträge verworfen wurden** — und dass angelegte Instanzen unberührt bleiben.'],
+                ['type' => 'Label', 'caption' => '• ⚠️ **Für eigene Skripte:** `CWIFIC_ClearDiscovery` liefert jetzt Text statt gar nichts.'],
+
                 [
                     'type'    => 'Button',
                     'caption' => 'Verstanden – nicht mehr anzeigen',

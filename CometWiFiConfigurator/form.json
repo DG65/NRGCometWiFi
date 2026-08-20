@@ -197,7 +197,7 @@
             "type": "Button",
             "caption": "🗑️  Liste leeren",
             "confirm": "Die gesammelten Fundstellen werden verworfen. Bereits angelegte Instanzen bleiben unberührt. Fortfahren?",
-            "onClick": "CWIFIC_ClearDiscovery($id);"
+            "onClick": "echo CWIFIC_ClearDiscovery($id);"
         }
     ],
     "status": [

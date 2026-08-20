@@ -214,7 +214,12 @@ deliver($cfg2, '02/' . USER . '/' . MAC_B . '/V/A1', '#2C');
 rowsOf($cfg2);
 checkTrue('Formularaufruf schreibt weg', $cfg2->ReadAttributeString('Devices') !== '{}');
 
-$cfg->ClearDiscovery();
+$text = $cfg->ClearDiscovery();
+checkTrue('Leeren meldet sich sichtbar', str_starts_with($text, '✅'));
+checkTrue('… und nennt die Zahl der verworfenen Eintraege (Einzahl)', str_contains($text, '1 Eintrag'));
+checkTrue('… und beruhigt wegen der Instanzen', str_contains($text, 'Instanzen bleiben'));
+$text = $cfg->ClearDiscovery();
+checkTrue('Zweites Leeren meldet keinen Erfolg mehr', str_starts_with($text, 'ℹ️'));
 check('Liste leeren wirkt', count(rowsOf($cfg)), 0);
 check('Liste leeren räumt auch das Attribut', $cfg->ReadAttributeString('Devices'), '{}');
 
