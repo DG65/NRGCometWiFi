@@ -981,6 +981,19 @@ Ein Amazon-Wunschlisten-Badge ist bewusst **kein** Standardbestandteil — nur
 falls ein Modul (auf Dietmars ausdrücklichen Wunsch) tatsächlich eine eigene
 Wunschliste verlinken soll.
 
+**Falle beim Erweitern von `check-style.yml`** (CometWiFi, 20.08.2026, an
+941 echten Prüfungen verifiziert): wer über `php -l` hinaus eigene Prüfstände
+in einer Schleife laufen lässt (`for t in ...; do php "$t"; done`), bekommt
+KEINEN verlässlichen Job-Status — die Schleife läuft nach einem Fehlschlag
+einfach weiter, und `set -e` greift hier nicht (nur der Exit-Code des
+*letzten* Laufs zählt). Ein grüner Haken hieße dann "der letzte Prüfstand
+war okay", nicht "alle waren okay". Fehlschläge selbst zählen und am Ende
+explizit `exit 1` bei mindestens einem Fehlschlag — nicht auf `set -e`
+verlassen. Beim einfachen `find ... | xargs -0 -n1 php -l` (EMS' Vorlage)
+unproblematisch, da `xargs` selbst bei einem Fehlschlag korrekt nicht-null
+zurückgibt — die Falle greift erst, sobald jemand eine eigene Schleife
+darum baut.
+
 ## Verweis in den Modulen
 
 Jede Modul-README erhält einen kurzen Hinweis:
