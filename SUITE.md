@@ -283,19 +283,48 @@ automatische Discovery ohnehin überholt/unnötig ist, das musste er bislang sel
 erraten). Jedes `SelectVariable`-Fallback-Feld, das laut "Muster: neue Konsumenten-Features
 müssen den bestehenden Discovery-Mechanismus nutzen" (siehe oben) NUR für Installationen ohne
 das jeweilige Partnermodul gedacht ist, bekommt in `GetConfigurationForm()` (nicht `form.json`,
-da live berechnet) direkt darüber ein `Label` mit einer der drei Ampel-Aussagen:
+da live berechnet) direkt darüber ein `Label` mit einer der vier Ampel-Aussagen:
 - ✅ **automatisch verbunden** — nennt Instanz-ID + Name + (wo sinnvoll) eine Kennzahl der
   gelieferten Daten (z. B. Anzahl Slots); das Feld darunter wird ignoriert.
 - ⚠️ **Partnerinstanz gefunden, liefert aber gerade nichts Brauchbares** — Fallback-Feld ist
   aktiv, aber das ist wahrscheinlich ein Symptom eines anderen Problems, nicht der Normalfall.
-- ℹ️ **keine Partnerinstanz gefunden** — Fallback-Feld wird tatsächlich gebraucht.
+- ℹ️ **keine Partnerinstanz gefunden, Feld optional** — Fallback-Feld wird zwar gebraucht,
+  das Fehlen degradiert aber nur eine einzelne Funktion (z. B. der Tagesplan bleibt leer),
+  der Rest von EMS funktioniert unverändert weiter.
+- ⛔ **PFLICHTFELD, in Rot** (`'color' => 0xFF0000` im Label-Array) — nur wenn das Fehlen
+  NICHT nur eine Funktion abschaltet, sondern EMS mit einem STILLSCHWEIGEND FALSCHEN Wert
+  weiterrechnet (z. B. Batterie-SOC=0%, wenn weder InverterHub noch das manuelle Feld einen
+  Wert liefern — EMS denkt dann faelschlich, die Batterie sei leer, und trifft Entscheidungen
+  auf dieser falschen Grundlage). Der Unterschied zu ℹ️ ist bewusst scharf: ℹ️ heisst "eine
+  Funktion fehlt einfach", ⛔ heisst "EMS entscheidet aktiv falsch, wenn das hier nicht gefuellt
+  wird". Nicht inflationaer verwenden — die meisten Fallback-Felder sind ℹ️, nicht ⛔.
 
-Referenzimplementierung: EMS' `getPT15MStatusLine()` + die Splice-Logik in
-`GetConfigurationForm()`, die die Zeile vor dem `VAR_TIB_PT15M_Today`-Feld im Tibber-Panel
-einfügt (`module.php`, 0.21.2). Ergänzt (nicht ersetzt) das bestehende "🔗 Verbund-Status"-Panel
-oben im Formular — jenes zeigt nur eine grobe Zusammenfassung pro Partnermodul-Typ
-(`InverterHub=1 MeterHub=1 ...`), diese Konvention bringt die Aussage bis auf Feldebene runter,
-direkt neben das betroffene Formularfeld selbst.
+**Praezisierung 20.08.2026:** wirklich JE FELD, nicht ein Pauschalsatz oben im Panel ("schau im
+Verbund-Status-Panel nach") — verschiedene Felder im selben Panel koennen unterschiedliche
+Automatik-Wege haben (Beispiel Netzmesspunkte-Panel unten: Gesamtleistung hat einen echten
+Automatik-Pfad, die Phasenwerte L1-L3/Frequenz/Status aktuell nicht). **Wenn fuer ein Feld gar
+kein Automatik-Pfad im Code existiert, muss die Zeile das ehrlich sagen** ("ℹ️ EMS liest diesen
+Wert aktuell nicht automatisch von einem Partnermodul") statt so zu tun, als waere das Feld
+einfach nur zufaellig leer — sonst wird aus der Konvention selbst wieder eine neue Luecke, die
+der Nutzer erraten muss.
+
+Referenzimplementierungen (`module.php`, EMS 0.21.3):
+- `getPT15MStatusLine()` — Tibber-Panel, PT15M-Preiskurve, echter Automatik-Pfad (ℹ️-Stufe,
+  da nur der Tagesplan betroffen ist, kein ⛔).
+- `getGridFieldStatusLine()` — Netzmesspunkte-Panel, gemischt: Gesamtleistung hat einen
+  Automatik-Pfad (InverterHub `gridPowerID`), die uebrigen Felder ehrlich ohne.
+- `getBatterySocStatusLine()` — Batteriespeicher-Panel, Bat1-SOC-Feld: erste ⛔-Stufe im
+  Verbund, weil BuildDayPlan() den SOC bislang komplett am InverterHub-Automatik-Pfad vorbei
+  gelesen hatte (`getCurrentBatterySoc()`, gleicher Fehlertyp wie die PT15M-Preise selbst —
+  neues Feature nutzte die vorhandene Discovery nicht, EMS 0.21.3-Fix).
+- `statusLabel()` — normalisiert String ODER `['caption'=>..,'color'=>..]`-Array zu einem
+  fertigen `form.json`-Label-Element, damit jeder Status-Helper nur den Inhalt liefert, nicht
+  das Wrapping wiederholt.
+
+Alle ergaenzen (ersetzen nicht) das bestehende "🔗 Verbund-Status"-Panel oben im Formular —
+jenes zeigt nur eine grobe Zusammenfassung pro Partnermodul-Typ (`InverterHub=1 MeterHub=1 ...`),
+diese Konvention bringt die Aussage bis auf Feldebene runter, direkt neben das betroffene
+Formularfeld selbst.
 
 **Pflege-Pflicht:** Jedes Modul prüft bei JEDEM Fix/Update/Upgrade selbst, ob etwas ins
 "Was ist Neu?" oder "Dokumentation & Hilfe" gehört — die Prüfung ist Pflicht, das Ergebnis
