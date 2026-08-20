@@ -549,6 +549,37 @@ haben, aber das Prinzip bleibt: der Nutzer muss ohne Nachdenken sehen, ob die Ak
 jeden Button im Formular klicken und fragen: *sehe ich JETZT, ohne das Formular neu zu öffnen,
 dass etwas passiert ist?* Wenn nein — Muster 1 oder 2 nachrüsten, je nach Aktionstyp.
 
+**Drei weitere Praxis-Regeln (CometWiFi, 20.08.2026, an einem Batteriegeraete-Modul gehaertet —
+besonders kritisch dort, weil jeder unnoetige Klick ein Geraet unnoetig weckt):**
+
+1. **"Gesendet" ist nicht "beantwortet" — das gehoert in den Text.** Bei allem, was ueber eine
+   Warteschlange, ein Funkprotokoll oder eine Cloud laeuft (verzoegerte Antwort, keine
+   Garantie), waere ein blosses "✅ Erfolg" formal korrekt aber praktisch irrefuehrend — der
+   Nutzer sieht danach unveraenderte Werte und haelt das Modul fuer kaputt. Formulierung
+   stattdessen z. B. "gesendet, Werte erscheinen sobald das Geraet antwortet".
+2. **Bei Sammelaktionen (mehrere Geraete/Instanzen in einem Klick) Zahlen nennen, nicht nur
+   ja/nein.** "An 4 von 5 Geraeten erfolgreich" statt eines pauschalen Hakens — der
+   Teilerfolg ist der haeufigste UND am schwersten zu bemerkende Fall; ein reines
+   "erfolgreich/fehlgeschlagen" kann ihn gar nicht ausdruecken und versteckt das eine
+   Problemgeraet dauerhaft.
+3. **KRITISCH — Text-als-`bool`-Falle bei Methoden, die von einem ANDEREN Modul MASCHINELL
+   aufgerufen werden** (z. B. `*_GetFunctions`-Vertragsmethoden oder sonst irgendein Aufruf,
+   dessen Rueckgabewert programmatisch geprueft wird, nicht nur per `echo` angezeigt). Ein
+   Fehlertext ist ein nicht-leerer `string` und damit in PHP immer `true` — wird eine
+   bool-liefernde Methode auf einen Klartext-Rueckgabewert umgestellt, meldet jeder
+   programmatische Aufrufer ab sofort STILLSCHWEIGEND Erfolg, auch bei einem Fehlschlag. Lösung:
+   fuer maschinelle Aufrufer eine GETRENNTE `bool`-liefernde Methode behalten/anlegen, niemals
+   Erfolg aus einem Anzeigetext zurueckparsen (bricht bei der naechsten Textumformulierung,
+   ohne dass irgendwo etwas rot wird). **Bei EMS besonders relevant**, weil EMS als
+   Koordinator selbst Vertragsmethoden anderer Module aufruft und umgekehrt `EMS_GetSpecialEvents()`
+   von "lernenden Modulen" maschinell konsumiert wird — vor jeder Rueckgabetyp-Aenderung an
+   einer oeffentlichen Methode pruefen, ob sie ausserhalb des eigenen Formulars aufgerufen wird.
+   Audit 20.08.2026: EMS' `BuildDayPlan()` (jetzt `string`-Rueckgabe) wird nirgends
+   programmatisch als `bool` konsumiert, `GetPartners()`/`GetFederationHealth()`/
+   `GetSituation()`/`GetSpecialEvents()` liefern weiterhin strukturierte Daten (keine
+   Klartext-Umstellung) — kein Fund, aber der Check selbst gehoert ab jetzt vor jede
+   Rueckgabetyp-Aenderung.
+
 ## Manifest
 
 ### Suite 2026.07 (in Vorbereitung — Beta-Stände, noch kein abgeschlossener Testsatz)
