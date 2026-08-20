@@ -298,7 +298,79 @@ foreach (array_unique($matches[1]) as $handler) {
     checkTrue("Formular-Handler {$handler} existiert", strpos($src, "public function {$handler}(") !== false);
 }
 
+
+/* ==================================== Verbund-Status-Kopfzeile (SUITE.md, 20.08.2026) */
+
+/** Liest die Kopfzeile aus dem erzeugten Formular. */
+function kopfzeile(CometWiFiConfigurator $cfg): string
+{
+    $form = json_decode($cfg->GetConfigurationForm(), true);
+    foreach ($form['actions'] as $action) {
+        if (($action['name'] ?? '') === 'DiscoveryLine') {
+            return $action['caption'];
+        }
+    }
+    return '(keine Kopfzeile)';
+}
+
+/* Zustand 1: noch nie etwas gehoert. */
+$cfg = makeConfigurator();
+$zeile = kopfzeile($cfg);
+checkTrue('Ohne Fund: Info-Icon', str_starts_with($zeile, 'ℹ️'));
+checkTrue('Ohne Fund: keine erfundene Uhrzeit', !str_contains($zeile, 'zuletzt'));
+
+/* Zustand 2: Geraete gefunden — Muster der Konvention einhalten. */
+deliver($cfg, '02/' . USER . '/' . MAC_A . '/V/A1', '#2C');
+deliver($cfg, '02/' . USER . '/' . MAC_B . '/V/A1', '#2A');
+$zeile = kopfzeile($cfg);
+checkTrue('Mit Fund: Erfolgs-Icon', str_starts_with($zeile, '✅'));
+checkTrue('Mit Fund: Anzahl stimmt', str_contains($zeile, '2 Thermostate gefunden'));
+// Muster exakt: <Icon> <Zahl> <Was> gefunden (zuletzt HH:MM:SS Uhr).
+checkTrue('Mit Fund: Muster der Konvention',
+    (bool) preg_match('/^✅\s+\d+ \S+ gefunden \(zuletzt \d{2}:\d{2}:\d{2} Uhr\)\.$/u', $zeile));
+
+/* Einzahl darf nicht „1 Thermostate" heissen. */
+$cfg = makeConfigurator();
+deliver($cfg, '02/' . USER . '/' . MAC_A . '/V/A1', '#2C');
+checkTrue('Einzahl korrekt', str_contains(kopfzeile($cfg), '1 Thermostat gefunden'));
+
+/* Zustand 3: schon einmal gehoert, Liste aber leer (Aufbewahrungsdauer abgelaufen). */
+$cfg = makeConfigurator(['RetentionHours' => 1]);
+deliver($cfg, '02/' . USER . '/' . MAC_A . '/V/A1', '#2C');
+$devices = json_decode($cfg->GetBuffer('DeviceBuffer'), true);
+$devices[MAC_A]['LastSeen'] = time() - 7200;
+$cfg->SetBuffer('DeviceBuffer', json_encode($devices));
+$zeile = kopfzeile($cfg);
+checkTrue('Leere Liste nach Fund: Warn-Icon', str_starts_with($zeile, '⚠️'));
+// Der Zeitstempel muss bleiben — er sagt, wann zuletzt ueberhaupt etwas ankam.
+checkTrue('Leere Liste behaelt den Zeitstempel', str_contains($zeile, 'zuletzt'));
+
+/* Die Konvention verlangt: Kopfzeile VOR der Fundliste, Technisches eingeklappt darunter. */
+$cfg = makeConfigurator();
+$form = json_decode($cfg->GetConfigurationForm(), true);
+check('Kopfzeile steht an erster Stelle', $form['actions'][0]['name'] ?? '', 'DiscoveryLine');
+
+$eingeklappt = null;
+foreach ($form['actions'] as $action) {
+    if (($action['type'] ?? '') === 'ExpansionPanel') {
+        $eingeklappt = $action;
+        break;
+    }
+}
+checkTrue('Technische Erklaerung als Unter-Panel vorhanden', $eingeklappt !== null);
+check('… und eingeklappt', $eingeklappt['expanded'] ?? true, false);
+
+/* Der Zeitstempel muss bei JEDER Meldung mitlaufen, nicht nur beim ersten Fund — sonst
+   altert die Kopfzeile, obwohl die Anlage munter sendet. */
+$cfg = makeConfigurator();
+deliver($cfg, '02/' . USER . '/' . MAC_A . '/V/A1', '#2C');
+$cfg->WriteAttributeInteger('LastDiscoveryTs', time() - 3600);
+deliver($cfg, '02/' . USER . '/' . MAC_A . '/V/A1', '#2D');
+checkTrue('Folgemeldung frischt den Zeitstempel auf',
+    $cfg->ReadAttributeInteger('LastDiscoveryTs') > time() - 60);
+
 /* ------------------------------------------------------------------ Ergebnis */
+
 
 echo "\n";
 if ($failed === 0) {

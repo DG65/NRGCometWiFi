@@ -2,6 +2,25 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.18.0] – Einheitliche Status-Kopfzeile im Konfigurator
+
+### Neu
+- **Der Konfigurator führt die Verbund-Status-Kopfzeile** (`SUITE.md`, 20.08.2026): eine
+  Zeile im Muster `✅ 10 Thermostate gefunden (zuletzt 16:25:41 Uhr).` statt eines
+  Fließtext-Satzes — `⚠️` wenn die Liste leer ist, obwohl schon einmal etwas ankam, `ℹ️`
+  solange noch nie etwas gehört wurde. Sie steht vor der Fundliste; die technische
+  Erklärung ist in ein eingeklapptes Unter-Panel gewandert.
+- Neues Attribut `LastDiscoveryTs`, bei **jeder** Gerätemeldung fortgeschrieben — nicht nur
+  beim ersten Fund einer MAC. Sonst würde die Kopfzeile altern, während die Anlage munter
+  sendet.
+
+### Abweichung von der Konvention (bewusst)
+- **Kein Knopf „Geräte jetzt suchen".** Die Konvention sieht ihn über der Zeile vor; dieser
+  Konfigurator sendet aber grundsätzlich nichts, weil jede Abfrage ein Batteriegerät weckt.
+  „Zuletzt" meint hier folglich den Zeitpunkt der letzten Gerätemeldung, nicht den einer
+  Suche — genau so steht es auch im Unter-Panel, damit niemand ein fehlendes Bedienelement
+  für einen Fehler hält.
+
 ## [0.17.0] – „Was ist Neu" nachgezogen
 
 ### Behoben

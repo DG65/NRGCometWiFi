@@ -24,6 +24,7 @@ class CometWiFiConfigurator extends IPSModule
     private const NEWS_VERSION = '0.16';
 
     private const ATTR_SEEN_NEWS = 'SeenNews';
+    private const ATTR_LAST_DISCOVERY = 'LastDiscoveryTs';
     private const ATTR_DEVICES   = 'Devices';
 
     private const BUFFER_DEVICES = 'DeviceBuffer';
@@ -45,6 +46,9 @@ class CometWiFiConfigurator extends IPSModule
 
         $this->RegisterAttributeString(self::ATTR_SEEN_NEWS, '');
         $this->RegisterAttributeString(self::ATTR_DEVICES, '{}');
+        // Verbund-Konvention „Einheitliche Verbund-Status-Kopfzeile" (SUITE.md, 20.08.2026):
+        // Zeitpunkt der letzten Gerätemeldung für die Kopfzeile.
+        $this->RegisterAttributeInteger(self::ATTR_LAST_DISCOVERY, 0);
 
         $this->RegisterTimer('CWIFIC_Flush', 0, 'CWIFIC_FlushDiscovery($_IPS[\'TARGET\']);');
         $this->RegisterTimer('CWIFIC_TimeSync', 0, 'CWIFIC_PublishTimeSync($_IPS[\'TARGET\']);');
@@ -125,6 +129,9 @@ class CometWiFiConfigurator extends IPSModule
             $this->SendDebug('Neues Gerät', CWIFI_Topics::formatMac($mac), 0);
         }
         $devices[$mac]['LastSeen'] = $now;
+        // Nicht nur beim ersten Fund: Die Kopfzeile soll sagen, wann zuletzt ÜBERHAUPT
+        // etwas hereinkam — sonst altert sie, obwohl die Anlage munter sendet.
+        $this->WriteAttributeInteger(self::ATTR_LAST_DISCOVERY, $now);
 
         if (!in_array($register, $devices[$mac]['Registers'], true)) {
             $devices[$mac]['Registers'][] = $register;
@@ -169,12 +176,49 @@ class CometWiFiConfigurator extends IPSModule
         }
         unset($action);
 
+        foreach ($form['actions'] as &$action) {
+            if (($action['name'] ?? '') === 'DiscoveryLine') {
+                $action['caption'] = $this->discoverySummaryLine();
+                break;
+            }
+        }
+        unset($action);
+
         $banner = $this->newsBanner();
         if ($banner !== null) {
             array_unshift($form['elements'], $banner);
         }
 
         return json_encode($form);
+    }
+
+    /**
+     * Die Statuskopfzeile nach der Verbund-Konvention (SUITE.md, 20.08.2026).
+     *
+     * Muster: `<Icon> <Zahl> <Was> gefunden (zuletzt <HH:MM:SS> Uhr).` — eine Zeile, eine
+     * Kernzahl, kein Aufzählungssatz. `✅` sobald etwas gefunden wurde, `⚠️` wenn schon
+     * einmal etwas ankam, die Liste aber leer ist, `ℹ️` solange noch nie etwas kam.
+     *
+     * **Abweichung von der Konvention, bewusst:** Sie sieht einen Suchknopf ÜBER der Zeile
+     * vor. Den gibt es hier nicht und darf es nicht geben — dieser Konfigurator sendet
+     * grundsätzlich nichts, weil jede Abfrage ein Batteriegerät weckt. „Zuletzt" meint
+     * deshalb den Zeitpunkt der letzten Gerätemeldung, nicht den einer Suche.
+     */
+    private function discoverySummaryLine(): string
+    {
+        $anzahl  = count($this->buildRows());
+        $zuletzt = $this->ReadAttributeInteger(self::ATTR_LAST_DISCOVERY);
+
+        if ($zuletzt === 0) {
+            return 'ℹ️  Noch kein Thermostat gehört — die Geräte melden sich von selbst.';
+        }
+        $zeit = date('H:i:s', $zuletzt);
+
+        if ($anzahl === 0) {
+            return '⚠️  0 Thermostate in der Liste (zuletzt ' . $zeit . ' Uhr).';
+        }
+        return sprintf('✅  %d %s gefunden (zuletzt %s Uhr).',
+            $anzahl, $anzahl === 1 ? 'Thermostat' : 'Thermostate', $zeit);
     }
 
     /** Baut die Zeilen der Fundliste. */

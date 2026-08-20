@@ -110,6 +110,34 @@
     ],
     "actions": [
         {
+            "type": "Label",
+            "name": "DiscoveryLine",
+            "caption": " "
+        },
+        {
+            "type": "ExpansionPanel",
+            "caption": "🔍  Wie die Erkennung arbeitet",
+            "expanded": false,
+            "items": [
+                {
+                    "type": "Label",
+                    "caption": "Dieser Konfigurator hört nur mit und sendet grundsätzlich nichts — deshalb gibt es hier bewusst keinen Knopf „Geräte jetzt suchen“: Jede Abfrage würde ein Batteriegerät wecken."
+                },
+                {
+                    "type": "Label",
+                    "caption": "„Zuletzt“ in der Zeile oben ist deshalb der Zeitpunkt der letzten Gerätemeldung, nicht der einer Suche."
+                },
+                {
+                    "type": "Label",
+                    "caption": "Erkannt wird jedes Gerät, dessen Meldungen zum eingestellten MQTT-Benutzer und Topic-Präfix passen. Die Zuordnung zu bereits angelegten Instanzen läuft über die MAC-Adresse und den gemeinsamen Broker — ausdrücklich nicht über den Namen."
+                },
+                {
+                    "type": "Label",
+                    "caption": "Einträge verschwinden wieder, wenn sich ein Gerät länger als eingestellt nicht gemeldet hat."
+                }
+            ]
+        },
+        {
             "type": "Configurator",
             "name": "Devices",
             "caption": "Gefundene Comet-WiFi-Thermostate",

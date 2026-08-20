@@ -204,6 +204,11 @@ Vollständig in `SUITE.md` im Repo-Root, hier nur die für dieses Repo relevante
   Modulklassen selbst, deren Name exakt dem `name`-Feld der `module.json` entsprechen muss.
 - **`vendor` in `module.json`** = Hersteller des Geräts, hier `Eurotronic`.
 - **`library.json` akzeptiert nur** id, author, name, url, compatibility, version, build, date.
+- **Status-Kopfzeile (SUITE.md, 20.08.2026).** Discovery-Panels tragen EINE Zeile im Muster
+  `<Icon> <Zahl> <Was> gefunden (zuletzt HH:MM:SS Uhr).`, Technisches gehört in ein
+  eingeklapptes Unter-Panel. Hier ohne den vorgesehenen Suchknopf: Der Konfigurator sendet
+  grundsätzlich nichts (Batterie), „zuletzt" ist deshalb die letzte Gerätemeldung. Die
+  Abweichung steht im Formular, damit sie nicht wie ein Versäumnis wirkt.
 - **Alte Repo-Namen niemals wiederverwenden (SUITE.md, 19.08.2026).** Die Verbund-Repos
   heißen kanonisch `NRG*`; die Alt-Namen leben nur noch als GitHub-Redirects. Legt jemand
   unter DG65 ein neues Repo mit einem Alt-Namen an, löscht GitHub die Weiterleitung
