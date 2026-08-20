@@ -1,0 +1,47 @@
+# Verbund-Konvention (SUITE.md, Abschnitt „README-Badges"): Der Check-Style-Badge in der
+# README zeigt auf diesen Workflow.
+#
+# EMS' Vorlage macht nur `php -l`. Hier laufen zusätzlich die Prüfstände — denn es gibt sie,
+# und ein grüner Haken soll „alle Prüfungen bestanden" bedeuten und nicht bloß „syntaktisch
+# fehlerfrei". Die Prüfstände laufen ohne IP-Symcon: `.tools/ips-stub.php` bildet genug davon
+# nach, dass die Modulklassen wirklich ausgeführt werden.
+name: Check Style
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          # Symcon 9 läuft auf PHP 8.x; 8.1 ist die untere Grenze, gegen die geprüft wird.
+          php-version: '8.1'
+
+      - name: PHP Syntax-Check
+        run: find . -name "*.php" -print0 | xargs -0 -n1 php -l
+
+      - name: Prüfstände
+        # Bewusst mit eigener Fehlerzählung statt sich auf `set -e` zu verlassen: So laufen
+        # ALLE Stände durch und das Protokoll zeigt jeden Fehlschlag, statt beim ersten
+        # abzubrechen — der Job scheitert am Ende trotzdem.
+        run: |
+          set -uo pipefail
+          fehler=0
+          for t in .tools/test-*.php; do
+            echo "::group::$t"
+            if ! php "$t"; then
+              fehler=$((fehler + 1))
+              echo "::error file=$t::Prüfstand fehlgeschlagen"
+            fi
+            echo "::endgroup::"
+          done
+          if [ "$fehler" -gt 0 ]; then
+            echo "$fehler Prüfstand/Prüfstände fehlgeschlagen."
+            exit 1
+          fi
+          echo "Alle Prüfstände bestanden."
