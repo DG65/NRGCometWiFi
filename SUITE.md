@@ -530,6 +530,21 @@ man einmal lesen und dann wegklicken will → Muster 1 (`echo`). Zeigt ein Formu
 Zustand, der auch ohne den Button-Klick relevant bleibt (z. B. "wie viele Geräte sind gerade
 verbunden") → Muster 2 (`UpdateFormField`).
 
+**Muster 3: WebFront-Kachel/`RequestAction()` ohne Formular-Kanal** (WPHub, 20.08.2026 —
+berechtigte Nachfrage zum Geltungsbereich: gilt die Konvention auch für Steuerelemente
+AUSSERHALB des Konfigurationsformulars, z. B. Slider/Schalter auf einer WebFront-Kachel, wo es
+weder `echo`-Popup noch ein zusätzliches `Label` gibt?). **Ja, die Konvention gilt auch dort**
+— der Mechanismus ist zwangsläufig ein anderer, weil WebFront-Kacheln keinen Popup-/Label-Kanal
+haben, aber das Prinzip bleibt: der Nutzer muss ohne Nachdenken sehen, ob die Aktion griff.
+- **Erfolg:** `SetValue()` auf die tatsächlich bestätigte Variable — der Schalter/Slider zeigt
+  danach den wirklich erreichten Zustand, nicht nur den angeforderten.
+- **Fehlschlag:** die Variable NICHT auf dem angeforderten (aber nicht erreichten) Wert stehen
+  lassen — explizit auf den zuletzt bestätigten Ist-Wert zurücksetzen, damit der Regler/Schalter
+  sichtbar "zurückspringt" statt einen nie eingetretenen Erfolg vorzutäuschen. Das sichtbare
+  Zurückspringen IST hier die Rückmeldung — kein Popup nötig oder möglich. Zusätzlich wie gehabt
+  eine Protokollzeile fürs Debugging, aber die reicht allein NICHT (die sieht der Nutzer im
+  WebFront nicht direkt).
+
 **Pflicht-Check vor jeder Veröffentlichung** (siehe auch Store-Review-Checkliste Punkt 13):
 jeden Button im Formular klicken und fragen: *sehe ich JETZT, ohne das Formular neu zu öffnen,
 dass etwas passiert ist?* Wenn nein — Muster 1 oder 2 nachrüsten, je nach Aktionstyp.
