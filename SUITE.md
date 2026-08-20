@@ -119,6 +119,27 @@ Konsument soll auf einen Wert-Schnappschuss angewiesen sein, der zwischen zwei
 zusaetzlich fuer Diagnose bestehen, wird aber nicht mehr zur eigentlichen
 Entscheidungslogik der Konsumenten.
 
+**Muster: neue Konsumenten-Features muessen den bestehenden Discovery-
+Mechanismus nutzen, nicht daneben eine manuelle Verknuepfung neu erfinden**
+(EMS, 20.08.2026). Konkreter Fund: EMS' `Discover()` findet installierte
+Partnermodule (u. a. Tibber Grid Reward) laengst automatisch und ruft ihre
+Vertragsfunktionen ab (z. B. `TIBBERGR_GetTariffConfig`) — der neue
+Tagesplan (`BuildDayPlan()`, 0.21.0) las die PT15M-Preiskurve aber ueber eine
+manuell zu verknuepfende Property, obwohl `TIBBERGR_GetPriceCurve` **1.1**
+laengst existiert und automatisch geholt werden koennte. Ergebnis: der
+Tagesplan blieb auf einer produktiven Anlage leer, obwohl alle Bausteine
+installiert und aktiv waren — Dietmar musste die Luecke selbst im Formular
+entdecken. Lehre: **jedes neue Feature, das Daten von einem Partnermodul
+braucht, MUSS zuerst pruefen, ob eine automatische Discovery/Get*-Funktion
+dafuer schon existiert**, bevor eine neue manuelle `SelectVariable`-Property
+angelegt wird — eine manuelle Property ist nur als Fallback fuer Nutzer ohne
+das jeweilige Partnermodul gerechtfertigt (siehe Batteriestring-Panel als
+korrektes Vorbild: "nur ausfuellen, falls kein Partnermodul automatisch
+gefunden"), nicht als alleiniger Weg. Fix: `getPT15MTodayJson()` versucht
+zuerst `TIBBERGR_GetPriceCurve()` ueber `getTibberGridRewardInstance()`,
+faellt nur bei fehlender Instanz/leerem Ergebnis auf die manuelle Property
+zurueck (EMS 0.21.2).
+
 ### Kanonisches Feldregister: `Type=>'heatpump'`-Vertrag
 
 **Warum dieses Register existiert (13.08.2026):** HeishaMon fuehrte in 1.10 ein
@@ -389,7 +410,7 @@ Details und Quellenzuordnung je Punkt: Memory `nrg-stack-store-review-erkenntnis
 
 | Modul | Version (Stand 24.07.2026) | Kanal | Verträge (angeboten) |
 |---|---|---|---|
-| EMS | in Entwicklung (19.08.2026: Tagesplan-Umbau, Commits `860c8ba`/`c1a7c39` auf ems-integration, **noch nicht gepusht/nicht mehrtägig live verifiziert**, siehe EMS/CLAUDE.md) | ems-integration | konsumiert alle; künftig `EMS_GetSpecialEvents`. Steuerlogik jetzt vorausschauend: `BuildDayPlan()` plant alle 96 Tages-Viertelstunden aus PT15M-Preisen+PVF+Lastschätzung, sichtbar als Symcon-Wochenplan unter der Instanz (Vorbild: Dietmars Winterskript #55729), `optimize()` fragt nur noch den Plan ab statt live gegen Schwellwerte zu prüfen. Alte `SetECOWindow()`-Planer (GoodWe-ECO-Register, liefen unabhängig vom laufenden `optimize()`) entfernt — vermutliche Ursache für zuvor nicht nachvollziehbares EMS-Verhalten. |
+| EMS | 0.21.2 (20.08.2026: Tagesplan-Umbau + Fix fuer automatische PT15M-Beschaffung, **noch nicht mehrtägig live verifiziert**, siehe EMS/CLAUDE.md) | ems-integration | konsumiert alle; künftig `EMS_GetSpecialEvents`. Steuerlogik jetzt vorausschauend: `BuildDayPlan()` plant alle 96 Tages-Viertelstunden aus PT15M-Preisen (jetzt automatisch via `TIBBERGR_GetPriceCurve`, Fallback manuell)+PVF+Lastschätzung, sichtbar als Symcon-Wochenplan unter der Instanz (Vorbild: Dietmars Winterskript #55729), `optimize()` fragt nur noch den Plan ab statt live gegen Schwellwerte zu prüfen. Alte `SetECOWindow()`-Planer (GoodWe-ECO-Register, liefen unabhängig vom laufenden `optimize()`) entfernt — vermutliche Ursache für zuvor nicht nachvollziehbares EMS-Verhalten. |
 | InverterHub | 0.74.x-beta.2 (27.07.2026, Commit 2d8228f) | ems-integration | ⚠️ **Bindungsfix vorhanden, Langzeitstabilität noch nicht bestätigt.** `IHUB_GetFunctions` **1.0** live verifiziert, Skript-Schreibzugriff via `IPS_RequestAction($InstanceID, $Ident, $Value)` funktioniert zuverlässig (27.07.2026 live bestätigt: `ctl_work_mode`/`ctl_ems_mode`/`ctl_ems_enable`). Root Cause der wiederholten Bindungsabrisse (4x am 26.07.2026, auch ohne Reload) gefunden und behoben: `EnableAction()` bindet Variablen nur, wenn sie DIREKTES Kind der Instanz sind — die control-Variablen lagen aber in der Unterkategorie "EMS-Steuerung"/`cat_control`. Fix: Variable kurz zur Instanz zurückhängen, binden, zurück in die Kategorie. Vor jedem weiteren Release erneut über mehrere Stunden/Reload-Zyklen verifizieren, bevor die Warnung entfällt. Ident-Tabelle siehe unten. Siehe `nrg-stack-modulverwaltung-instabilitaet`-Memory. |
 | MeterHub | 0.18.0-beta.1 (Build 28) | beta | `MHUB_GetFunctions` **1.1**, `MHUBV_GetFunctions` **1.1** (1.1 = latency/authority/pollInterval/energyKind/sourceCount) |
 | ChargerHub | 0.9.14-beta.1 | ems-integration | `CHUB_GetFunctions` **1.1** (inkl. `managedBy`), Schreibzugriff via `IPS_RequestAction($InstanceID, $Ident, $Value)` (live verifiziert 25.07.2026, echtes Fahrzeug an WB1: 6A/20W → 10A/4310W) |
