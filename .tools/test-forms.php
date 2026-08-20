@@ -90,6 +90,21 @@ function sammleAufrufe($knoten, array &$treffer): void
     }
 }
 
+/**
+ * Ist das eine Symcon-Kernfunktion statt eines Modul-Wrappers?
+ *
+ * `IPS_ApplyChanges($id)` sieht aus wie `PREFIX_Methode($id)` und ist doch etwas ganz
+ * anderes. Geprüft wird nicht gegen eine Namensliste, sondern gegen den Stub: Was der als
+ * echte Kernfunktion führt, ist eine. Fehlt eine Kernfunktion dort, schlägt dieser Stand
+ * fehl — und das ist die richtige Reaktion, denn dann fehlt sie auch allen anderen
+ * Prüfständen. Nachtragen in `.tools/ips-stub.php`, nicht hier eine Ausnahme bauen.
+ */
+function istKernfunktion(string $praefix, string $methode): bool
+{
+    return in_array($praefix, ['IPS', 'AC', 'VM', 'MC', 'WFC', 'UT'], true)
+        && function_exists($praefix . '_' . $methode);
+}
+
 /** Sammelt alle Knöpfe samt Beschriftung — für die Rückmeldungs-Konvention. */
 function sammleKnoepfe($knoten, array &$treffer): void
 {
@@ -154,6 +169,9 @@ foreach ($module as $praefix => $info) {
                     $treffer = $kandidat;
                     break;
                 }
+            }
+            if ($treffer === null && istKernfunktion($rufPraefix, $methode)) {
+                continue;   // Symcon-Kernfunktion, kein Modul-Wrapper
             }
             check('Präfix ' . $rufPraefix . ' gehört zu einem Modul (' . $aufruf . ')',
                 $treffer !== null, true);
@@ -225,6 +243,12 @@ foreach ($module as $praefix => $info) {
         }
         [, $rufPraefix, $methode] = $fund;
         if (!isset($module[$rufPraefix])) {
+            /* Kernfunktionen haben keine Modulmethode, die Text liefern könnte — der Knopf
+               muss die Rückmeldung deshalb selbst im onClick mitbringen. */
+            if (istKernfunktion($rufPraefix, $methode)) {
+                check('Knopf „' . $caption . '" (' . $rufPraefix . '_' . $methode
+                    . ') meldet sich selbst', (bool) preg_match('/\becho\s/', $aufruf), true);
+            }
             continue;
         }
         $zielKlasse = $module[$rufPraefix]['klasse'];
@@ -314,7 +338,9 @@ foreach ($module as $praefix => $info) {
         foreach ($funde as $fund) {
             [, $rufPraefix, $methode] = $fund;
             if (!isset($module[$rufPraefix])) {
-                check('Dynamischer Praefix ' . $rufPraefix . ' gehoert zu einem Modul', false, true);
+                if (!istKernfunktion($rufPraefix, $methode)) {
+                    check('Dynamischer Praefix ' . $rufPraefix . ' gehoert zu einem Modul', false, true);
+                }
                 continue;
             }
             $zielKlasse = $module[$rufPraefix]['klasse'];
