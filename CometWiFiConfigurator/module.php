@@ -21,7 +21,7 @@ class CometWiFiConfigurator extends IPSModule
     /** GUID des Geräte-Moduls — muss zur module.json des Thermostats passen. */
     private const GUID_THERMOSTAT = '{0F552C16-D685-4C9F-86C0-8D89E4BFD158}';
 
-    private const NEWS_VERSION = '0.1';
+    private const NEWS_VERSION = '0.16';
 
     private const ATTR_SEEN_NEWS = 'SeenNews';
     private const ATTR_DEVICES   = 'Devices';
@@ -367,9 +367,8 @@ class CometWiFiConfigurator extends IPSModule
             'caption'  => '🆕  Neu in Version ' . self::NEWS_VERSION,
             'expanded' => true,
             'items'    => [
-                ['type' => 'Label', 'caption' => '• Erste Fassung: findet Comet-WiFi-Thermostate durch reines Mithören.'],
-                ['type' => 'Label', 'caption' => '• Bereits angelegte Instanzen werden über die MAC-Adresse erkannt, nicht über den Namen.'],
-                ['type' => 'Label', 'caption' => '• Es wird bewusst nichts aktiv abgefragt — das schont die Batterien, bedeutet aber, dass neue Geräte erst nach ihrer nächsten eigenen Meldung auftauchen.'],
+                ['type' => 'Label', 'caption' => '• Unverändert in Funktion: Der Konfigurator hört weiterhin nur passiv mit und sendet von sich aus nichts.'],
+                ['type' => 'Label', 'caption' => '• Neu im Verbund: Es gibt jetzt eine Übersichtskachel, eine Raumkachel für ein einzelnes Gerät und ein Raummodul, das mehrere Thermostate als eine Instanz bedienbar macht.'],
                 [
                     'type'    => 'Button',
                     'caption' => 'Verstanden – nicht mehr anzeigen',

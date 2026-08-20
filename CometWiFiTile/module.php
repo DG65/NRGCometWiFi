@@ -30,7 +30,7 @@ class CometWiFiTile extends IPSModule
         CWIFI_Registers::IDENT_CLOCK_DEV
     ];
 
-    private const NEWS_VERSION = '0.3';
+    private const NEWS_VERSION = '0.16';
     private const ATTR_SEEN_NEWS = 'SeenNews';
 
     /* ================================================================== Lebenszyklus */
@@ -357,9 +357,9 @@ class CometWiFiTile extends IPSModule
             'caption'  => '🆕  Neu in Version ' . self::NEWS_VERSION,
             'expanded' => true,
             'items'    => [
-                ['type' => 'Label', 'caption' => '• Erste Fassung der Kachel: alle Thermostate auf einen Blick.'],
-                ['type' => 'Label', 'caption' => '• Die Geräte werden selbst gefunden — neue Thermostate erscheinen ohne Zutun.'],
-                ['type' => 'Label', 'caption' => '• Solltemperatur direkt in der Kachel verstellbar. Dabei gilt dieselbe Umschaltung auf Handbetrieb wie in der Geräteinstanz, sonst überschriebe das Wochenprogramm den Wert wieder.'],
+                ['type' => 'Label', 'caption' => '• **Ist und Soll tragen beide ein Etikett.** Vorher stand die Isttemperatur ohne Beschriftung da und wurde als Sollwert gelesen.'],
+                ['type' => 'Label', 'caption' => '• Ein gemeinsamer Wortanfang aller Gerätenamen entfällt — aus „Thermostat Hauswirt…" wird „Hauswirtschaft". Der volle Name bleibt als Tooltip.'],
+                ['type' => 'Label', 'caption' => '• Eine schief stehende Geräteuhr wird gemeldet und zählt zu „braucht Aufmerksamkeit".'],
                 [
                     'type'    => 'Button',
                     'caption' => 'Verstanden – nicht mehr anzeigen',

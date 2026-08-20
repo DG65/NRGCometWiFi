@@ -20,7 +20,7 @@ class CometWiFiThermostat extends IPSModule
     use CWIFI_MQTT;
 
     /** Inhaltsversion des „Neu in Version"-Panels — nicht die Modulversion. */
-    private const NEWS_VERSION = '0.1';
+    private const NEWS_VERSION = '0.16';
 
     private const ATTR_SEEN_NEWS  = 'SeenNews';
     private const ATTR_HINT_GONE  = 'ReviewHintDismissed';
@@ -1449,10 +1449,12 @@ class CometWiFiThermostat extends IPSModule
             'caption'  => '🆕  Neu in Version ' . self::NEWS_VERSION,
             'expanded' => true,
             'items'    => [
-                ['type' => 'Label', 'caption' => '• Erste Fassung: Ist- und Solltemperatur, Batteriestand, Signalstärke und Erreichbarkeit.'],
-                ['type' => 'Label', 'caption' => '• Die Solltemperatur lässt sich setzen. Das Wochenprogramm im Gerät überschreibt sie beim nächsten Schaltpunkt — das ist Verhalten des Geräts.'],
-                ['type' => 'Label', 'caption' => '• Die aktive Abfrage ist ab Werk ausgeschaltet, um die Batterien zu schonen. Die Geräte melden sich von selbst.'],
-                ['type' => 'Label', 'caption' => '• Noch nicht entschlüsselte Register (Wochenprogramm, Fenstererkennung, Tastensperre) lassen sich als Rohdaten mitschreiben.'],
+                ['type' => 'Label', 'caption' => '• **Geräteuhr belegt und stellbar.** Register `A4` ist die Echtzeituhr des Thermostats. Sie läuft richtig, steht aber oft falsch — an einer Anlage zwischen 24 Minuten und über neun Stunden. Das Wochenprogramm läuft IM Gerät, jeder Schaltpunkt feuert also um diese Spanne versetzt.'],
+                ['type' => 'Label', 'caption' => '• Neue Variablen „Geräteuhr" und „Uhrabweichung", Knopf zum Stellen, auf Wunsch selbsttätige Nachführung (ab Werk aus — jedes Stellen weckt ein Batteriegerät).'],
+                ['type' => 'Label', 'caption' => '• **Wochenprogramm schreibbar** (`CWIFI_SetScheduleDay`), Urlaub ebenfalls — beides am Gerät nachgewiesen.'],
+                ['type' => 'Label', 'caption' => '• **Geräteauskunft in Klarschrift:** Modell, Firmware, IP-Adresse, WLAN-Zugangspunkt, Verschlüsselung und Gruppenzuordnung statt Hex-Ketten.'],
+                ['type' => 'Label', 'caption' => '• **Nach einem Verbindungsabbruch wird einmal nachgefragt.** Der Abbruchhinweis des Brokers heißt nur „eine Sitzung endete" — ohne Nachfassen blieb „nicht erreichbar" für immer stehen.'],
+                ['type' => 'Label', 'caption' => '• ⚠️ **Ohne aktive Abfrage sind die Werte oft viele Stunden alt.** Diese Geräte senden von sich aus praktisch nichts; sie antworten nur. Das ist der Preis der Batterieschonung.'],
                 [
                     'type'    => 'Button',
                     'caption' => 'Verstanden – nicht mehr anzeigen',

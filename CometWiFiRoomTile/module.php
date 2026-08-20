@@ -18,6 +18,10 @@ require_once __DIR__ . '/../.libs/CWIFI_Registers.php';
  */
 class CometWiFiRoomTile extends IPSModule
 {
+    /** Fassung des „Was ist Neu"-Panels — nur bei wichtigen Änderungen hochzählen. */
+    private const NEWS_VERSION   = '0.16';
+    private const ATTR_SEEN_NEWS = 'SeenNews';
+
     private const DEVICE_MODULE = '{0F552C16-D685-4C9F-86C0-8D89E4BFD158}';
 
     /** Variablen, deren Änderung die Kachel auffrischen muss. */
@@ -41,6 +45,8 @@ class CometWiFiRoomTile extends IPSModule
     public function Create()
     {
         parent::Create();
+
+        $this->RegisterAttributeString(self::ATTR_SEEN_NEWS, '');
 
         $this->RegisterPropertyInteger('DeviceID', 0);
         $this->RegisterPropertyBoolean('AllowControl', true);
@@ -412,6 +418,11 @@ class CometWiFiRoomTile extends IPSModule
     {
         $form = json_decode(file_get_contents(__DIR__ . '/form.json'), true);
 
+        $banner = $this->newsBanner();
+        if ($banner !== null) {
+            array_unshift($form['elements'], $banner);
+        }
+
         $device = $this->device();
         $text   = $device > 0
             ? '✅  Zugeordnet: ' . IPS_GetName($device)
@@ -426,4 +437,42 @@ class CometWiFiRoomTile extends IPSModule
         }
         return json_encode($form);
     }
+    /** Bestätigt das „Was ist Neu"-Panel für genau diese Fassung. */
+    public function AckNews(): void
+    {
+        $this->WriteAttributeString(self::ATTR_SEEN_NEWS, self::NEWS_VERSION);
+        $this->UpdateFormField('NewsPanel', 'visible', false);
+    }
+
+    /**
+     * Das „Was ist Neu"-Panel, oder null wenn diese Fassung schon bestätigt wurde.
+     *
+     * Wird in GetConfigurationForm() vor alle anderen Elemente gehängt — die
+     * Verbund-Konvention (SUITE.md, „Einheitliche Formular-Optik") verlangt es als
+     * erstes Element, aufgeklappt, mit eigenem Bestätigungsknopf.
+     */
+    private function newsBanner(): ?array
+    {
+        if ($this->ReadAttributeString(self::ATTR_SEEN_NEWS) === self::NEWS_VERSION) {
+            return null;
+        }
+        return [
+            'type'     => 'ExpansionPanel',
+            'name'     => 'NewsPanel',
+            'caption'  => '🆕  Neu in Version ' . self::NEWS_VERSION,
+            'expanded' => true,
+            'items'    => [
+                ['type' => 'Label', 'caption' => '• Zeigt EIN Thermostat groß und bedienbar: Der Ring ist die Bedienfläche, ein Tipp darauf setzt den Sollwert.'],
+                ['type' => 'Label', 'caption' => '• Schnellwahl „Aus" und „An" für die Endanschläge des Ventils, dazu die Betriebsart.'],
+                ['type' => 'Label', 'caption' => '• Die aufgezogene Ansicht (Doppelpfeil) ist gefüllt: Verknüpfungen auf Wochenprogramm, Urlaub, Geräteuhr und Geräteauskunft — plus eine Aktionsauswahl.'],
+                ['type' => 'Label', 'caption' => '• Die Kachel zeichnet bewusst keine Überschrift: Symcon zeigt den Instanznamen bereits über der Kachel.'],
+                [
+                    'type'    => 'Button',
+                    'caption' => 'Verstanden – nicht mehr anzeigen',
+                    'onClick' => 'CWIFIR_AckNews($id);'
+                ]
+            ]
+        ];
+    }
+
 }

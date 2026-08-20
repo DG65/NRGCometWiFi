@@ -24,6 +24,10 @@ require_once __DIR__ . '/../.libs/CWIFI_Topics.php';
  */
 class CometWiFiRoom extends IPSModule
 {
+    /** Fassung des „Was ist Neu"-Panels — nur bei wichtigen Änderungen hochzählen. */
+    private const NEWS_VERSION   = '0.16';
+    private const ATTR_SEEN_NEWS = 'SeenNews';
+
     private const DEVICE_MODULE = '{0F552C16-D685-4C9F-86C0-8D89E4BFD158}';
 
     public const IDENT_TEMPERATURE = 'Temperature';
@@ -50,6 +54,8 @@ class CometWiFiRoom extends IPSModule
     public function Create()
     {
         parent::Create();
+
+        $this->RegisterAttributeString(self::ATTR_SEEN_NEWS, '');
 
         $this->RegisterPropertyString('Members', '[]');
         $this->RegisterPropertyString('Aggregation', 'average');
@@ -675,6 +681,11 @@ class CometWiFiRoom extends IPSModule
     {
         $form = json_decode(file_get_contents(__DIR__ . '/form.json'), true);
 
+        $banner = $this->newsBanner();
+        if ($banner !== null) {
+            array_unshift($form['elements'], $banner);
+        }
+
         $mitglieder = $this->members();
         $namen = array_map(fn ($id) => IPS_GetName($id), $mitglieder);
         $text = $mitglieder === []
@@ -690,4 +701,42 @@ class CometWiFiRoom extends IPSModule
         }
         return json_encode($form);
     }
+    /** Bestätigt das „Was ist Neu"-Panel für genau diese Fassung. */
+    public function AckNews(): void
+    {
+        $this->WriteAttributeString(self::ATTR_SEEN_NEWS, self::NEWS_VERSION);
+        $this->UpdateFormField('NewsPanel', 'visible', false);
+    }
+
+    /**
+     * Das „Was ist Neu"-Panel, oder null wenn diese Fassung schon bestätigt wurde.
+     *
+     * Wird in GetConfigurationForm() vor alle anderen Elemente gehängt — die
+     * Verbund-Konvention (SUITE.md, „Einheitliche Formular-Optik") verlangt es als
+     * erstes Element, aufgeklappt, mit eigenem Bestätigungsknopf.
+     */
+    private function newsBanner(): ?array
+    {
+        if ($this->ReadAttributeString(self::ATTR_SEEN_NEWS) === self::NEWS_VERSION) {
+            return null;
+        }
+        return [
+            'type'     => 'ExpansionPanel',
+            'name'     => 'NewsPanel',
+            'caption'  => '🆕  Neu in Version ' . self::NEWS_VERSION,
+            'expanded' => true,
+            'items'    => [
+                ['type' => 'Label', 'caption' => '• Fasst mehrere Thermostate zu einem Raum zusammen — ein Sollwert, eine Betriebsart, ein Batteriewert.'],
+                ['type' => 'Label', 'caption' => '• Geschrieben wird an jedes Mitglied einzeln. Das wirkt auch bei Geräten, die in der Hersteller-App gar nicht gekoppelt sind.'],
+                ['type' => 'Label', 'caption' => '• Bei uneinheitlichen Sollwerten kein Mittelwert: 20 und 24 ergeben keinen Raum mit 22. Gezeigt wird der höchste Wert, dazu das Kennzeichen „Mitglieder uneinheitlich".'],
+                ['type' => 'Label', 'caption' => '• „Alle erreichbar" nur, wenn wirklich alle antworten — ein Raum mit einem stummen Ventil ist nicht vollständig geschaltet.'],
+                [
+                    'type'    => 'Button',
+                    'caption' => 'Verstanden – nicht mehr anzeigen',
+                    'onClick' => 'CWIFIG_AckNews($id);'
+                ]
+            ]
+        ];
+    }
+
 }

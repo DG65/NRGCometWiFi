@@ -176,7 +176,103 @@ check('Gegenprobe: der Aufruf wäre erkannt worden',
 check('Gegenprobe: die Deklarationsprüfung allein hätte nichts gemerkt',
     $spiegel->getDeclaringClass()->getName() === $module['CWIFIR']['klasse'], true);
 
+
+/* ============================== Dynamisch eingehaengte Formularteile ==============
+ *
+ * Der Abschnitt oben liest nur form.json. Das „Was ist Neu"-Panel und sein
+ * Bestaetigungsknopf entstehen aber erst in GetConfigurationForm() — ein falscher
+ * PREFIX_-Aufruf dort waere vom Prüfstand unbemerkt geblieben und haette den Nutzer
+ * beim Klick mit einem Fatal Error begruesst. Deshalb wird das Formular hier wirklich
+ * erzeugt und geprueft.
+ */
+
+$dynamisch = 0;
+
+foreach ($module as $praefix => $info) {
+    $klasse = $info['klasse'];
+
+    IPSTestState::reset();
+    IPSTestState::$instances[95] = [
+        'InstanceID' => 95, 'ConnectionID' => 0, 'InstanceStatus' => IS_ACTIVE,
+        'ModuleInfo' => ['ModuleID' => '{TEST}'], 'Name' => $klasse
+    ];
+
+    $instanz = new $klasse(95);
+    $instanz->Create();
+
+    $roh = $instanz->GetConfigurationForm();
+    check('GetConfigurationForm von ' . $klasse . ' liefert gueltiges JSON',
+        is_array(json_decode($roh, true)), true);
+
+    $aufrufe = [];
+    sammleAufrufe(json_decode($roh, true), $aufrufe);
+
+    foreach ($aufrufe as $aufruf) {
+        if (!preg_match_all('/\b([A-Z][A-Z0-9]*)_([A-Za-z_][A-Za-z0-9_]*)\s*\(/', $aufruf, $funde, PREG_SET_ORDER)) {
+            continue;
+        }
+        foreach ($funde as $fund) {
+            [, $rufPraefix, $methode] = $fund;
+            if (!isset($module[$rufPraefix])) {
+                check('Dynamischer Praefix ' . $rufPraefix . ' gehoert zu einem Modul', false, true);
+                continue;
+            }
+            $zielKlasse = $module[$rufPraefix]['klasse'];
+            $dynamisch++;
+
+            check('Dynamisch: ' . $rufPraefix . '_' . $methode . ' existiert',
+                method_exists($zielKlasse, $methode), true);
+            if (!method_exists($zielKlasse, $methode)) {
+                continue;
+            }
+            $spiegel = new ReflectionMethod($zielKlasse, $methode);
+            check('Dynamisch: ' . $rufPraefix . '_' . $methode . ' ist oeffentlich',
+                $spiegel->isPublic(), true);
+            check('Dynamisch: ' . $rufPraefix . '_' . $methode . ' selbst deklariert',
+                $spiegel->getDeclaringClass()->getName(), $zielKlasse);
+            check('Dynamisch: ' . $rufPraefix . '_' . $methode . ' ist kein SDK-Name',
+                in_array($methode, SDK_METHODEN, true), false);
+        }
+    }
+}
+
+check('Es wurden dynamische Aufrufe geprueft', $dynamisch > 0, true);
+
+/* Jedes Modul MUSS ein „Was ist Neu"-Panel anbieten (SUITE.md, Formular-Optik) — und es
+   muss das ERSTE Element sein, aufgeklappt. Ohne diese Pruefung faellt ein fehlendes
+   Panel niemandem auf; genau so ist es der Raumkachel und dem Raummodul ergangen. */
+foreach ($module as $praefix => $info) {
+    $klasse = $info['klasse'];
+
+    IPSTestState::reset();
+    IPSTestState::$instances[95] = [
+        'InstanceID' => 95, 'ConnectionID' => 0, 'InstanceStatus' => IS_ACTIVE,
+        'ModuleInfo' => ['ModuleID' => '{TEST}'], 'Name' => $klasse
+    ];
+    $instanz = new $klasse(95);
+    $instanz->Create();
+    $form = json_decode($instanz->GetConfigurationForm(), true);
+    $erstes = $form['elements'][0] ?? [];
+
+    check($klasse . ': Neu-Panel ist das erste Element',
+        ($erstes['name'] ?? '') === 'NewsPanel', true);
+    check($klasse . ': Neu-Panel ist aufgeklappt',
+        ($erstes['expanded'] ?? false), true);
+    check($klasse . ': Neu-Panel traegt die Versionsnummer',
+        (bool) preg_match('/Neu in Version \d/u', $erstes['caption'] ?? ''), true);
+
+    // Und es muss sich wegklicken lassen, sonst steht es fuer immer da.
+    check($klasse . ': Neu-Panel hat AckNews',
+        method_exists($klasse, 'AckNews'), true);
+
+    $instanz->AckNews();
+    $form = json_decode($instanz->GetConfigurationForm(), true);
+    check($klasse . ': nach Bestaetigen ist das Panel weg',
+        ($form['elements'][0]['name'] ?? '') === 'NewsPanel', false);
+}
+
 /* ------------------------------------------------------------------ Ergebnis */
+
 
 if ($failed > 0) {
     printf("\n❌  %d von %d Prüfungen fehlgeschlagen.\n", $failed, $passed + $failed);
