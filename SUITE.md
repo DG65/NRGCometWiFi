@@ -684,6 +684,26 @@ kompletten `GetConfigurationForm()`-Neuaufbau, dann brauchen ALLE Felder darin k
 `UpdateFormField()` mehr — einfacher bei vielen betroffenen Feldern, aber teurer (baut das ganze
 Formular neu), `UpdateFormField()` bleibt die gezieltere Wahl bei wenigen Feldern.
 
+**Drei Praxis-Ergaenzungen (CometWiFi, 20.08.2026, am eigenen Live-Fund + Pruefstand
+gehaertet):**
+1. **Kopfzeile und die dazugehoerige Liste/Detailansicht immer GEMEINSAM auffrischen, nie
+   einzeln.** Zieht man nur die Kopfzeile nach, kann sie eine andere Zahl zeigen als die Liste
+   darunter (z. B. "10 gefunden" ueber einer Liste mit 9 Eintraegen) — das ist schlechter als
+   beides veraltet zu lassen, weil es aktiv falsch wirkt statt nur alt. Bei Update()-Feldern in
+   EMS gilt das analog: Kopfzeile + Verbund-Gesundheit + Partnerdetails werden deshalb bewusst
+   gemeinsam in einem `Discover()`-Aufruf aktualisiert, nicht einzeln je nach Bedarf.
+2. **Reihenfolge: erst der Zustand speichern, DANN auffruellen — nie umgekehrt.** Wer vor dem
+   Speichern auffrischt, zeigt den Stand von VOR der aktuellen Aktion (bei einer Suche also das
+   vorletzte Ergebnis) — ein leicht zu uebersehener Fehler, weil das Auffrischen gedanklich zur
+   Aktion gehoert und deshalb gern direkt hinter den Aufruf statt hinter die Zustandsaenderung
+   rutscht.
+3. **Die Falle greift nur, wo das Modul selbst aktiv mitbekommt, dass sich etwas geaendert hat**
+   (ueber einen Button-Handler, einen Timer-Zyklus, oder einen eingehenden Nachrichtenpfad wie
+   MQTT). Ein reiner Anzeige-Zaehler, der bei jedem `GetConfigurationForm()`-Aufbau live ueber
+   den Objektbaum zaehlt (z. B. `IPS_GetInstanceListByModuleID()` direkt im Formularaufbau, ohne
+   eigenen Cache/Zeitstempel), hat keinen sinnvollen Zeitpunkt zum Nachziehen und braucht auch
+   keinen — dort zeigt das Formular beim naechsten OEFFNEN ohnehin den frischen Stand.
+
 ## GoodWe-Steuerregister (InverterHub, Stand 27.07.2026)
 
 Ident-Tabelle für `IPS_RequestAction($InstanceID, $Ident, $Value)` auf einer InverterHub-Instanz:
