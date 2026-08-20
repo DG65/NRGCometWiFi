@@ -209,6 +209,14 @@ Vollständig in `SUITE.md` im Repo-Root, hier nur die für dieses Repo relevante
   eingeklapptes Unter-Panel. Hier ohne den vorgesehenen Suchknopf: Der Konfigurator sendet
   grundsätzlich nichts (Batterie), „zuletzt" ist deshalb die letzte Gerätemeldung. Die
   Abweichung steht im Formular, damit sie nicht wie ein Versäumnis wirkt.
+- **Was sich zur Laufzeit ändert, muss `UpdateFormField()` nachziehen (SUITE.md Stolperfalle 12).**
+  `GetConfigurationForm()` läuft **nur beim Öffnen**. Jede Statuszeile, die später noch
+  richtig sein soll, braucht ein `UpdateFormField()` an der Stelle, wo sich der Zustand
+  ändert — im Konfigurator also im Empfangspfad, nicht an einem Knopf. Kopfzeile und Liste
+  immer **gemeinsam** aktualisieren (`refreshOpenForm()`); getrennt aktualisiert widersprechen
+  sie sich, und das ist schlechter als beides veraltet. Reihenfolge beachten: erst speichern,
+  dann auffrischen — sonst zeigt die Liste den Stand von vorher. Die Gegenprobe dazu ist im
+  Prüfstand, weil genau diese Reihenfolge beim Schreiben leicht durchrutscht.
 - **Alte Repo-Namen niemals wiederverwenden (SUITE.md, 19.08.2026).** Die Verbund-Repos
   heißen kanonisch `NRG*`; die Alt-Namen leben nur noch als GitHub-Redirects. Legt jemand
   unter DG65 ein neues Repo mit einem Alt-Namen an, löscht GitHub die Weiterleitung
@@ -234,7 +242,7 @@ Vollständig in `SUITE.md` im Repo-Root, hier nur die für dieses Repo relevante
 ```
 php .tools/test-libs.php           # Topic-Bau, MAC-Normalisierung, Dekodierung   (260)
 php .tools/test-thermostat.php     # Empfangs- und Sendepfad des Geräts          (227)
-php .tools/test-configurator.php   # Erkennung, Instanz-Zuordnung, Zeitsync        (57)
+php .tools/test-configurator.php   # Erkennung, Instanz-Zuordnung, Zeitsync        (75)
 php .tools/test-tile.php           # Kachel-Nutzlast: Ist/Soll, Namen, Ausfälle    (32)
 php .tools/test-roomtile.php       # Raumkachel: Zuordnung, Ring, Verknüpfungen    (54)
 php .tools/test-room.php           # Raum: Zusammenfassung und Kachel              (46)
