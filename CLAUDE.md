@@ -211,7 +211,10 @@ Vollständig in `SUITE.md` im Repo-Root, hier nur die für dieses Repo relevante
   Abweichung steht im Formular, damit sie nicht wie ein Versäumnis wirkt.
 - **Jeder Knopf muss sich sichtbar melden (SUITE.md, 20.08.2026, verbindlich).** Zwei
   Muster: einmalige Aktion → Methode gibt Klartext zurück, `onClick` lautet
-  `echo PREFIX_Methode($id);`; dauerhafter Status → benanntes Label + `UpdateFormField()`.
+  `echo PREFIX_Methode($id);`; dauerhafter Status → benanntes Label + `UpdateFormField()`;
+  **Direktaufruf einer IPS-Kernfunktion** (z. B. der Wartungsknopf mit `IPS_ApplyChanges`) →
+  das `echo` gehört in den `onClick` selbst, denn es gibt keine Modulmethode, die Text
+  liefern könnte.
   Ein stummer Knopf ist von einem kaputten nicht zu unterscheiden, und **hier weckt jeder
   überflüssige zweite Klick ein Batteriegerät**. Die Meldung bleibt ehrlich: „gesendet" ist
   nicht „beantwortet", das gehört bei schlafenden Geräten in den Text. `.tools/test-forms.php`
