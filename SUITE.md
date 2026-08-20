@@ -704,6 +704,18 @@ gehaertet):**
    eigenen Cache/Zeitstempel), hat keinen sinnvollen Zeitpunkt zum Nachziehen und braucht auch
    keinen — dort zeigt das Formular beim naechsten OEFFNEN ohnehin den frischen Stand.
 
+**13. Der `@`-Fehlerunterdrueckungs-Operator vor einer IPS-API-Funktion kann einen kompletten
+Feature-Ausfall lautlos verschwinden lassen.** Live gefunden (EMS, 20.08.2026): `BuildDayPlan()`
+lief laut Log erfolgreich und fand echte Preisdaten, aber der WebFront-Kalender ("EMS Tagesplan")
+blieb trotzdem leer — Ursache war `@IPS_SetEventScheduleGroupPoint(...)` in `writeDayPlanEvent()`.
+Schlaegt der Aufruf fehl (aus welchem Grund auch immer), verschluckt `@` das komplett: kein
+Rueckgabewert-Check, kein Log-Eintrag, keine Exception — nur ein leises "es passiert einfach
+nichts", das der Nutzer selbst entdecken muss. **Regel: `@` nie vor einer IPS-API-Funktion
+verwenden, deren Erfolg fuer eine sichtbare Funktion noetig ist** — stattdessen Rueckgabewert
+pruefen (die meisten `IPS_Set*`-Funktionen liefern `bool`) und bei `false` explizit loggen, was
+fehlgeschlagen ist. `@` ist nur dort vertretbar, wo ein Fehlschlag wirklich folgenlos und erwartbar
+ist (z. B. beim Aufraeumen eines moeglicherweise schon geloeschten Objekts).
+
 ## GoodWe-Steuerregister (InverterHub, Stand 27.07.2026)
 
 Ident-Tabelle für `IPS_RequestAction($InstanceID, $Ident, $Value)` auf einer InverterHub-Instanz:
