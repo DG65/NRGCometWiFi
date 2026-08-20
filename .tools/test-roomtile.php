@@ -56,7 +56,7 @@ const GUID_DEVICE = '{0F552C16-D685-4C9F-86C0-8D89E4BFD158}';
    Funktion ein Knopf der vergrößerten Kachel wirklich auslöst. */
 $GLOBALS['aufrufe'] = [];
 foreach (['SetTemperature', 'SetManualMode', 'RequestUpdate', 'RequestAllFields',
-          'RequestSchedule', 'SetClock'] as $name) {
+          'RequestSchedule', 'SetClock', 'SendAction'] as $name) {
     if (function_exists('CWIFI_' . $name)) {
         continue;
     }
@@ -323,6 +323,23 @@ $GLOBALS['aufrufe'] = [];
 $tile->RequestAction('requestAll', 0);
 $tile->RequestAction('setClock', 0);
 check('Ohne Bedienrecht bleibt alles ruhig', count($GLOBALS['aufrufe']), 0);
+
+/* ======================= Sichtbare Rueckmeldung bei jeder Aktion (SUITE.md, 20.08.2026) */
+
+IPSTestState::reset();
+addThermostat(50, 'Bad', ['Temperature' => 21.0, 'Setpoint' => 22.0, 'Reachable' => true]);
+$tile = makeTile(['DeviceID' => 50]);
+$text = $tile->RequestUpdate();
+checkTrue('Knopf liefert Text', is_string($text) && $text !== '');
+checkTrue('Erfolg sichtbar', str_starts_with($text, '✅'));
+checkTrue('… verspricht keine sofortige Antwort', str_contains($text, 'sobald'));
+
+/* Ohne zugeordnetes Geraet darf kein Haken erscheinen. */
+IPSTestState::reset();
+$leer = makeTile(['DeviceID' => 0]);
+$text = $leer->RequestUpdate();
+checkTrue('Ohne Geraet kein Haken', str_starts_with($text, '⚠️'));
+checkTrue('… und sagt, was zu tun ist', str_contains($text, 'Thermostat'));
 
 /* ------------------------------------------------------------------ Ergebnis */
 

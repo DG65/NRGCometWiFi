@@ -209,6 +209,17 @@ Vollständig in `SUITE.md` im Repo-Root, hier nur die für dieses Repo relevante
   eingeklapptes Unter-Panel. Hier ohne den vorgesehenen Suchknopf: Der Konfigurator sendet
   grundsätzlich nichts (Batterie), „zuletzt" ist deshalb die letzte Gerätemeldung. Die
   Abweichung steht im Formular, damit sie nicht wie ein Versäumnis wirkt.
+- **Jeder Knopf muss sich sichtbar melden (SUITE.md, 20.08.2026, verbindlich).** Zwei
+  Muster: einmalige Aktion → Methode gibt Klartext zurück, `onClick` lautet
+  `echo PREFIX_Methode($id);`; dauerhafter Status → benanntes Label + `UpdateFormField()`.
+  Ein stummer Knopf ist von einem kaputten nicht zu unterscheiden, und **hier weckt jeder
+  überflüssige zweite Klick ein Batteriegerät**. Die Meldung bleibt ehrlich: „gesendet" ist
+  nicht „beantwortet", das gehört bei schlafenden Geräten in den Text. `.tools/test-forms.php`
+  erzwingt das für alle Module.
+  **Vorsicht bei Methoden, die andere Module maschinell aufrufen:** Ein Fehlertext ist ein
+  nicht leerer String und damit `true`. Deshalb hat das Thermostat mit `SendAction()` eine
+  getrennte `bool`-Fassung für das Raum-Modul — Erfolg aus einem Anzeigetext herauszulesen
+  wäre ein stiller Fehler, den erst die nächste Umformulierung auslöst.
 - **Was sich zur Laufzeit ändert, muss `UpdateFormField()` nachziehen (SUITE.md Stolperfalle 12).**
   `GetConfigurationForm()` läuft **nur beim Öffnen**. Jede Statuszeile, die später noch
   richtig sein soll, braucht ein `UpdateFormField()` an der Stelle, wo sich der Zustand
@@ -241,12 +252,12 @@ Vollständig in `SUITE.md` im Repo-Root, hier nur die für dieses Repo relevante
 
 ```
 php .tools/test-libs.php           # Topic-Bau, MAC-Normalisierung, Dekodierung   (260)
-php .tools/test-thermostat.php     # Empfangs- und Sendepfad des Geräts          (227)
-php .tools/test-configurator.php   # Erkennung, Instanz-Zuordnung, Zeitsync        (75)
+php .tools/test-thermostat.php     # Empfangs- und Sendepfad des Geräts          (254)
+php .tools/test-configurator.php   # Erkennung, Instanz-Zuordnung, Zeitsync        (79)
 php .tools/test-tile.php           # Kachel-Nutzlast: Ist/Soll, Namen, Ausfälle    (32)
-php .tools/test-roomtile.php       # Raumkachel: Zuordnung, Ring, Verknüpfungen    (54)
-php .tools/test-room.php           # Raum: Zusammenfassung und Kachel              (46)
-php .tools/test-forms.php          # Formularaufrufe aller Module gegen die Klassen (70)
+php .tools/test-roomtile.php       # Raumkachel: Zuordnung, Ring, Verknüpfungen    (59)
+php .tools/test-room.php           # Raum: Zusammenfassung und Kachel              (56)
+php .tools/test-forms.php          # Formularaufrufe aller Module gegen die Klassen (182)
 ```
 
 `IPSTestState::useLocale('<Modulverzeichnis>')` schaltet `Translate()` auf die echte

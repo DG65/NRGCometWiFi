@@ -19,7 +19,7 @@ require_once __DIR__ . '/../.libs/CWIFI_Registers.php';
 class CometWiFiRoomTile extends IPSModule
 {
     /** Fassung des „Was ist Neu"-Panels — nur bei wichtigen Änderungen hochzählen. */
-    private const NEWS_VERSION   = '0.16';
+    private const NEWS_VERSION   = '0.19';
     private const ATTR_SEEN_NEWS = 'SeenNews';
 
     private const DEVICE_MODULE = '{0F552C16-D685-4C9F-86C0-8D89E4BFD158}';
@@ -273,15 +273,24 @@ class CometWiFiRoomTile extends IPSModule
      * erzeugt. Für geerbte SDK-Methoden wie `RequestAction` gibt es keinen — ein
      * Formularknopf, der `CWIFIR_RequestAction(...)` aufruft, läuft in einen Fatal Error.
      */
-    public function RequestUpdate(): bool
+    public function RequestUpdate(): string
     {
         $device = $this->device();
         if ($device <= 0) {
-            return false;
+            return '⚠️  Kein Thermostat zugeordnet — bitte oben eine Geräteinstanz auswählen.';
         }
-        $ok = (bool) $this->callDevice('CWIFI_RequestUpdate', $device);
+
+        // Über SendAction, nicht über CWIFI_RequestUpdate: Das liefert seit 0.19.0
+        // Anzeigetext, und ein nicht leerer Fehlertext wäre `true`.
+        $ok = $this->callDevice('CWIFI_SendAction', $device, 'Update');
         $this->UpdateVisualizationValue($this->buildPayload());
-        return $ok;
+
+        if (!$ok) {
+            return '⚠️  Nicht gesendet. Prüfen Sie am Thermostat MAC-Adresse, MQTT-Benutzer '
+                . 'und ob der übergeordnete MQTT-Client aktiv ist.';
+        }
+        return '✅  Temperaturen angefordert (' . date('H:i:s') . ' Uhr). Die Werte '
+            . 'erscheinen, sobald das Gerät antwortet — es schläft und meldet sich nicht sofort.';
     }
 
 
@@ -462,10 +471,10 @@ class CometWiFiRoomTile extends IPSModule
             'caption'  => '🆕  Neu in Version ' . self::NEWS_VERSION,
             'expanded' => true,
             'items'    => [
-                ['type' => 'Label', 'caption' => '• Zeigt EIN Thermostat groß und bedienbar: Der Ring ist die Bedienfläche, ein Tipp darauf setzt den Sollwert.'],
-                ['type' => 'Label', 'caption' => '• Schnellwahl „Aus" und „An" für die Endanschläge des Ventils, dazu die Betriebsart.'],
-                ['type' => 'Label', 'caption' => '• Die aufgezogene Ansicht (Doppelpfeil) ist gefüllt: Verknüpfungen auf Wochenprogramm, Urlaub, Geräteuhr und Geräteauskunft — plus eine Aktionsauswahl.'],
-                ['type' => 'Label', 'caption' => '• Die Kachel zeichnet bewusst keine Überschrift: Symcon zeigt den Instanznamen bereits über der Kachel.'],
+                ['type' => 'Label', 'caption' => '• **„Jetzt aktualisieren" meldet sich.** Mit Uhrzeit und dem ausdrücklichen Hinweis, dass die Werte erst erscheinen, sobald das schlafende Gerät antwortet.'],
+                ['type' => 'Label', 'caption' => '• Ist kein Thermostat zugeordnet, steht das jetzt da — statt dass der Knopf wortlos nichts tut.'],
+                ['type' => 'Label', 'caption' => '• ⚠️ **Für eigene Skripte:** `CWIFIR_RequestUpdate` liefert jetzt Text statt `true`/`false`.'],
+
                 [
                     'type'    => 'Button',
                     'caption' => 'Verstanden – nicht mehr anzeigen',

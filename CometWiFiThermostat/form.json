@@ -307,23 +307,23 @@
         {
             "type": "Button",
             "caption": "🔄  Jetzt aktualisieren",
-            "onClick": "CWIFI_RequestUpdate($id);"
+            "onClick": "echo CWIFI_RequestUpdate($id);"
         },
         {
             "type": "Button",
             "caption": "Alle Felder anfordern",
             "confirm": "Fordert sämtliche Register des Geräts an. Das weckt das Thermostat spürbar und geht auf die Batterie. Wirklich ausführen?",
-            "onClick": "CWIFI_RequestAllFields($id);"
+            "onClick": "echo CWIFI_RequestAllFields($id);"
         },
         {
             "type": "Button",
             "caption": "🕒  Geräteuhr auf Symcon-Zeit stellen",
-            "onClick": "CWIFI_SetClock($id);"
+            "onClick": "echo CWIFI_SetClock($id);"
         },
         {
             "type": "Button",
             "caption": "📅  Wochenprogramm & Urlaub abrufen",
-            "onClick": "CWIFI_RequestSchedule($id);"
+            "onClick": "echo CWIFI_RequestSchedule($id);"
         },
         {
             "type": "TestCenter"

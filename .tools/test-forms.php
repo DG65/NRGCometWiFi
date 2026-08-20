@@ -90,6 +90,40 @@ function sammleAufrufe($knoten, array &$treffer): void
     }
 }
 
+/** Sammelt alle Knöpfe samt Beschriftung — für die Rückmeldungs-Konvention. */
+function sammleKnoepfe($knoten, array &$treffer): void
+{
+    if (!is_array($knoten)) {
+        return;
+    }
+    if (isset($knoten['onClick']) && is_string($knoten['onClick'])) {
+        $treffer[] = $knoten;
+    }
+    foreach ($knoten as $wert) {
+        if (is_array($wert)) {
+            sammleKnoepfe($wert, $treffer);
+        }
+    }
+}
+
+/** Der Quelltext einer Methode — um zu sehen, ob sie ein Formularfeld aktualisiert. */
+function quelltextVon(ReflectionMethod $spiegel): string
+{
+    $datei = $spiegel->getFileName();
+    if ($datei === false) {
+        return '';
+    }
+    $zeilen = file($datei);
+    if ($zeilen === false) {
+        return '';
+    }
+    return implode('', array_slice(
+        $zeilen,
+        $spiegel->getStartLine() - 1,
+        $spiegel->getEndLine() - $spiegel->getStartLine() + 1
+    ));
+}
+
 $geprueft = 0;
 
 foreach ($module as $praefix => $info) {
@@ -155,6 +189,72 @@ foreach ($module as $praefix => $info) {
 }
 
 check('Es wurden überhaupt Aufrufe geprüft', $geprueft > 0, true);
+
+/* ============ Sichtbare Rückmeldung bei jeder Aktion (SUITE.md, 20.08.2026) ============
+ *
+ * Verbindliche Verbund-Konvention nach zwei Live-Funden am EMS: Ein Knopf, der nichts
+ * sichtbar tut, ist von einem kaputten Knopf nicht zu unterscheiden — der Nutzer klickt
+ * erneut, und bei Batteriegeräten weckt jeder Klick ein Gerät.
+ *
+ * Zwei zulässige Muster:
+ *   1. einmalige Aktion  → `echo PREFIX_Methode($id)`, Methode gibt Klartext zurück
+ *   2. dauerhafter Status → benanntes Label + UpdateFormField() in der Methode
+ *
+ * Geprüft wird beides zusammen: Ein Knopf erfüllt die Konvention, wenn er entweder mit
+ * `echo` aufgerufen wird UND seine Methode `string` liefert — oder wenn die Methode
+ * nachweislich ein Formularfeld aktualisiert.
+ */
+$knoepfe = 0;
+
+foreach ($module as $praefix => $info) {
+    if (!is_file($info['form'])) {
+        continue;
+    }
+    $form = json_decode((string) file_get_contents($info['form']), true);
+
+    $treffer = [];
+    sammleKnoepfe($form, $treffer);
+
+    foreach ($treffer as $knopf) {
+        $aufruf  = $knopf['onClick'];
+        $caption = $knopf['caption'] ?? '(ohne Beschriftung)';
+        $knoepfe++;
+
+        if (!preg_match('/\b([A-Z][A-Z0-9]*)_([A-Za-z_][A-Za-z0-9_]*)\s*\(/', $aufruf, $fund)) {
+            continue;
+        }
+        [, $rufPraefix, $methode] = $fund;
+        if (!isset($module[$rufPraefix])) {
+            continue;
+        }
+        $zielKlasse = $module[$rufPraefix]['klasse'];
+        if (!method_exists($zielKlasse, $methode)) {
+            continue;
+        }
+
+        $spiegel = new ReflectionMethod($zielKlasse, $methode);
+        $typ     = $spiegel->getReturnType();
+        $quelle  = quelltextVon($spiegel);
+
+        $liefertText   = $typ !== null && (string) $typ === 'string';
+        $mitEcho       = (bool) preg_match('/^\s*echo\s/', $aufruf);
+        $aktualisiert  = str_contains($quelle, 'UpdateFormField');
+
+        check(
+            'Knopf „' . $caption . '" (' . $rufPraefix . '_' . $methode . ') meldet sich sichtbar',
+            ($liefertText && $mitEcho) || $aktualisiert,
+            true
+        );
+
+        /* Häufigster Einzelfehler: Die Methode liefert schon Text, aber im Formular fehlt
+           das `echo` — dann verpufft die Rückmeldung wortlos. */
+        if ($liefertText) {
+            check('Knopf „' . $caption . '" ruft mit echo auf', $mitEcho, true);
+        }
+    }
+}
+
+check('Es wurden überhaupt Knöpfe geprüft', $knoepfe > 0, true);
 
 /* --------------------------------------------------- Gegenprobe der Prüflogik
  *

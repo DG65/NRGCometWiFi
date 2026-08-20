@@ -25,7 +25,7 @@ require_once __DIR__ . '/../.libs/CWIFI_Topics.php';
 class CometWiFiRoom extends IPSModule
 {
     /** Fassung des „Was ist Neu"-Panels — nur bei wichtigen Änderungen hochzählen. */
-    private const NEWS_VERSION   = '0.16';
+    private const NEWS_VERSION   = '0.19';
     private const ATTR_SEEN_NEWS = 'SeenNews';
 
     private const DEVICE_MODULE = '{0F552C16-D685-4C9F-86C0-8D89E4BFD158}';
@@ -330,9 +330,9 @@ class CometWiFiRoom extends IPSModule
     }
 
     /** Fordert bei allen Mitgliedern frische Werte an. */
-    public function RequestUpdate(): bool
+    public function RequestUpdate(): string
     {
-        return $this->allMembers('CWIFI_RequestUpdate');
+        return $this->memberReport('Update', 'Temperaturen angefordert');
     }
 
     /**
@@ -341,37 +341,68 @@ class CometWiFiRoom extends IPSModule
      * Das ist der teuerste Abruf, den es gibt — er weckt jedes Gerät vollständig. Deshalb
      * gibt es ihn nur auf ausdrücklichen Knopfdruck und nie auf einem Zeitgeber.
      */
-    public function RequestAllFields(): bool
+    public function RequestAllFields(): string
     {
-        return $this->allMembers('CWIFI_RequestAllFields');
+        return $this->memberReport('AllFields', 'Alle Felder angefordert');
     }
 
     /** Holt Wochenprogramm und Urlaub aller Mitglieder. */
-    public function RequestSchedule(): bool
+    public function RequestSchedule(): string
     {
-        return $this->allMembers('CWIFI_RequestSchedule');
+        return $this->memberReport('Schedule', 'Wochenprogramm und Urlaub angefordert');
     }
 
     /** Stellt die Uhr aller Mitglieder auf die Symcon-Zeit. */
-    public function SetClock(): bool
+    public function SetClock(): string
     {
-        return $this->allMembers('CWIFI_SetClock');
+        return $this->memberReport('Clock', 'Uhrzeit gesendet');
     }
 
-    /** Ruft dieselbe Funktion an jedem Mitglied auf. */
-    private function allMembers(string $funktion): bool
+    /**
+     * Ruft dieselbe Aktion an jedem Mitglied auf und zählt die Erfolge.
+     *
+     * Über `CWIFI_SendAction`, nicht über die gleichnamigen Gerätemethoden: Die liefern seit
+     * 0.19.0 Anzeigetext, und ein nicht leerer Fehlertext wäre `true` — der Raum meldete dann
+     * Erfolg für jedes Gerät, das gar nichts gesendet hat.
+     *
+     * @return int[] [erfolgreich, gesamt]
+     */
+    private function allMembers(string $aktion): array
     {
         $mitglieder = $this->members();
-        if ($mitglieder === []) {
-            return false;
-        }
-        $alle = true;
+        $ok = 0;
         foreach ($mitglieder as $instanceId) {
-            if (!$this->callDevice($funktion, $instanceId)) {
-                $alle = false;
+            if ($this->callDevice('CWIFI_SendAction', $instanceId, $aktion)) {
+                $ok++;
             }
         }
-        return $alle;
+        return [$ok, count($mitglieder)];
+    }
+
+    /**
+     * Führt eine Aktion an allen Mitgliedern aus und meldet das Ergebnis in Klartext.
+     *
+     * Der Raum nennt Zahlen, wo das einzelne Gerät nur ja/nein sagen kann: „an 4 von 5
+     * Geräten" ist die einzige Meldung, die ein halb geglücktes Sammelkommando ehrlich
+     * beschreibt — und genau die ist der Fall, den man sehen will.
+     */
+    private function memberReport(string $aktion, string $was): string
+    {
+        [$ok, $gesamt] = $this->allMembers($aktion);
+
+        if ($gesamt === 0) {
+            return '⚠️  Kein Mitglied ausgewählt — bitte zuerst Thermostate zuordnen.';
+        }
+        if ($ok === 0) {
+            return '⚠️  ' . $was . ': an keinem der ' . $gesamt . ' Geräte gelungen. '
+                . 'Prüfen Sie MAC-Adresse, MQTT-Benutzer und den übergeordneten MQTT-Client.';
+        }
+        if ($ok < $gesamt) {
+            return '⚠️  ' . $was . ' an ' . $ok . ' von ' . $gesamt . ' Geräten ('
+                . date('H:i:s') . ' Uhr). Die übrigen sind nicht erreichbar konfiguriert.';
+        }
+        return '✅  ' . $was . ' an ' . ($gesamt === 1 ? 'das Gerät' : 'alle ' . $gesamt . ' Geräte')
+            . ' (' . date('H:i:s') . ' Uhr). Die Werte erscheinen, sobald die Geräte antworten.';
     }
 
     /**
@@ -381,12 +412,12 @@ class CometWiFiRoom extends IPSModule
      * Geräteinstanz. Wer einen Raum anlegt, wählt also ein Thermostat aus und lässt sich den
      * Rest holen — statt MACs zu vergleichen.
      */
-    public function AddGroupMembers(): int
+    public function AddGroupMembers(): string
     {
         $vorhanden = $this->members();
         if ($vorhanden === []) {
-            $this->SendDebug('Raum', 'Erst ein Gerät auswählen, dann ergänzen', 0);
-            return 0;
+            return '⚠️  Erst ein Thermostat zuordnen, dann ergänzen — der Raum weiß sonst '
+                . 'nicht, nach welcher Gerätegruppe er suchen soll.';
         }
 
         // Gruppenköpfe der bereits gewählten Geräte einsammeln.
@@ -398,8 +429,9 @@ class CometWiFiRoom extends IPSModule
             }
         }
         if ($koepfe === []) {
-            $this->SendDebug('Raum', 'Die gewählten Geräte gehören zu keiner Gerätegruppe', 0);
-            return 0;
+            return '⚠️  Die zugeordneten Geräte gehören zu keiner Gerätegruppe. Die '
+                . 'Gruppenzugehörigkeit steht in Register B0 — sie erscheint erst, wenn das '
+                . 'Gerät sie gemeldet hat („Alle Felder anfordern" am Thermostat).';
         }
 
         $neu = [];
@@ -414,7 +446,8 @@ class CometWiFiRoom extends IPSModule
         }
 
         if ($neu === []) {
-            return 0;
+            return 'ℹ️  Nichts zu ergänzen — alle Geräte dieser Gerätegruppe sind bereits '
+                . 'zugeordnet.';
         }
 
         // Keine Selbstpersistenz im Formular — die Liste wird nur vorgeschlagen, übernehmen
@@ -427,9 +460,11 @@ class CometWiFiRoom extends IPSModule
         $this->UpdateFormField(
             'MembersHint',
             'caption',
-            '➕  ' . count($neu) . ' Gerät(e) der Gruppe ergänzt — noch mit „Übernehmen" bestätigen.'
+            '➕  Vorschlag steht in der Liste — noch mit „Übernehmen" bestätigen.'
         );
-        return count($neu);
+        return '✅  ' . count($neu) . ' ' . (count($neu) === 1 ? 'Gerät' : 'Geräte')
+            . ' derselben Gerätegruppe ergänzt. Die Liste ist nur vorgeschlagen — mit '
+            . '„Übernehmen" bestätigen, sonst geht der Vorschlag verloren.';
     }
 
     /**
@@ -726,10 +761,10 @@ class CometWiFiRoom extends IPSModule
             'caption'  => '🆕  Neu in Version ' . self::NEWS_VERSION,
             'expanded' => true,
             'items'    => [
-                ['type' => 'Label', 'caption' => '• Fasst mehrere Thermostate zu einem Raum zusammen — ein Sollwert, eine Betriebsart, ein Batteriewert.'],
-                ['type' => 'Label', 'caption' => '• Geschrieben wird an jedes Mitglied einzeln. Das wirkt auch bei Geräten, die in der Hersteller-App gar nicht gekoppelt sind.'],
-                ['type' => 'Label', 'caption' => '• Bei uneinheitlichen Sollwerten kein Mittelwert: 20 und 24 ergeben keinen Raum mit 22. Gezeigt wird der höchste Wert, dazu das Kennzeichen „Mitglieder uneinheitlich".'],
-                ['type' => 'Label', 'caption' => '• „Alle erreichbar" nur, wenn wirklich alle antworten — ein Raum mit einem stummen Ventil ist nicht vollständig geschaltet.'],
+                ['type' => 'Label', 'caption' => '• **Die Knöpfe melden jetzt Zahlen.** „An 4 von 5 Geräten gesendet" ist die einzige ehrliche Auskunft über ein halb geglücktes Sammelkommando — und genau der Fall, den man sehen will.'],
+                ['type' => 'Label', 'caption' => '• „Geräte derselben Gerätegruppe ergänzen" sagt jetzt auch, **warum** nichts passiert ist: kein Thermostat zugeordnet, keine Gruppenzugehörigkeit bekannt, oder schlicht nichts mehr zu ergänzen. Bisher blieb der Knopf in allen drei Fällen stumm.'],
+                ['type' => 'Label', 'caption' => '• ⚠️ **Für eigene Skripte:** `CWIFIG_RequestUpdate`, `CWIFIG_RequestAllFields`, `CWIFIG_RequestSchedule`, `CWIFIG_SetClock` und `CWIFIG_AddGroupMembers` liefern jetzt Text statt `true`/`false` bzw. einer Anzahl.'],
+
                 [
                     'type'    => 'Button',
                     'caption' => 'Verstanden – nicht mehr anzeigen',

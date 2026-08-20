@@ -388,12 +388,12 @@ checkTrue('RequestAction auf nur lesende Variable wirft', $threw);
 
 $device = makeDevice();
 IPSTestState::$sentPackets = [];
-$device->RequestUpdate();
+$device->SendAction('Update');
 check('RequestUpdate sendet auf S/AF', IPSTestState::$sentPackets[0]['Topic'], BASE . '/S/AF');
 check('RequestUpdate fordert nur Temperaturen', IPSTestState::$sentPackets[0]['Payload'], '#0B');
 
 IPSTestState::$sentPackets = [];
-$device->RequestAllFields();
+$device->SendAction('AllFields');
 check('RequestAllFields fordert alles', IPSTestState::$sentPackets[0]['Payload'], '#FFFFFFFF');
 
 /* =============================================== 5. Unvollständige Konfiguration */
@@ -608,7 +608,7 @@ check('Unbekanntes Register behaelt die Rohfassung', $device->GetValue('RAW_BE')
 
 $device = makeDevice();
 IPSTestState::$sentPackets = [];
-checkTrue('SetClock meldet Erfolg', $device->SetClock());
+checkTrue('SetClock meldet Erfolg in Klartext', str_starts_with($device->SetClock(), '✅'));
 
 $pakete = IPSTestState::$sentPackets;
 check('SetClock sendet zwei Nachrichten', count($pakete), 2);
@@ -623,7 +623,7 @@ checkTrue('Kommandos NIE mit Retain', $pakete[0]['Retain'] === false && $pakete[
 // Ohne MAC gibt es kein Topic und damit auch keinen Sendeversuch.
 $device = makeDevice(['MAC' => '']);
 IPSTestState::$sentPackets = [];
-checkTrue('Ohne MAC kein Uhrbefehl', !$device->SetClock());
+checkTrue('Ohne MAC meldet SetClock den Fehlschlag', str_starts_with($device->SetClock(), '⚠️'));
 check('Ohne MAC wird nichts gesendet', count(IPSTestState::$sentPackets), 0);
 
 /* Der Hinweis auf eine schief stehende Uhr muss kommen und wieder verschwinden. */
@@ -702,7 +702,7 @@ check('Ohne bekannten Zweck bleibt es beim Rohwert',
    wertlos. Das eine darf das andere nicht mit abschalten. */
 $device = makeDevice();
 IPSTestState::$sentPackets = [];
-$device->RequestUpdate();
+$device->SendAction('Update');
 check('S/AF wird weiterhin gesendet', IPSTestState::$sentPackets[0]['Topic'], BASE . '/S/AF');
 
 
@@ -816,8 +816,40 @@ check('Bei Ablehnung wird NICHTS gesendet', count(IPSTestState::$sentPackets), 0
 
 // RequestSchedule braucht keinen Voll-Dump mehr.
 IPSTestState::$sentPackets = [];
-$device->RequestSchedule();
+$device->SendAction('Schedule');
 check('Programmabruf fordert gezielt statt alles', IPSTestState::$sentPackets[0]['Payload'], '#807F0000');
+
+/* ======================= Sichtbare Rueckmeldung bei jeder Aktion (SUITE.md, 20.08.2026) */
+
+/* Jeder Formularknopf muss ohne Neuoeffnen zeigen, dass etwas passiert ist. Frueher gaben
+   diese Methoden bool zurueck und der Knopf blieb stumm. */
+$device = makeDevice();
+foreach (['RequestUpdate', 'RequestAllFields', 'SetClock', 'RequestSchedule'] as $knopf) {
+    IPSTestState::$sentPackets = [];
+    $text = $device->$knopf();
+    checkTrue("{$knopf} liefert Text", is_string($text) && $text !== '');
+    checkTrue("{$knopf} meldet Erfolg sichtbar", str_starts_with($text, '✅'));
+    checkTrue("{$knopf} nennt die Uhrzeit", (bool) preg_match('/\d{2}:\d{2}:\d{2} Uhr/', $text));
+    // Gesendet ist nicht beantwortet — diese Geraete schlafen. Wer "Erfolg" liest und dann
+    // unveraenderte Werte sieht, haelt das Modul fuer kaputt.
+    checkTrue("{$knopf} verspricht keine sofortige Antwort", str_contains($text, 'sobald'));
+}
+
+$stumm = makeDevice(['MAC' => '']);
+foreach (['RequestUpdate', 'RequestAllFields', 'SetClock', 'RequestSchedule'] as $knopf) {
+    $text = $stumm->$knopf();
+    checkTrue("{$knopf} meldet den Fehlschlag sichtbar", str_starts_with($text, '⚠️'));
+    checkTrue("{$knopf} sagt, wo zu suchen ist", str_contains($text, 'MAC-Adresse'));
+}
+
+/* Die maschinelle Fassung bleibt bool — der Raum wertet sie je Mitglied aus. */
+$device = makeDevice();
+checkTrue('SendAction liefert bool', $device->SendAction('Update') === true);
+checkTrue('Unbekannte Aktion schlaegt fehl, statt still zu senden',
+    $device->SendAction('Quatsch') === false);
+IPSTestState::$sentPackets = [];
+$device->SendAction('Quatsch');
+check('… und sendet dabei nichts', count(IPSTestState::$sentPackets), 0);
 
 /* ------------------------------------------------------------------ Ergebnis */
 
