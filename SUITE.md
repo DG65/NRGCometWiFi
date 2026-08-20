@@ -493,8 +493,61 @@ jedem neuen Modul von Anfang an einhalten:
     Zweite Person/Session prüfen lassen, wo möglich (heute z. B. Dashboard/InverterHub
     gegenseitig) — wer das Formular selbst gebaut hat, übersieht die eigenen blinden Flecken
     strukturell am ehesten, gerade weil die eigene Anlage den Fehler nie auslöst.
+13. **Jede Aktion (Button/`RequestAction`) muss eine sichtbare Rückmeldung geben** (20.08.2026,
+    verbindlich für alle Module — siehe eigener Abschnitt "Sichtbare Rückmeldung bei jeder
+    Aktion" weiter unten). Vor jeder Veröffentlichung: jeden Button im Formular durchklicken
+    und konkret prüfen — ändert sich sichtbar etwas (Text, Popup, Status), oder sieht es aus,
+    als wäre nichts passiert?
 
 Details und Quellenzuordnung je Punkt: Memory `nrg-stack-store-review-erkenntnisse`.
+
+## Sichtbare Rückmeldung bei jeder Aktion (verbindlich, 20.08.2026)
+
+Ausgangspunkt: zwei Live-Funde an EMS selbst am selben Tag — der "🔎 Jetzt neu suchen"-Button
+aktualisierte serverseitig alles korrekt, aber das offene Formular zeigte weiter "Noch nicht
+gesucht" (SUITE.md Stolperfalle 12); der "📅 Tagesplan neu berechnen"-Button gab überhaupt
+keine Rückmeldung. Dietmars Formulierung: *"Rückmeldungen bei allen Aktionen, damit man sieht,
+dass etwas passiert ist."* Das ist keine Empfehlung mehr, sondern eine **Pflicht für jeden
+Button/jede `RequestAction`** in jedem NRG-Stack-Modul, unabhängig davon, ob die Aktion
+fehlschlagen kann oder nicht — auch ein Erfolg ohne jede sichtbare Reaktion wirkt wie ein
+Fehlschlag.
+
+**Zwei zulässige Muster, je nach Aktionstyp:**
+
+1. **Einmalige Aktion mit einem klaren Ergebnis** (Neuberechnung, Test-Verbindung, manueller
+   Trigger) — die aufgerufene Methode gibt einen menschenlesbaren Ergebnistext zurück
+   (✅/⚠️/⛔/ℹ️-Präfix), der `onClick` lautet `echo Prefix_Methode($id, ...);` statt nur
+   `Prefix_Methode($id, ...);` — erzeugt sofort ein Popup mit dem Ergebnis. Kein neues
+   Formularfeld nötig. Referenz: EMS' `BuildDayPlan()` (0.21.11), Vorbild war der schon
+   länger bestehende "Status anzeigen"-Button.
+2. **Wiederkehrender/dauerhafter Status** (Geräte-Discovery, Verbindungsstatus, laufender
+   Prozess) — eigenes benanntes `Label` im Formular plus `UpdateFormField('<Name>', 'caption',
+   $neuerText)` am Ende der aufgerufenen Methode (siehe SUITE.md Stolperfalle 12 für Details
+   und die `ReloadForm()`-Alternative). Referenz: EMS' `getDiscoverySummaryLine()` (0.21.7).
+
+**Faustregel zur Wahl:** Führt der Button eine einmalige Aktion mit einem Ergebnis aus, das
+man einmal lesen und dann wegklicken will → Muster 1 (`echo`). Zeigt ein Formularfeld einen
+Zustand, der auch ohne den Button-Klick relevant bleibt (z. B. "wie viele Geräte sind gerade
+verbunden") → Muster 2 (`UpdateFormField`).
+
+**Muster 3: WebFront-Kachel/`RequestAction()` ohne Formular-Kanal** (WPHub, 20.08.2026 —
+berechtigte Nachfrage zum Geltungsbereich: gilt die Konvention auch für Steuerelemente
+AUSSERHALB des Konfigurationsformulars, z. B. Slider/Schalter auf einer WebFront-Kachel, wo es
+weder `echo`-Popup noch ein zusätzliches `Label` gibt?). **Ja, die Konvention gilt auch dort**
+— der Mechanismus ist zwangsläufig ein anderer, weil WebFront-Kacheln keinen Popup-/Label-Kanal
+haben, aber das Prinzip bleibt: der Nutzer muss ohne Nachdenken sehen, ob die Aktion griff.
+- **Erfolg:** `SetValue()` auf die tatsächlich bestätigte Variable — der Schalter/Slider zeigt
+  danach den wirklich erreichten Zustand, nicht nur den angeforderten.
+- **Fehlschlag:** die Variable NICHT auf dem angeforderten (aber nicht erreichten) Wert stehen
+  lassen — explizit auf den zuletzt bestätigten Ist-Wert zurücksetzen, damit der Regler/Schalter
+  sichtbar "zurückspringt" statt einen nie eingetretenen Erfolg vorzutäuschen. Das sichtbare
+  Zurückspringen IST hier die Rückmeldung — kein Popup nötig oder möglich. Zusätzlich wie gehabt
+  eine Protokollzeile fürs Debugging, aber die reicht allein NICHT (die sieht der Nutzer im
+  WebFront nicht direkt).
+
+**Pflicht-Check vor jeder Veröffentlichung** (siehe auch Store-Review-Checkliste Punkt 13):
+jeden Button im Formular klicken und fragen: *sehe ich JETZT, ohne das Formular neu zu öffnen,
+dass etwas passiert ist?* Wenn nein — Muster 1 oder 2 nachrüsten, je nach Aktionstyp.
 
 ## Manifest
 
@@ -683,6 +736,38 @@ Formular-Sichtbarkeit pruefen, ob ein `UpdateFormField()` fehlt. **Gleichwertige
 kompletten `GetConfigurationForm()`-Neuaufbau, dann brauchen ALLE Felder darin kein einzelnes
 `UpdateFormField()` mehr — einfacher bei vielen betroffenen Feldern, aber teurer (baut das ganze
 Formular neu), `UpdateFormField()` bleibt die gezieltere Wahl bei wenigen Feldern.
+
+**Drei Praxis-Ergaenzungen (CometWiFi, 20.08.2026, am eigenen Live-Fund + Pruefstand
+gehaertet):**
+1. **Kopfzeile und die dazugehoerige Liste/Detailansicht immer GEMEINSAM auffrischen, nie
+   einzeln.** Zieht man nur die Kopfzeile nach, kann sie eine andere Zahl zeigen als die Liste
+   darunter (z. B. "10 gefunden" ueber einer Liste mit 9 Eintraegen) — das ist schlechter als
+   beides veraltet zu lassen, weil es aktiv falsch wirkt statt nur alt. Bei Update()-Feldern in
+   EMS gilt das analog: Kopfzeile + Verbund-Gesundheit + Partnerdetails werden deshalb bewusst
+   gemeinsam in einem `Discover()`-Aufruf aktualisiert, nicht einzeln je nach Bedarf.
+2. **Reihenfolge: erst der Zustand speichern, DANN auffruellen — nie umgekehrt.** Wer vor dem
+   Speichern auffrischt, zeigt den Stand von VOR der aktuellen Aktion (bei einer Suche also das
+   vorletzte Ergebnis) — ein leicht zu uebersehener Fehler, weil das Auffrischen gedanklich zur
+   Aktion gehoert und deshalb gern direkt hinter den Aufruf statt hinter die Zustandsaenderung
+   rutscht.
+3. **Die Falle greift nur, wo das Modul selbst aktiv mitbekommt, dass sich etwas geaendert hat**
+   (ueber einen Button-Handler, einen Timer-Zyklus, oder einen eingehenden Nachrichtenpfad wie
+   MQTT). Ein reiner Anzeige-Zaehler, der bei jedem `GetConfigurationForm()`-Aufbau live ueber
+   den Objektbaum zaehlt (z. B. `IPS_GetInstanceListByModuleID()` direkt im Formularaufbau, ohne
+   eigenen Cache/Zeitstempel), hat keinen sinnvollen Zeitpunkt zum Nachziehen und braucht auch
+   keinen — dort zeigt das Formular beim naechsten OEFFNEN ohnehin den frischen Stand.
+
+**13. Der `@`-Fehlerunterdrueckungs-Operator vor einer IPS-API-Funktion kann einen kompletten
+Feature-Ausfall lautlos verschwinden lassen.** Live gefunden (EMS, 20.08.2026): `BuildDayPlan()`
+lief laut Log erfolgreich und fand echte Preisdaten, aber der WebFront-Kalender ("EMS Tagesplan")
+blieb trotzdem leer — Ursache war `@IPS_SetEventScheduleGroupPoint(...)` in `writeDayPlanEvent()`.
+Schlaegt der Aufruf fehl (aus welchem Grund auch immer), verschluckt `@` das komplett: kein
+Rueckgabewert-Check, kein Log-Eintrag, keine Exception — nur ein leises "es passiert einfach
+nichts", das der Nutzer selbst entdecken muss. **Regel: `@` nie vor einer IPS-API-Funktion
+verwenden, deren Erfolg fuer eine sichtbare Funktion noetig ist** — stattdessen Rueckgabewert
+pruefen (die meisten `IPS_Set*`-Funktionen liefern `bool`) und bei `false` explizit loggen, was
+fehlgeschlagen ist. `@` ist nur dort vertretbar, wo ein Fehlschlag wirklich folgenlos und erwartbar
+ist (z. B. beim Aufraeumen eines moeglicherweise schon geloeschten Objekts).
 
 ## GoodWe-Steuerregister (InverterHub, Stand 27.07.2026)
 
