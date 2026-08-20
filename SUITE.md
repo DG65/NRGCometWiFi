@@ -813,6 +813,15 @@ pruefen (die meisten `IPS_Set*`-Funktionen liefern `bool`) und bei `false` expli
 fehlgeschlagen ist. `@` ist nur dort vertretbar, wo ein Fehlschlag wirklich folgenlos und erwartbar
 ist (z. B. beim Aufraeumen eines moeglicherweise schon geloeschten Objekts).
 
+**14. `IPS_SetEventScheduleGroup($EventID, $Group, $Days)`: `$Days` ist eine 7-Bit-
+Wochentagsmaske (Bit0=Montag..Bit6=Sonntag), gueltiger Bereich 0-127 -- NICHT 65535.**
+Live gefunden (EMS, 20.08.2026, direkte Folge des Stolperfalle-13-Fixes: der Aufruf lief
+dadurch ueberhaupt erstmals wirklich durch und deckte diesen zweiten, aelteren Fehler sofort
+auf). `65535` (16 Bit, "alle Bits gesetzt") war eine naheliegende, aber falsche Annahme fuer
+"alle Wochentage" -- IPS quittiert das mit `"Day" ausserhalb des gueltigen Bereichs`. Korrekt
+fuer "alle 7 Tage" ist `127`. Gilt fuer jedes Modul, das Wochenplan-Events (`IPS_CreateEvent(2)`)
+programmatisch befuellt, nicht nur fuer EMS.
+
 ## GoodWe-Steuerregister (InverterHub, Stand 27.07.2026)
 
 Ident-Tabelle für `IPS_RequestAction($InstanceID, $Ident, $Value)` auf einer InverterHub-Instanz:
