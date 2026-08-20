@@ -545,6 +545,18 @@ haben, aber das Prinzip bleibt: der Nutzer muss ohne Nachdenken sehen, ob die Ak
   eine Protokollzeile fürs Debugging, aber die reicht allein NICHT (die sieht der Nutzer im
   WebFront nicht direkt).
 
+**Muster 4: Direktaufruf einer IPS-Kernfunktion (kein eigener Modul-Wrapper)** (CometWiFi,
+20.08.2026, am Beispiel des "🔄 Übernehmen erzwingen"-Buttons `IPS_ApplyChanges($id)`). Eine
+Kernfunktion wie `IPS_ApplyChanges()` hat keine eigene Modulmethode, die einen Ergebnistext
+liefern könnte — die Rückmeldung MUSS deshalb direkt im `onClick` selbst mitgebracht werden,
+z. B. `IPS_ApplyChanges($id); echo '✅ ApplyChanges() ausgeführt.';`. Zusätzlich gilt: **bevor
+so ein bequemer "spart mir Formular-Anfassen"-Button eingebaut wird, ehrlich dokumentieren, ob
+die aufgerufene Funktion in diesem Modul wirklich folgenlos ist** — bei Modulen mit
+Aktor-Charakter (z. B. Batteriegeräte, die durch jede Abfrage geweckt werden) lädt ein
+bequemer Knopf zum Mehrfachklicken ein. Ein kurzer Hinweistext direkt am Button ("sendet keine
+Befehle, wendet nur die gespeicherten Einstellungen an") gehört dazu, nicht nur der Klick
+selbst.
+
 **Pflicht-Check vor jeder Veröffentlichung** (siehe auch Store-Review-Checkliste Punkt 13):
 jeden Button im Formular klicken und fragen: *sehe ich JETZT, ohne das Formular neu zu öffnen,
 dass etwas passiert ist?* Wenn nein — Muster 1 oder 2 nachrüsten, je nach Aktionstyp.
