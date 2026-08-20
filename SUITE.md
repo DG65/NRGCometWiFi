@@ -277,6 +277,26 @@ InverterHub), von oben nach unten:
 Details und Begründung: siehe Memory `nrg-stack-formular-konvention`. Bestehende Module
 rüsten bei Gelegenheit nach, neue Module (MeterHub/ChargerHub) bauen von Anfang an so.
 
+**Status neben manuellen Fallback-Feldern** (verbundweite Konvention, 20.08.2026 — Dietmars
+Einwand: ein leeres `SelectVariable`-Auswahlfeld sagt nicht, ob es gerade durch eine
+automatische Discovery ohnehin überholt/unnötig ist, das musste er bislang selbst im Formular
+erraten). Jedes `SelectVariable`-Fallback-Feld, das laut "Muster: neue Konsumenten-Features
+müssen den bestehenden Discovery-Mechanismus nutzen" (siehe oben) NUR für Installationen ohne
+das jeweilige Partnermodul gedacht ist, bekommt in `GetConfigurationForm()` (nicht `form.json`,
+da live berechnet) direkt darüber ein `Label` mit einer der drei Ampel-Aussagen:
+- ✅ **automatisch verbunden** — nennt Instanz-ID + Name + (wo sinnvoll) eine Kennzahl der
+  gelieferten Daten (z. B. Anzahl Slots); das Feld darunter wird ignoriert.
+- ⚠️ **Partnerinstanz gefunden, liefert aber gerade nichts Brauchbares** — Fallback-Feld ist
+  aktiv, aber das ist wahrscheinlich ein Symptom eines anderen Problems, nicht der Normalfall.
+- ℹ️ **keine Partnerinstanz gefunden** — Fallback-Feld wird tatsächlich gebraucht.
+
+Referenzimplementierung: EMS' `getPT15MStatusLine()` + die Splice-Logik in
+`GetConfigurationForm()`, die die Zeile vor dem `VAR_TIB_PT15M_Today`-Feld im Tibber-Panel
+einfügt (`module.php`, 0.21.2). Ergänzt (nicht ersetzt) das bestehende "🔗 Verbund-Status"-Panel
+oben im Formular — jenes zeigt nur eine grobe Zusammenfassung pro Partnermodul-Typ
+(`InverterHub=1 MeterHub=1 ...`), diese Konvention bringt die Aussage bis auf Feldebene runter,
+direkt neben das betroffene Formularfeld selbst.
+
 **Pflege-Pflicht:** Jedes Modul prüft bei JEDEM Fix/Update/Upgrade selbst, ob etwas ins
 "Was ist Neu?" oder "Dokumentation & Hilfe" gehört — die Prüfung ist Pflicht, das Ergebnis
 darf "nichts Relevantes" sein.
