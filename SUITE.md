@@ -836,6 +836,23 @@ abfangen (z. B. "keine Daten -> Automatik/Ueberspringen"), bevor sie in einen Sc
 Vergleich einfliessen. Gilt fuer jedes Modul mit zeitreihenartigen Daten, nicht nur fuer PT15M-
 Preise.
 
+**16. Einheiten zwischen Verbund-Verträgen NIE annehmen, immer explizit verifizieren --
+besonders bei Geldbetraegen (ct vs. EUR).** Live gefunden (EMS, 20.08.2026, aufgedeckt durch
+Dashboards neues Tagesplan-Diagramm): Tibber Grid Reward liefert `TIBBERGR_GetPriceCurve()`s
+`price`-Feld bewusst in **ct/kWh**, EMS' eigene Preisschwellen (`TIB_Threshold_*`,
+`VAR_TIB_Feed_Tariff`) sind als **EUR/kWh**-Dezimalzahl konfiguriert -- niemand hatte das
+explizit gegengeprueft, sondern beim automatischen Preis-Abruf (0.22.1) stillschweigend
+dieselbe Einheit wie bei den bestehenden Properties angenommen. Ergebnis: ein glatter
+Faktor-100-Fehler in JEDEM Preisvergleich, unauffaellig genug, um durch alle bisherigen
+Pruefungen zu rutschen (Werte blieben plausible Zahlen, nur eben 100x zu gross -- kein Crash,
+keine Fehlermeldung, nur systematisch falsche Entscheidungen). Erst eine Visualisierung
+(Diagramm mit lesbarer Achsenbeschriftung) machte den Fehler auf einen Blick sichtbar, den
+reiner Text/Logs nicht gezeigt haetten. **Regel: bei jeder neuen Automatik-Anbindung an einen
+Verbund-Vertrag explizit dokumentieren (im Code-Kommentar UND in SUITE.md), in welcher Einheit
+jedes Geld-/Mengenfeld geliefert wird -- im Zweifel beim anbietenden Modul nachfragen, nie
+raten.** Gilt fuer jedes Feld mit physikalischer Einheit (ct/EUR, W/kW, Wh/kWh, ...), nicht nur
+fuer Preise.
+
 ## GoodWe-Steuerregister (InverterHub, Stand 27.07.2026)
 
 Ident-Tabelle für `IPS_RequestAction($InstanceID, $Ident, $Value)` auf einer InverterHub-Instanz:
