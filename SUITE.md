@@ -549,13 +549,50 @@ haben, aber das Prinzip bleibt: der Nutzer muss ohne Nachdenken sehen, ob die Ak
 jeden Button im Formular klicken und fragen: *sehe ich JETZT, ohne das Formular neu zu öffnen,
 dass etwas passiert ist?* Wenn nein — Muster 1 oder 2 nachrüsten, je nach Aktionstyp.
 
+**Drei weitere Praxis-Regeln (CometWiFi, 20.08.2026, an einem Batteriegeraete-Modul gehaertet —
+besonders kritisch dort, weil jeder unnoetige Klick ein Geraet unnoetig weckt):**
+
+1. **"Gesendet" ist nicht "beantwortet" — das gehoert in den Text.** Bei allem, was ueber eine
+   Warteschlange, ein Funkprotokoll oder eine Cloud laeuft (verzoegerte Antwort, keine
+   Garantie), waere ein blosses "✅ Erfolg" formal korrekt aber praktisch irrefuehrend — der
+   Nutzer sieht danach unveraenderte Werte und haelt das Modul fuer kaputt. Formulierung
+   stattdessen z. B. "gesendet, Werte erscheinen sobald das Geraet antwortet".
+2. **Bei Sammelaktionen (mehrere Geraete/Instanzen in einem Klick) Zahlen nennen, nicht nur
+   ja/nein.** "An 4 von 5 Geraeten erfolgreich" statt eines pauschalen Hakens — der
+   Teilerfolg ist der haeufigste UND am schwersten zu bemerkende Fall; ein reines
+   "erfolgreich/fehlgeschlagen" kann ihn gar nicht ausdruecken und versteckt das eine
+   Problemgeraet dauerhaft.
+3. **KRITISCH — Text-als-`bool`-Falle bei Methoden, die von einem ANDEREN Modul MASCHINELL
+   aufgerufen werden** (z. B. `*_GetFunctions`-Vertragsmethoden oder sonst irgendein Aufruf,
+   dessen Rueckgabewert programmatisch geprueft wird, nicht nur per `echo` angezeigt). Ein
+   Fehlertext ist ein nicht-leerer `string` und damit in PHP immer `true` — wird eine
+   bool-liefernde Methode auf einen Klartext-Rueckgabewert umgestellt, meldet jeder
+   programmatische Aufrufer ab sofort STILLSCHWEIGEND Erfolg, auch bei einem Fehlschlag. Lösung:
+   fuer maschinelle Aufrufer eine GETRENNTE `bool`-liefernde Methode behalten/anlegen, niemals
+   Erfolg aus einem Anzeigetext zurueckparsen (bricht bei der naechsten Textumformulierung,
+   ohne dass irgendwo etwas rot wird). **Bei EMS besonders relevant**, weil EMS als
+   Koordinator selbst Vertragsmethoden anderer Module aufruft und umgekehrt `EMS_GetSpecialEvents()`
+   von "lernenden Modulen" maschinell konsumiert wird — vor jeder Rueckgabetyp-Aenderung an
+   einer oeffentlichen Methode pruefen, ob sie ausserhalb des eigenen Formulars aufgerufen wird.
+   Audit 20.08.2026: EMS' `BuildDayPlan()` (jetzt `string`-Rueckgabe) wird nirgends
+   programmatisch als `bool` konsumiert, `GetPartners()`/`GetFederationHealth()`/
+   `GetSituation()`/`GetSpecialEvents()` liefern weiterhin strukturierte Daten (keine
+   Klartext-Umstellung) — kein Fund, aber der Check selbst gehoert ab jetzt vor jede
+   Rueckgabetyp-Aenderung.
+4. **Rückmeldung muss auch sagen, ob eine Änderung schon gespeichert ist oder noch
+   "Übernehmen" fehlt** (HeishaMon, 20.08.2026). Ein Button, der eine Liste/ein Feld nur in
+   der GERADE OFFENEN Maske per `UpdateFormField()` ändert (Vorschau, Sortierung o. ä.), ohne
+   dass die Property selbst schon geschrieben ist, muss das im Rückmeldungstext klarstellen —
+   sonst wirkt "sichtbar geändert" wie "gespeichert", und der Nutzer schließt das Formular ohne
+   zu übernehmen, im Glauben es sei bereits fertig.
+
 ## Manifest
 
 ### Suite 2026.07 (in Vorbereitung — Beta-Stände, noch kein abgeschlossener Testsatz)
 
 | Modul | Version (Stand 24.07.2026) | Kanal | Verträge (angeboten) |
 |---|---|---|---|
-| EMS | 0.21.2 (20.08.2026: Tagesplan-Umbau + Fix fuer automatische PT15M-Beschaffung, **noch nicht mehrtägig live verifiziert**, siehe EMS/CLAUDE.md) | ems-integration | konsumiert alle; künftig `EMS_GetSpecialEvents`. Steuerlogik jetzt vorausschauend: `BuildDayPlan()` plant alle 96 Tages-Viertelstunden aus PT15M-Preisen (jetzt automatisch via `TIBBERGR_GetPriceCurve`, Fallback manuell)+PVF+Lastschätzung, sichtbar als Symcon-Wochenplan unter der Instanz (Vorbild: Dietmars Winterskript #55729), `optimize()` fragt nur noch den Plan ab statt live gegen Schwellwerte zu prüfen. Alte `SetECOWindow()`-Planer (GoodWe-ECO-Register, liefen unabhängig vom laufenden `optimize()`) entfernt — vermutliche Ursache für zuvor nicht nachvollziehbares EMS-Verhalten. |
+| EMS | 0.22.3 (20.08.2026: Tagesplan-Umbau + `EMS_GetDayPlan()` fuer Dashboard-Visualisierung + ct/€-Einheiten-Fix, **noch nicht mehrtägig live verifiziert**, siehe EMS/CLAUDE.md) | ems-integration | konsumiert alle; künftig `EMS_GetSpecialEvents`. Steuerlogik jetzt vorausschauend: `BuildDayPlan()` plant alle 96 Tages-Viertelstunden aus PT15M-Preisen (automatisch via `TIBBERGR_GetPriceCurve`, Fallback manuell, korrekt ct→€ umgerechnet)+PVF+Lastschätzung, sichtbar als Symcon-Wochenplan unter der Instanz (Vorbild: Dietmars Winterskript #55729), `optimize()` fragt nur noch den Plan ab statt live gegen Schwellwerte zu prüfen. Alte `SetECOWindow()`-Planer entfernt. `EMS_GetDayPlan()` **1.0** liefert heute+morgen (Zeit/Op/Preis in ct/kWh/simulierter SOC je Slot, plus `priceUnit`-Feld) fuer externe Visualisierung — der native Kalender bleibt auf "heute" begrenzt (Kalender-Typ-Grenze). |
 | InverterHub | 0.74.x-beta.2 (27.07.2026, Commit 2d8228f) | ems-integration | ⚠️ **Bindungsfix vorhanden, Langzeitstabilität noch nicht bestätigt.** `IHUB_GetFunctions` **1.0** live verifiziert, Skript-Schreibzugriff via `IPS_RequestAction($InstanceID, $Ident, $Value)` funktioniert zuverlässig (27.07.2026 live bestätigt: `ctl_work_mode`/`ctl_ems_mode`/`ctl_ems_enable`). Root Cause der wiederholten Bindungsabrisse (4x am 26.07.2026, auch ohne Reload) gefunden und behoben: `EnableAction()` bindet Variablen nur, wenn sie DIREKTES Kind der Instanz sind — die control-Variablen lagen aber in der Unterkategorie "EMS-Steuerung"/`cat_control`. Fix: Variable kurz zur Instanz zurückhängen, binden, zurück in die Kategorie. Vor jedem weiteren Release erneut über mehrere Stunden/Reload-Zyklen verifizieren, bevor die Warnung entfällt. Ident-Tabelle siehe unten. Siehe `nrg-stack-modulverwaltung-instabilitaet`-Memory. |
 | MeterHub | 0.18.0-beta.1 (Build 28) | beta | `MHUB_GetFunctions` **1.1**, `MHUBV_GetFunctions` **1.1** (1.1 = latency/authority/pollInterval/energyKind/sourceCount) |
 | ChargerHub | 0.9.14-beta.1 | ems-integration | `CHUB_GetFunctions` **1.1** (inkl. `managedBy`), Schreibzugriff via `IPS_RequestAction($InstanceID, $Ident, $Value)` (live verifiziert 25.07.2026, echtes Fahrzeug an WB1: 6A/20W → 10A/4310W) |
@@ -736,6 +773,13 @@ Formular-Sichtbarkeit pruefen, ob ein `UpdateFormField()` fehlt. **Gleichwertige
 kompletten `GetConfigurationForm()`-Neuaufbau, dann brauchen ALLE Felder darin kein einzelnes
 `UpdateFormField()` mehr — einfacher bei vielen betroffenen Feldern, aber teurer (baut das ganze
 Formular neu), `UpdateFormField()` bleibt die gezieltere Wahl bei wenigen Feldern.
+**Wichtiger Kaveat gegen `ReloadForm()`** (MeterHub, 20.08.2026): ein kompletter Formular-
+Neuaufbau verwirft dabei auch alle vom Nutzer bereits getippten, aber noch nicht via
+"Übernehmen" gespeicherten Eingaben in ANDEREN Feldern — z. B. Start-/End-IP, die man gerade
+erst eingetippt hat, bevor man auf "Netzwerk durchsuchen" klickt. Genau dort ist `ReloadForm()`
+die FALSCHE Wahl, `UpdateFormField()` auf nur das betroffene Statusfeld die richtige. Faustregel:
+`ReloadForm()` nur, wenn der Button selbst am ehesten der einzige Ort ist, an dem gerade etwas
+eingegeben wird (z. B. reine Aktions-Panels ohne parallele Text-/Zahlen-Eingabefelder).
 
 **Drei Praxis-Ergaenzungen (CometWiFi, 20.08.2026, am eigenen Live-Fund + Pruefstand
 gehaertet):**
@@ -768,6 +812,49 @@ verwenden, deren Erfolg fuer eine sichtbare Funktion noetig ist** — stattdesse
 pruefen (die meisten `IPS_Set*`-Funktionen liefern `bool`) und bei `false` explizit loggen, was
 fehlgeschlagen ist. `@` ist nur dort vertretbar, wo ein Fehlschlag wirklich folgenlos und erwartbar
 ist (z. B. beim Aufraeumen eines moeglicherweise schon geloeschten Objekts).
+
+**14. `IPS_SetEventScheduleGroup($EventID, $Group, $Days)`: `$Days` ist eine 7-Bit-
+Wochentagsmaske (Bit0=Montag..Bit6=Sonntag), gueltiger Bereich 0-127 -- NICHT 65535.**
+Live gefunden (EMS, 20.08.2026, direkte Folge des Stolperfalle-13-Fixes: der Aufruf lief
+dadurch ueberhaupt erstmals wirklich durch und deckte diesen zweiten, aelteren Fehler sofort
+auf). `65535` (16 Bit, "alle Bits gesetzt") war eine naheliegende, aber falsche Annahme fuer
+"alle Wochentage" -- IPS quittiert das mit `"Day" ausserhalb des gueltigen Bereichs`. Korrekt
+fuer "alle 7 Tage" ist `127`. Gilt fuer jedes Modul, das Wochenplan-Events (`IPS_CreateEvent(2)`)
+programmatisch befuellt, nicht nur fuer EMS.
+
+**15. "Keine Daten" und "Wert ist tatsaechlich 0" muessen unterscheidbar bleiben, sonst
+interpretiert die Entscheidungslogik eine Datenluecke als echten Extremwert.** Live gefunden
+(EMS, 20.08.2026): `parsePT15M()` fuellte Zeitslots ohne echte Tibber-Preisangabe mit `0.0` --
+ein Preis von exakt 0ct ist aber immer guenstiger als jede Einspeiseverguetung, was
+`BuildDayPlan()` faelschlich dazu brachte, Abendstunden OHNE Preisdaten als "Export" statt
+"Automatik" zu planen. Fehlende Daten wurden wie ein reales Sonderangebot behandelt. Regel:
+jedes Array/jede Kurve, die aus einer externen Quelle mit LUECKEN befuellt wird (Preise,
+Messwerte, Prognosen), MUSS fehlende Eintraege als `null` (oder einen anderen eindeutig
+unterscheidbaren Sentinel) fuehren, NIE als `0` oder einen anderen "harmlos wirkenden"
+Platzhalter -- jede Entscheidungslogik, die diese Werte konsumiert, muss `null` explizit
+abfangen (z. B. "keine Daten -> Automatik/Ueberspringen"), bevor sie in einen Schwellenwert-
+Vergleich einfliessen. Gilt fuer jedes Modul mit zeitreihenartigen Daten, nicht nur fuer PT15M-
+Preise.
+
+**16. Einheiten zwischen Verbund-Verträgen NIE annehmen, immer explizit verifizieren --
+besonders bei Geldbetraegen (ct vs. EUR).** Live gefunden (EMS, 20.08.2026, aufgedeckt durch
+Dashboards neues Tagesplan-Diagramm): Tibber Grid Reward liefert `TIBBERGR_GetPriceCurve()`s
+`price`-Feld bewusst in **ct/kWh**, EMS' eigene Preisschwellen (`TIB_Threshold_*`,
+`VAR_TIB_Feed_Tariff`) sind als **EUR/kWh**-Dezimalzahl konfiguriert -- niemand hatte das
+explizit gegengeprueft, sondern beim automatischen Preis-Abruf (0.22.1) stillschweigend
+dieselbe Einheit wie bei den bestehenden Properties angenommen. Ergebnis: ein glatter
+Faktor-100-Fehler in JEDEM Preisvergleich, unauffaellig genug, um durch alle bisherigen
+Pruefungen zu rutschen (Werte blieben plausible Zahlen, nur eben 100x zu gross -- kein Crash,
+keine Fehlermeldung, nur systematisch falsche Entscheidungen). Erst eine Visualisierung
+(Diagramm mit lesbarer Achsenbeschriftung) machte den Fehler auf einen Blick sichtbar, den
+reiner Text/Logs nicht gezeigt haetten. **Regel: bei jeder neuen Automatik-Anbindung an einen
+Verbund-Vertrag explizit dokumentieren (im Code-Kommentar UND in SUITE.md), in welcher Einheit
+jedes Geld-/Mengenfeld geliefert wird -- im Zweifel beim anbietenden Modul nachfragen, nie
+raten.** Gilt fuer jedes Feld mit physikalischer Einheit (ct/EUR, W/kW, Wh/kWh, ...), nicht nur
+fuer Preise. **Noch robuster als ein Kommentar** (Dashboard, 20.08.2026): ein selbstdokumentierendes
+Einheiten-Feld direkt im Vertrag (z. B. `priceUnit` in `EMS_GetDayPlan()`), das der Konsument
+AUSWERTET statt die Einheit fest anzunehmen -- macht den Vertrag robust gegen kuenftige
+Einheiten-Aenderungen des Anbieters, ohne dass der Konsument seinen Code manuell nachziehen muss.
 
 ## GoodWe-Steuerregister (InverterHub, Stand 27.07.2026)
 
