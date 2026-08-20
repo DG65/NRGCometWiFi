@@ -2,6 +2,25 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.17.0] – „Was ist Neu" nachgezogen
+
+### Behoben
+- **Zwei Module hatten gar kein „Was ist Neu"-Panel.** Raumkachel und Raummodul entstanden in
+  einem Zug und bekamen es nie — obwohl `SUITE.md` es als erstes Formularelement verlangt und
+  unsere eigene `CLAUDE.md` dasselbe schreibt. Nachgerüstet, samt Bestätigungsknopf.
+- **Die vorhandenen Panels standen auf 0.1 bzw. 0.3**, während die Bibliothek bei 0.16.0 war.
+  `SUITE.md` nennt die Pflege eine Pflicht bei **jedem** Update; sie ist über ein Dutzend
+  Versionen hinweg unterblieben. Alle fünf Panels beschreiben jetzt den aktuellen Stand.
+
+### Prüfstand
+- **Der Formular-Prüfstand erzeugt die Formulare jetzt wirklich**, statt nur `form.json` zu
+  lesen. Das „Was ist Neu"-Panel und sein Knopf entstehen erst in `GetConfigurationForm()` —
+  ein falscher `PREFIX_`-Aufruf dort wäre unbemerkt geblieben und hätte beim Klick einen
+  Fatal Error ergeben, genau wie schon einmal in 0.10.1.
+- Zusätzlich geprüft: Jedes Modul **hat** ein Neu-Panel, es ist das erste Element, es ist
+  aufgeklappt, es trägt die Versionsnummer, und nach dem Bestätigen ist es weg. Drei
+  Sabotagen gegengeprobt.
+
 ## [0.16.0] – Das Wochenprogramm ist schreibbar
 
 ### Neu
