@@ -403,6 +403,7 @@ Details und Quellenzuordnung je Punkt: Memory `nrg-stack-store-review-erkenntnis
 | Tessie | 2.3.4 main / 2.22.0 beta | Store | `TESSIE_GetVehicleState` **1.1** (ab beta 2.20.0; main ohne Feld → gilt als 1.0, Zusatzfelder erst nach Promotion) |
 | GleitenderMittelwert | 1.7.1 | Store | (Hilfsmodul, kein Verbund-Vertrag) |
 | GoodweET | Deprecated (2026-07-25) | — | abgelöst durch InverterHub (Adoption abgeschlossen, siehe GoodweET/README.md) |
+| CometWiFi | 0.17.0 (Build 34) | beta + main gleichauf | (Gerätemodul, kein `*_GetFunctions`-Vertrag — Thermostate messen nur Temperatur, keine Leistung). Fünf Instanzen: Thermostat, Konfigurator, Übersichtskachel, Raumkachel, Raum. Anbindung über lokalen MQTT-Broker mit Bridge je Gerät zur Hersteller-Cloud (Hersteller-App bleibt funktionsfähig). Protokoll vollständig reverse engineered, Registerstand in `.docs/protokoll.md`. Schreibrichtungen belegt: Sollwert, Optionen, Urlaub, Wochenprogramm, Geräteuhr. |
 | ModbusSlave (NRGModbusSlave) | 1.4.0 | ems-integration | (Export-Endpunkt: Modbus-TCP-Server für externe Master, kein `*_GetFunctions`-Vertrag) — blue'Log-RPC-Emulation als Direktvermarktungs-Andockpunkt; künftig Quelle für `EMS_GetSpecialEvents` (`source: 'marketer'`) |
 | NRGDashboard | 0.1.0-beta.1 | beta | (Darstellungsschicht, kein Datenvertrag — konsumiert alle *_GetFunctions/GetState) |
 | Szenariorechner | 0.2.0-beta.1 | ems-integration | (Analysewerkzeug, kein Datenvertrag — konsumiert Tibber/Prognose/Archive Control) |
