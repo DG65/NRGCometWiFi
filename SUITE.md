@@ -851,7 +851,10 @@ reiner Text/Logs nicht gezeigt haetten. **Regel: bei jeder neuen Automatik-Anbin
 Verbund-Vertrag explizit dokumentieren (im Code-Kommentar UND in SUITE.md), in welcher Einheit
 jedes Geld-/Mengenfeld geliefert wird -- im Zweifel beim anbietenden Modul nachfragen, nie
 raten.** Gilt fuer jedes Feld mit physikalischer Einheit (ct/EUR, W/kW, Wh/kWh, ...), nicht nur
-fuer Preise.
+fuer Preise. **Noch robuster als ein Kommentar** (Dashboard, 20.08.2026): ein selbstdokumentierendes
+Einheiten-Feld direkt im Vertrag (z. B. `priceUnit` in `EMS_GetDayPlan()`), das der Konsument
+AUSWERTET statt die Einheit fest anzunehmen -- macht den Vertrag robust gegen kuenftige
+Einheiten-Aenderungen des Anbieters, ohne dass der Konsument seinen Code manuell nachziehen muss.
 
 ## GoodWe-Steuerregister (InverterHub, Stand 27.07.2026)
 
