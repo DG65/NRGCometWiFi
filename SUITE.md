@@ -736,6 +736,13 @@ Formular-Sichtbarkeit pruefen, ob ein `UpdateFormField()` fehlt. **Gleichwertige
 kompletten `GetConfigurationForm()`-Neuaufbau, dann brauchen ALLE Felder darin kein einzelnes
 `UpdateFormField()` mehr — einfacher bei vielen betroffenen Feldern, aber teurer (baut das ganze
 Formular neu), `UpdateFormField()` bleibt die gezieltere Wahl bei wenigen Feldern.
+**Wichtiger Kaveat gegen `ReloadForm()`** (MeterHub, 20.08.2026): ein kompletter Formular-
+Neuaufbau verwirft dabei auch alle vom Nutzer bereits getippten, aber noch nicht via
+"Übernehmen" gespeicherten Eingaben in ANDEREN Feldern — z. B. Start-/End-IP, die man gerade
+erst eingetippt hat, bevor man auf "Netzwerk durchsuchen" klickt. Genau dort ist `ReloadForm()`
+die FALSCHE Wahl, `UpdateFormField()` auf nur das betroffene Statusfeld die richtige. Faustregel:
+`ReloadForm()` nur, wenn der Button selbst am ehesten der einzige Ort ist, an dem gerade etwas
+eingegeben wird (z. B. reine Aktions-Panels ohne parallele Text-/Zahlen-Eingabefelder).
 
 **Drei Praxis-Ergaenzungen (CometWiFi, 20.08.2026, am eigenen Live-Fund + Pruefstand
 gehaertet):**
