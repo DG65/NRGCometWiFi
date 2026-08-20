@@ -579,6 +579,12 @@ besonders kritisch dort, weil jeder unnoetige Klick ein Geraet unnoetig weckt):*
    `GetSituation()`/`GetSpecialEvents()` liefern weiterhin strukturierte Daten (keine
    Klartext-Umstellung) — kein Fund, aber der Check selbst gehoert ab jetzt vor jede
    Rueckgabetyp-Aenderung.
+4. **Rückmeldung muss auch sagen, ob eine Änderung schon gespeichert ist oder noch
+   "Übernehmen" fehlt** (HeishaMon, 20.08.2026). Ein Button, der eine Liste/ein Feld nur in
+   der GERADE OFFENEN Maske per `UpdateFormField()` ändert (Vorschau, Sortierung o. ä.), ohne
+   dass die Property selbst schon geschrieben ist, muss das im Rückmeldungstext klarstellen —
+   sonst wirkt "sichtbar geändert" wie "gespeichert", und der Nutzer schließt das Formular ohne
+   zu übernehmen, im Glauben es sei bereits fertig.
 
 ## Manifest
 
