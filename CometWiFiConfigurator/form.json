@@ -106,6 +106,31 @@
                     "width": "200px"
                 }
             ]
+        },
+        {
+            "type": "ExpansionPanel",
+            "caption": "🔧  Wartung",
+            "expanded": false,
+            "items": [
+                {
+                    "type": "Label",
+                    "caption": "Nach einem Modul-Update übernimmt Symcon die Einstellungen einer Instanz nicht immer von selbst. Sonst hilft nur, im Formular etwas zu ändern und wieder zurückzustellen — nur dann wird „Übernehmen“ überhaupt anklickbar. Dieser Knopf spart das."
+                },
+                {
+                    "type": "Label",
+                    "caption": "⚠️  Wirkt auf die gespeicherten Einstellungen. Was Sie oben geändert, aber noch nicht übernommen haben, geht dabei verloren."
+                },
+                {
+                    "type": "Label",
+                    "caption": "Für die Geräte ist das unbedenklich: Das Übernehmen sendet nichts und weckt damit keine Batterie."
+                },
+                {
+                    "type": "Button",
+                    "caption": "🔄  Übernehmen erzwingen (ohne Formularänderung)",
+                    "confirm": "Die gespeicherten Einstellungen dieser Instanz jetzt neu übernehmen?",
+                    "onClick": "IPS_ApplyChanges($id); echo '✅  Einstellungen übernommen (' . date('H:i:s') . ' Uhr).';"
+                }
+            ]
         }
     ],
     "actions": [

@@ -35,6 +35,9 @@ define('VARIABLE_PRESENTATION_VALUE_INPUT', 'VALUE_INPUT');
 /** Sammelt alles, was das Modul nach außen tut, damit Prüfungen es nachsehen können. */
 class IPSTestState
 {
+    /** @var int[] Instanzen, für die IPS_ApplyChanges() aufgerufen wurde. */
+    public static array $appliedChanges = [];
+
     public static array $instances    = [];
     public static array $sentPackets  = [];
     public static array $debug        = [];
@@ -66,6 +69,7 @@ class IPSTestState
     public static function reset(): void
     {
         self::$instances         = [];
+        self::$appliedChanges    = [];
         self::$sentPackets       = [];
         self::$debug             = [];
         self::$logMessages       = [];
@@ -219,6 +223,20 @@ function IPS_GetObject(int $id): array
         return ['ObjectID' => $id, 'ObjectType' => 1, 'ObjectName' => IPSTestState::$instances[$id]['Name'] ?? ''];
     }
     return ['ObjectID' => $id, 'ObjectType' => 2, 'ObjectName' => ''];
+}
+
+/**
+ * Nimmt den Aufruf entgegen und protokolliert ihn.
+ *
+ * **Bewusst eine Attrappe:** Der Stand kennt keine Objektreferenzen der Modulklassen, kann
+ * die echte `ApplyChanges()` also nicht ausführen. Wer hier eine Wirkung prüfen will, ruft
+ * die Methode direkt auf dem Objekt auf. Vorhanden ist die Funktion trotzdem, weil ein
+ * Formularknopf sie aufruft und der Formular-Prüfstand sonst nicht unterscheiden könnte,
+ * ob `IPS_ApplyChanges` eine Symcon-Kernfunktion oder ein verunglückter Modul-Wrapper ist.
+ */
+function IPS_ApplyChanges(int $id): void
+{
+    IPSTestState::$appliedChanges[] = $id;
 }
 
 function IPS_InstanceExists(int $id): bool

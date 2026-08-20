@@ -2,6 +2,29 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.19.1] – Knopf „Übernehmen erzwingen"
+
+### Neu
+- **Panel „🔧 Wartung" in allen fünf Modulen** mit dem Knopf „Übernehmen erzwingen (ohne
+  Formularänderung)". Hintergrund: Nach einem Modul-Update übernimmt Symcon die Einstellungen
+  einer Instanz nicht zuverlässig, und „Übernehmen" wird erst anklickbar, wenn man im Formular
+  etwas ändert und wieder zurückstellt. Der Knopf spart diesen Umweg. Übernommen aus dem
+  EMS-Modul (0.22.4), dort als Angebot an den Verbund vorgeschlagen.
+- Geprüft, bevor übernommen: `ApplyChanges()` sendet in diesen Modulen **nichts** an die
+  Geräte und setzt Abfrage-Zeitgeber nur zurück. An Batteriegeräten wäre ein bequemer Knopf
+  mit Sendewirkung sonst genau das falsche Angebot. Der Hinweistext sagt das auch dem Nutzer,
+  zusammen mit der ehrlichen Warnung, dass noch nicht übernommene Formulareingaben verloren
+  gehen.
+
+### Prüfstand
+- `.tools/test-forms.php` unterscheidet jetzt **Symcon-Kernfunktionen von Modul-Wrappern**.
+  `IPS_ApplyChanges($id)` sieht aus wie `PREFIX_Methode($id)` und ist etwas ganz anderes.
+  Geprüft wird nicht gegen eine Namensliste, sondern gegen den Stub: Was der als echte
+  Kernfunktion führt, ist eine. Ein Tippfehler im Funktionsnamen fällt damit weiterhin auf.
+- Ein Knopf, der eine Kernfunktion aufruft, hat keine Modulmethode, die Text liefern könnte —
+  er muss die Rückmeldung selbst im `onClick` mitbringen. Auch das wird geprüft.
+- `IPS_ApplyChanges()` im Stub ergänzt (Attrappe mit Protokoll, siehe Kommentar dort).
+
 ## [0.19.0] – Jeder Knopf meldet, was er getan hat
 
 Verbindliche Verbund-Konvention „Sichtbare Rückmeldung bei jeder Aktion" (`SUITE.md`,
