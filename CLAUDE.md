@@ -19,7 +19,8 @@ dazu, nicht nur das Häkchen.
 ## Verwandte Repositories
 
 Teil des **NRG-Stack** (DG65). Verbundweite Konventionen stehen in
-`../EMS/SUITE.md` — bei Fragen zu Formularaufbau, Vertragsversionierung, Statuscodes oder
+`SUITE.md` im Repo-Root (synchronisierte Kopie, siehe unten) — bei Fragen zu Formularaufbau,
+Vertragsversionierung, Statuscodes oder
 Store-Review **zuerst dort nachsehen**, nicht Code zwischen Modulen vergleichen.
 
 CometWiFi ist derzeit **eigenständig ohne Kopplung**: kein `*_GetFunctions`-Vertrag, kein
@@ -176,7 +177,7 @@ wundert.
 
 ## Verbund-Konventionen, die hier gelten
 
-Vollständig in `../EMS/SUITE.md`, hier nur die für dieses Repo relevanten:
+Vollständig in `SUITE.md` im Repo-Root, hier nur die für dieses Repo relevanten:
 
 - **Alles Nutzersichtbare auf Deutsch** — Formulare, Meldungen, Variablennamen, README.
   Ausgenommen: Idents, Property-, Klassen- und Methodennamen (das ist API und wird nie
@@ -203,6 +204,12 @@ Vollständig in `../EMS/SUITE.md`, hier nur die für dieses Repo relevanten:
   Modulklassen selbst, deren Name exakt dem `name`-Feld der `module.json` entsprechen muss.
 - **`vendor` in `module.json`** = Hersteller des Geräts, hier `Eurotronic`.
 - **`library.json` akzeptiert nur** id, author, name, url, compatibility, version, build, date.
+- **Alte Repo-Namen niemals wiederverwenden (SUITE.md, 19.08.2026).** Die Verbund-Repos
+  heißen kanonisch `NRG*`; die Alt-Namen leben nur noch als GitHub-Redirects. Legt jemand
+  unter DG65 ein neues Repo mit einem Alt-Namen an, löscht GitHub die Weiterleitung
+  kommentarlos — und wer den alten Pfad in der Modulverwaltung stehen hat, lädt ab dann
+  fremden Code. Hier geprüft (20.08.2026): `library.json`, alle vier `module.json` und die
+  README zeigen ausschließlich auf `NRGCometWiFi` bzw. `NRGEMS`.
 - **README-Badges (SUITE.md, 18.08.2026):** Badge-Zeile direkt unter der H1. Der
   „Modul Version"-Badge wird **bei jedem Versions-Bump von Hand mitgepflegt** — er hängt an
   keiner Automatik. **Der Check-Style-Badge fehlt bewusst**, solange es keinen Workflow gibt —
