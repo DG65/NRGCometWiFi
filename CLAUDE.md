@@ -171,6 +171,27 @@ man sie fragt. Ohne aktive Abfrage sind die Werte in Symcon regelmäßig viele S
 das ist der Preis der Batterieschonung, gehört aber jedem gesagt, der sich über alte Werte
 wundert.
 
+**Ein Broker im MACVLAN-Netz ist vom Docker-Host aus NICHT erreichbar.** Am 23.08.2026 lag
+die Anlage 50 Stunden still: Symcon (auf dem Docker-Host) meldete „Keine Route zum
+Zielrechner" für den Mosquitto-Container, während jeder andere Rechner im LAN ihn problemlos
+erreichte. Ursache ist kein Fehler, sondern Kernel-Verhalten — eine physische Schnittstelle
+und ihr MACVLAN-Kind dürfen nicht miteinander sprechen. Wer das mit einem von Hand angelegten
+Shim-Interface überbrückt, verliert es beim nächsten Neustart: Es überlebt nur mit einer
+systemd-Unit. Die robustere Lösung ist, den Broker-Container **zusätzlich** in ein
+Bridge-Netz mit fester Adresse zu hängen und Symcon dorthin zeigen zu lassen; die Geräte
+erreichen ihn unverändert über die MACVLAN-Adresse.
+
+Diagnose in dieser Reihenfolge, sie grenzt in drei Schritten ein:
+1. Erreicht Symcon Router und Internet? (Wenn nein, ist es kein MACVLAN-Problem.)
+2. Erreicht ein ANDERER Rechner im LAN den Broker-Port? (Wenn ja, lebt der Broker.)
+3. `ip -o link show type macvlan` auf dem Host — ist ein Shim vorhanden?
+
+Das Fehlerbild täuscht dabei doppelt: Alle Geräteinstanzen stehen auf 206 („lange keine
+Meldung"), was nach einem Geräteproblem aussieht, und im Protokoll steht „keine aktive
+MQTT-Instanz darüber", was nach einem Konfigurationsfehler im Modul aussieht. Beides ist
+Folge, nicht Ursache — **zuerst den Status des MQTT-Clients und seines Client Sockets
+ansehen.** Stehen die auf 200, liegt es nie am Modul.
+
 **Slashes kommen escaped an.** Der Empfangsfilter arbeitet auf dem rohen JSON, dort steht
 `02\/AABBCCDD\/…`. HeishaMons Muster: `str_replace('/', '\\\\/', $topic)`. Zusätzlich auf
 `"Topic":"` ankern, damit kein Payload-Inhalt zufällig matcht.
