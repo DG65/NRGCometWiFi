@@ -244,6 +244,12 @@ Vollständig in `SUITE.md` im Repo-Root, hier nur die für dieses Repo relevante
   nicht leerer String und damit `true`. Deshalb hat das Thermostat mit `SendAction()` eine
   getrennte `bool`-Fassung für das Raum-Modul — Erfolg aus einem Anzeigetext herauszulesen
   wäre ein stiller Fehler, den erst die nächste Umformulierung auslöst.
+- **Nach jedem Versionsbump-Skript pruefen, ob README.md noch Inhalt hat.** Am 23.08.2026 (0.18.1) legte ein Python-Ersetzungsschritt, der ins Leere griff, die leere Ausgangsvariable zurueck — die Datei war drei Wochen lang 0 Bytes gross, bevor es auffiel. Kein Pruefstand kontrolliert Markdown-Dateien; ein kurzer `wc -c README.md`-Blick nach jedem automatisierten Textersatz haette gereicht.
+- **Feld-Hilfestellung über `PopupButton`, nicht Mouseover** (SUITE.md, 01.09.2026): Symcon
+  kennt kein `tooltip`/`hint`-Attribut. Die Caption ist die **volle Frage**, nicht „?" — der
+  Nutzer soll vor dem Klick wissen, was erklärt wird. Endet die Frage schon mit „?", kein
+  zweites anhängen. `width` an der Textlänge ausrichten (460–480px bewährt, unter ~70px ohne
+  sichtbaren Effekt), Popup-Titel = dieselbe Frage. `.tools/test-forms.php` prüft das.
 - **Was sich zur Laufzeit ändert, muss `UpdateFormField()` nachziehen (SUITE.md Stolperfalle 12).**
   `GetConfigurationForm()` läuft **nur beim Öffnen**. Jede Statuszeile, die später noch
   richtig sein soll, braucht ein `UpdateFormField()` an der Stelle, wo sich der Zustand
@@ -281,7 +287,7 @@ php .tools/test-configurator.php   # Erkennung, Instanz-Zuordnung, Zeitsync     
 php .tools/test-tile.php           # Kachel-Nutzlast: Ist/Soll, Namen, Ausfälle    (32)
 php .tools/test-roomtile.php       # Raumkachel: Zuordnung, Ring, Verknüpfungen    (59)
 php .tools/test-room.php           # Raum: Zusammenfassung und Kachel              (56)
-php .tools/test-forms.php          # Formularaufrufe aller Module gegen die Klassen (187)
+php .tools/test-forms.php          # Formularaufrufe aller Module gegen die Klassen (200)
 ```
 
 `IPSTestState::useLocale('<Modulverzeichnis>')` schaltet `Translate()` auf die echte
