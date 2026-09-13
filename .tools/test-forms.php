@@ -397,6 +397,68 @@ foreach ($module as $praefix => $info) {
         ($form['elements'][0]['name'] ?? '') === 'NewsPanel', false);
 }
 
+/* =============== Feld-Hilfestellung: PopupButton (SUITE.md, 01.09.2026) ===============
+ *
+ * Anlass: Alle drei PopupButtons hier trugen noch die Caption "?" aus der alten Fassung
+ * der Konvention. Dietmar hat sie am 01.09.2026 verbundweit (zuerst an MeterHub) auf die
+ * ausgeschriebene Frage umgestellt — "?" allein sagt vor dem Klick nichts darüber, WAS
+ * erklärt wird. Ein neues erklärungsbedürftiges Feld fällt sonst wieder in die alte Form
+ * zurück, weil "?" der naheliegendere erste Griff ist. Deshalb hier geprüft statt nur
+ * einmalig von Hand korrigiert.
+ */
+function sammlePopupButtons($knoten, array &$treffer): void
+{
+    if (!is_array($knoten)) {
+        return;
+    }
+    if (($knoten['type'] ?? '') === 'PopupButton') {
+        $treffer[] = $knoten;
+    }
+    foreach ($knoten as $wert) {
+        if (is_array($wert)) {
+            sammlePopupButtons($wert, $treffer);
+        }
+    }
+}
+
+$popups = 0;
+
+foreach ($module as $praefix => $info) {
+    if (!is_file($info['form'])) {
+        continue;
+    }
+    $form = json_decode((string) file_get_contents($info['form']), true);
+
+    $treffer = [];
+    sammlePopupButtons($form, $treffer);
+
+    foreach ($treffer as $knopf) {
+        $caption = $knopf['caption'] ?? '';
+        $popups++;
+
+        // Die alte Form: ein blosses "?", mit oder ohne Leerzeichen drumherum.
+        check('PopupButton „' . $caption . '" ist keine blosse Frage-Zeichen-Caption',
+            trim($caption) === '?', false);
+
+        // Doppeltes Fragezeichen: Die Frage endet schon mit "?", ein zweites waere falsch.
+        check('PopupButton „' . $caption . '" hat kein doppeltes Fragezeichen',
+            (bool) preg_match('/\?\s*\?/', $caption), false);
+
+        // width unter ~70px hat laut SUITE.md ohnehin keinen sichtbaren Effekt mehr — wer
+        // das stehen laesst, hat vermutlich die alte 70px-Quadrat-Empfehlung kopiert statt
+        // an der tatsaechlichen Textlaenge auszurichten.
+        $breite = (int) ($knopf['width'] ?? '0');
+        check('PopupButton „' . $caption . '" hat eine an die Textlaenge angepasste Breite',
+            $breite > 100, true);
+
+        // Popup-Titel soll dieselbe Frage sein wie die Caption.
+        check('PopupButton „' . $caption . '": Popup-Titel = Caption',
+            $knopf['popup']['caption'] ?? null, $caption);
+    }
+}
+
+check('Es wurden ueberhaupt PopupButtons geprueft', $popups > 0, true);
+
 /* ------------------------------------------------------------------ Ergebnis */
 
 

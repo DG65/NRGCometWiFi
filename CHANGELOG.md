@@ -2,6 +2,23 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.19.2] – Feld-Hilfestellung nach Konvention
+
+### Behoben
+- **`README.md` war seit 0.18.1 (23.08.2026) komplett leer.** Eigenes Versehen beim Versionsbump: Ein Python-Ersetzungsschritt griff ins Leere, und der anschliessende Schreibvorgang legte die (leere) Ausgangsvariable statt des Originals zurueck — drei Wochen unbemerkt, weil keine Pruefung eine leere README erkennt. Aus der letzten vollstaendigen Fassung wiederhergestellt und dabei zwei zusaetzliche Maengel behoben, die schon vor dem Datenverlust bestanden: Die Modultabelle nannte nur Thermostat und Konfigurator, obwohl Kachel, Raumkachel und Raum laengst existierten — und der Verweis auf das Kompatibilitaets-Manifest zeigte auf `github.com/DG65/NRGEMS/…/SUITE.md`, das seit dem 31.08.2026 nicht mehr oeffentlich liegt (Dietmars Entscheidung, siehe `CLAUDE.md`) und aus der Historie aller Modul-Repos entfernt wurde. Der tote Link ist ersatzlos gestrichen.
+- Alle anderen Modul-READMEs im Verbund stichprobenartig geprueft — keine weitere Leerdatei gefunden.
+- **Drei Hilfe-Knöpfe trugen noch die alte Caption „?"** (Konfigurator: MQTT-Benutzer;
+  Thermostat: MAC-Adresse, MQTT-Benutzer). Nach der Verbund-Konvention „Feld-Hilfestellung"
+  (`SUITE.md`, 01.09.2026, zuerst an MeterHub erprobt) trägt der Knopf die volle Frage statt
+  eines Symbols — der Nutzer weiß vor dem Klick, was ihn erwartet. Die Caption ist jetzt
+  z. B. „Woher bekomme ich die MAC-Adresse?", der Popup-Titel identisch, die Breite an der
+  Textlänge ausgerichtet (460–470px statt der alten 70px-Quadrat-Empfehlung).
+
+### Prüfstand
+- `.tools/test-forms.php` prüft jeden `PopupButton` jetzt gegen diese Konvention: keine
+  blosse „?"-Caption, kein doppeltes Fragezeichen, Breite über 100px, Popup-Titel = Caption.
+  Vier Sabotagen gegengeprobt.
+
 ## [0.19.1] – Knopf „Übernehmen erzwingen"
 
 ### Neu

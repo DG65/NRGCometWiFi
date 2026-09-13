@@ -51,10 +51,10 @@
                         },
                         {
                             "type": "PopupButton",
-                            "caption": "?",
-                            "width": "70px",
+                            "caption": "Woher bekomme ich die MAC-Adresse?",
+                            "width": "470px",
                             "popup": {
-                                "caption": "MAC-Adresse",
+                                "caption": "Woher bekomme ich die MAC-Adresse?",
                                 "items": [
                                     {
                                         "type": "Label",
@@ -81,10 +81,10 @@
                         },
                         {
                             "type": "PopupButton",
-                            "caption": "?",
-                            "width": "70px",
+                            "caption": "Was ist der MQTT-Benutzer?",
+                            "width": "460px",
                             "popup": {
-                                "caption": "MQTT-Benutzer",
+                                "caption": "Was ist der MQTT-Benutzer?",
                                 "items": [
                                     {
                                         "type": "Label",
