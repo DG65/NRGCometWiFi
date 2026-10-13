@@ -1363,9 +1363,8 @@ class CometWiFiThermostat extends IPSModule
             'Value'       => $value,
             'Caption'     => $this->Translate($caption),
             'IconActive'  => false,
-            'Icon'        => '',
-            'ColorActive' => false,
-            'ColorValue'  => -1
+            'IconValue'   => '',
+            'Color'       => -1
         ];
     }
 
@@ -1386,17 +1385,15 @@ class CometWiFiThermostat extends IPSModule
                     'Value'       => true,
                     'Caption'     => $this->Translate($captionTrue),
                     'IconActive'  => false,
-                    'Icon'        => '',
-                    'ColorActive' => true,
-                    'ColorValue'  => $trueIsBad ? $red : $green
+                    'IconValue'   => '',
+                    'Color'       => $trueIsBad ? $red : $green
                 ],
                 [
                     'Value'       => false,
                     'Caption'     => $this->Translate($captionFalse),
                     'IconActive'  => false,
-                    'Icon'        => '',
-                    'ColorActive' => true,
-                    'ColorValue'  => $trueIsBad ? $green : $red
+                    'IconValue'   => '',
+                    'Color'       => $trueIsBad ? $green : $red
                 ]
             ])
         ];

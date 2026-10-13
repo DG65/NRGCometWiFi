@@ -169,7 +169,7 @@ class CometWiFiRoomTile extends IPSModule
                   3 => 'Set clock to Symcon time', 4 => 'Request all fields'] as $wert => $text) {
             $optionen[] = [
                 'Value' => $wert, 'Caption' => $this->Translate($text),
-                'IconActive' => false, 'Icon' => '', 'ColorActive' => false, 'ColorValue' => -1
+                'IconActive' => false, 'IconValue' => '', 'Color' => -1
             ];
         }
         $this->MaintainVariable(

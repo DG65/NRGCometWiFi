@@ -676,7 +676,7 @@ class CometWiFiRoom extends IPSModule
                   3 => 'Set clock to Symcon time', 4 => 'Request all fields'] as $wert => $text) {
             $optionen[] = [
                 'Value' => $wert, 'Caption' => $this->Translate($text),
-                'IconActive' => false, 'Icon' => '', 'ColorActive' => false, 'ColorValue' => -1
+                'IconActive' => false, 'IconValue' => '', 'Color' => -1
             ];
         }
         // In der aufgezogenen Ansicht bedienbar; wirkt auf ALLE Mitglieder und springt
@@ -698,13 +698,13 @@ class CometWiFiRoom extends IPSModule
             'OPTIONS'      => json_encode([
                 [
                     'Value' => true, 'Caption' => $this->Translate($captionTrue),
-                    'IconActive' => false, 'Icon' => '',
-                    'ColorActive' => true, 'ColorValue' => $trueIsBad ? $red : $green
+                    'IconActive' => false, 'IconValue' => '',
+                    'Color' => $trueIsBad ? $red : $green
                 ],
                 [
                     'Value' => false, 'Caption' => $this->Translate($captionFalse),
-                    'IconActive' => false, 'Icon' => '',
-                    'ColorActive' => true, 'ColorValue' => $trueIsBad ? $green : $red
+                    'IconActive' => false, 'IconValue' => '',
+                    'Color' => $trueIsBad ? $green : $red
                 ]
             ])
         ];

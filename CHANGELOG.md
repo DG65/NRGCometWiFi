@@ -2,6 +2,19 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.19.3] – Presentation-OPTIONS-Schlüssel korrigiert
+
+### Behoben
+- **Ungültige Schlüssel in Presentation-OPTIONS** (`Icon`, `ColorActive`, `ColorValue`) in
+  Thermostat, Raum und Raumkachel durch die gültigen `IconValue` und `Color` ersetzt. Neuere
+  Symcon-Versionen brachen sonst das Anlegen der Instanz ab („unknown sub-parameters“), die
+  Mobile-App stürzte beim Öffnen der Kachel ab. Alle Variablen laufen über
+  `MaintainVariable()`; Bestandsinstallationen ziehen beim nächsten `ApplyChanges()` nach.
+
+### Prüfstand
+- Neu: `.tools/test-presentations.php` prüft alle OPTIONS-Einträge gegen die erlaubten
+  Schlüssel, mit Gegenprobe.
+
 ## [0.19.2] – Feld-Hilfestellung nach Konvention
 
 ### Behoben
