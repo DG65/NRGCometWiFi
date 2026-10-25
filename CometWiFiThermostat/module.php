@@ -1386,14 +1386,16 @@ class CometWiFiThermostat extends IPSModule
                     'Caption'     => $this->Translate($captionTrue),
                     'IconActive'  => false,
                     'IconValue'   => '',
-                    'Color'       => $trueIsBad ? $red : $green
+                    'ColorActive' => true,
+                    'ColorValue'  => $trueIsBad ? $red : $green
                 ],
                 [
                     'Value'       => false,
                     'Caption'     => $this->Translate($captionFalse),
                     'IconActive'  => false,
                     'IconValue'   => '',
-                    'Color'       => $trueIsBad ? $green : $red
+                    'ColorActive' => true,
+                    'ColorValue'  => $trueIsBad ? $green : $red
                 ]
             ])
         ];

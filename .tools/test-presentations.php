@@ -7,13 +7,18 @@ declare(strict_types=1);
  *
  *   php .tools/test-presentations.php     # 0 = alle Prüfungen bestanden
  *
- * Gültig sind in OPTIONS nur: Value, Caption, IconActive, IconValue, Color
- * (SUITE.md, Stolperstein 9). Unbekannte Schlüssel brechen auf neueren Symcon-Versionen das
+ * Gültige OPTIONS-Schlüssel hängen von der Darstellung ab (SUITE.md, Stolperstein 9, Korrektur
+ * 18.10.2026): Aufzählung (ENUMERATION) kennt Value, Caption, IconActive, IconValue, Color;
+ * Wertanzeige (VALUE_PRESENTATION, auch bei bool) kennt Value, Caption, IconActive, IconValue,
+ * ColorActive, ColorValue und NICHT Color (Symcon 9.1 bricht sonst das Anlegen ab). Unbekannte Schlüssel brechen auf neueren Symcon-Versionen das
  * Anlegen der Instanz ab und lassen die Mobile-App beim Öffnen der Kachel abstürzen.
  * Ältere Versionen tolerieren sie still — deshalb fällt es beim Autor nie auf.
  *
  * Statische Prüfung: Jedes Array-Literal, das einen 'Caption'-Schlüssel führt, ist ein
  * OPTIONS-Eintrag; seine Schlüssel der obersten Ebene werden gegen die Erlaubnisliste geprüft.
+ * Die Darstellung ergibt sich aus dem VARIABLE_PRESENTATION_*-Token in derselben Funktion
+ * (vor oder nach dem Eintrag); Hilfsfunktionen ohne Token zählen als Aufzählung, wenn ihr Name
+ * 'enum' enthält. Lässt sich die Darstellung nicht eindeutig bestimmen, ist das ein Befund.
  * Eine Gegenprobe (Mutationstest) stellt sicher, dass die Prüfung wirklich anschlägt.
  */
 
@@ -36,7 +41,38 @@ function check(string $label, $actual, $expected): void
     );
 }
 
-const ALLOWED = ['Value', 'Caption', 'IconActive', 'IconValue', 'Color'];
+const ALLOWED = [
+    'ENUMERATION'        => ['Value', 'Caption', 'IconActive', 'IconValue', 'Color'],
+    'VALUE_PRESENTATION' => ['Value', 'Caption', 'IconActive', 'IconValue', 'ColorActive', 'ColorValue'],
+];
+
+/** Darstellung des OPTIONS-Eintrags an Position $p: aus der umschließenden Funktion. */
+function presentationAt(string $source, int $p): ?string
+{
+    $fStart = strrpos(substr($source, 0, $p), 'function ');
+    $fStart = ($fStart === false) ? 0 : $fStart;
+    $fEnd = strpos($source, 'function ', $p);
+    $body = substr($source, $fStart, ($fEnd === false ? strlen($source) : $fEnd) - $fStart);
+    preg_match_all('/VARIABLE_PRESENTATION_(ENUMERATION|VALUE_PRESENTATION)\b/', $body, $m);
+    $kinds = array_values(array_unique($m[1]));
+    if (count($kinds) === 1) {
+        return $kinds[0];
+    }
+    if (count($kinds) > 1) {
+        // mehrere Variablen in einer Funktion: zuerst die nächste Darstellung NACH dem Eintrag
+        // (Muster: Optionen bauen, dann MaintainVariable), sonst die letzte davor
+        $rel = $p - $fStart;
+        if (preg_match('/VARIABLE_PRESENTATION_(ENUMERATION|VALUE_PRESENTATION)\b/', $body, $n, 0, $rel)) {
+            return $n[1];
+        }
+        preg_match_all('/VARIABLE_PRESENTATION_(ENUMERATION|VALUE_PRESENTATION)\b/', substr($body, 0, $rel), $b);
+        return end($b[1]) ?: null;
+    }
+    if (count($kinds) === 0 && preg_match('/^function\s+\w*enum\w*\s*\(/i', $body)) {
+        return 'ENUMERATION';
+    }
+    return null;
+}
 
 /**
  * @return array<int,array{0:int,1:string}> Verstöße als [Zeile, Meldung]
@@ -45,15 +81,6 @@ function scanOptions(string $source): array
 {
     $problems = [];
     $len = strlen($source);
-
-    // Verbotene Altschlüssel überall (Fehlalarme sind im Modul nicht vorhanden)
-    foreach (['ColorActive', 'ColorValue'] as $bad) {
-        $o = 0;
-        while (($p = strpos($source, "'" . $bad . "'", $o)) !== false) {
-            $problems[] = [substr_count($source, "\n", 0, $p) + 1, "Schlüssel '$bad'"];
-            $o = $p + 1;
-        }
-    }
 
     $o = 0;
     while (($p = strpos($source, "'Caption'", $o)) !== false) {
@@ -98,8 +125,13 @@ function scanOptions(string $source): array
             continue; // kein OPTIONS-Eintrag (z. B. Formularelement mit 'caption'-Zweig)
         }
         $line = substr_count($source, "\n", 0, $p) + 1;
-        foreach (array_diff($keys, ALLOWED) as $k) {
-            $problems[] = [$line, "unbekannter OPTIONS-Schlüssel '$k'"];
+        $kind = presentationAt($source, $p);
+        if ($kind === null) {
+            $problems[] = [$line, 'Darstellung (Aufzählung/Wertanzeige) nicht bestimmbar'];
+            continue;
+        }
+        foreach (array_diff($keys, ALLOWED[$kind]) as $k) {
+            $problems[] = [$line, "unbekannter OPTIONS-Schlüssel '$k' für $kind"];
         }
     }
     return $problems;
@@ -120,15 +152,19 @@ check('Es wurden OPTIONS-Einträge geprüft', $entries >= 5, true);
 
 /* ------------------------------------------------- Gegenprobe (Mutationstest) */
 
-$good = "['Value' => 1, 'Caption' => 'x', 'IconActive' => false, 'IconValue' => '', 'Color' => -1]";
-check('Gegenprobe: gültiger Eintrag bleibt unbeanstandet', scanOptions($good), []);
+$enum = fn(string $e) => "function f() { \$o = [['Value' => 1, 'Caption' => 'x', $e]]; \$p = ['PRESENTATION' => VARIABLE_PRESENTATION_ENUMERATION]; }";
+$val  = fn(string $e) => "function g() { return ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION, 'OPTIONS' => [['Value' => true, 'Caption' => 'x', $e]]]; }";
+check('Gegenprobe: gültige Aufzählung bleibt unbeanstandet', scanOptions($enum("'IconActive' => false, 'IconValue' => '', 'Color' => -1")), []);
+check('Gegenprobe: gültige Wertanzeige bleibt unbeanstandet', scanOptions($val("'IconActive' => false, 'IconValue' => '', 'ColorActive' => true, 'ColorValue' => 255")), []);
+check("Gegenprobe: Hilfsfunktion enumOption ohne Token zählt als Aufzählung", scanOptions("function enumOption() { return ['Value' => 1, 'Caption' => 'x', 'Color' => -1]; }"), []);
 foreach ([
-    "'Icon' => ''"        => "'IconActive' => false, 'Icon' => ''",
-    "'ColorActive'"       => "'ColorActive' => false, 'Color' => -1",
-    "'ColorValue'"        => "'Color' => -1, 'ColorValue' => -1",
-    "'Foo'"               => "'IconActive' => false, 'Foo' => 1",
-] as $label => $extra) {
-    $bad = "['Value' => 1, 'Caption' => 'x', $extra]";
+    "Aufzählung mit 'Icon'"         => $enum("'IconActive' => false, 'Icon' => ''"),
+    "Aufzählung mit 'ColorActive'"  => $enum("'ColorActive' => false, 'Color' => -1"),
+    "Aufzählung mit 'ColorValue'"   => $enum("'Color' => -1, 'ColorValue' => -1"),
+    "Aufzählung mit 'Foo'"          => $enum("'IconActive' => false, 'Foo' => 1"),
+    "Wertanzeige mit 'Color'"       => $val("'IconActive' => false, 'Color' => 255"),
+    'Darstellung nicht bestimmbar'  => "function h() { return ['Value' => 1, 'Caption' => 'x']; }",
+] as $label => $bad) {
     check("Gegenprobe: $label wird erkannt", count(scanOptions($bad)) >= 1, true);
 }
 

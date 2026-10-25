@@ -2,6 +2,23 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.19.4] – Wertanzeigen mit gültigem Farbschlüssel
+
+### Behoben
+- **Ja/Nein-Wertanzeigen mit Ampelfarbe** (z. B. „Batterie schwach“ am Thermostat und die
+  Zusammenfassung im Raum) trugen in den OPTIONS den Schlüssel `Color`. Den kennt nur die
+  Aufzählung; die Wertanzeige (auch bei bool) erwartet `ColorActive` + `ColorValue`
+  (SUITE.md, Stolperstein 9, Korrektur 18.10.2026). Symcon 9.1 bricht sonst das Anlegen der
+  Instanz ab. Die Korrektur in 0.19.3 hatte pauschal auf `Color` umgestellt und damit die
+  Wertanzeigen getroffen. Bestandsinstallationen ziehen beim nächsten `ApplyChanges()` nach.
+- Aufzählungen geprüft: alle drei (Tastensperre, Aktion im Raum, Aktion in der Raumkachel)
+  haben eine Variablenaktion, wie es Symcon 9.0 verlangt (Stolperstein 9, Nachtrag 25.10.2026).
+
+### Prüfstand
+- `.tools/test-presentations.php` prüft die erlaubten Schlüssel jetzt je Darstellungsart
+  (Aufzählung: `Color`; Wertanzeige: `ColorActive`/`ColorValue`, nie `Color`) statt der
+  alten Pauschalregel. Gegenprobe: der Stand 0.19.3 fällt durch.
+
 ## [0.19.3] – Presentation-OPTIONS-Schlüssel korrigiert
 
 ### Behoben
