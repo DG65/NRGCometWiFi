@@ -88,7 +88,7 @@ Kodierung ist je Register verschieden und muss einzeln bestimmt werden.
 | `A3` | Optionen-Bitfeld — **vollständig entschlüsselt**, siehe unten | `#2182` | ✅ | App-Mitschnitt 05.08.2026, alle Bits beidseitig |
 | `A4` | unbekannt, zählt hoch | `#3B11010114` (5 Byte) | ❓ | Erste Bytes ändern sich im Minutentakt, die letzten drei sind bei allen Geräten gleich. Sah nach einer Geräteuhr aus — die Hersteller-App bietet aber gar keine Zeiteinstellung, und die Cloud sendet nie einen Zeit-Rundruf. Deutung offen. |
 | `A5` | Fenster-offen-Erkennung | `#040A`, `#800A` | 🟡 | Werte gesehen, Bedeutung offen — die App überträgt die Einstellung nur verzögert |
-| `A6` | Batteriestand in Prozent | `#5F` = 95 % | ✅ | live, 10 Geräte 05.08.2026; unteres Ende (`#00` = 0 %) am 03.11.2026 live bestätigt — Geräte-Display zeigte ebenfalls leere Batterie, keine Fehldekodierung |
+| `A6` | Batteriestand in Prozent | `#5F` = 95 % | ✅ | live, 10 Geräte 05.08.2026; unteres Ende am 03.11.2026: dekodierter Wert 0 % bei leerem Display bestätigt — Rohpayload dabei nicht mitgeschnitten, nur SetValue(0) und Display belegt; nach Batteriewechsel Voll-Dump um 23:06 => 90 % |
 | `A7` | Urlaubsmodus | — | 🟡 | Foren |
 | `A8`–`AE` | Wochenprogramm (7 Tage) | — | ❓ | Foren; Format nicht dekodiert |
 | `AF` | Antwort auf Datenabruf | `#0014` | 🟡 | live |
