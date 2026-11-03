@@ -2,6 +2,18 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.19.5] – Batteriewert bleibt nach dem Dekodieren nachvollziehbar
+
+### Hinzugefügt
+- `afterBatteryUpdate()` schreibt Rohwert und dekodierten Prozentwert von `A6` jetzt über
+  `$this->LogMessage()` ins Meldungsprotokoll. Anlass: Am 03.11.2026 meldete ein Thermostat
+  nach einem `#FFFFFFFF`-Voll-Dump einen Sprung von 60 % auf 0 %, ohne dass sich nachträglich
+  klären ließ, was das Gerät tatsächlich gesendet hatte — `A6` ist ein gedeutetes Register und
+  bekommt deshalb bewusst **keine** `RAW_*`-Variable (`dropStaleRaw()`), auch nicht mit
+  aktiviertem `RawRegisters`. Der empfangene Payload war damit nach dem `SetValue()`
+  unwiederbringlich weg, selbst mit offener Instanz und Zugriff auf das Live-System. Reine
+  Beobachtungsergänzung, keine Verhaltensänderung.
+
 ## [0.19.4] – Wertanzeigen mit gültigem Farbschlüssel
 
 ### Behoben

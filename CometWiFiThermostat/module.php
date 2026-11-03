@@ -578,6 +578,16 @@ class CometWiFiThermostat extends IPSModule
     /** Nachgelagerte Auswertung des Batteriewerts. */
     private function afterBatteryUpdate(int $percent, string $payload): void
     {
+        // A6 wird dekodiert und bekommt deshalb KEINE Rohwert-Variable (dropStaleRaw) —
+        // ohne diese Zeile ist der empfangene Payload nach dem SetValue() unwiederbringlich
+        // weg. Persistent statt SendDebug, weil die Konsole bei einem Vorfall selten offen
+        // ist: genau das fehlte, als am 03.11.2026 ein Sprung 60 % → 0 % nicht mehr
+        // nachvollzogen werden konnte.
+        $this->LogMessage(
+            'Batteriewert A6: Payload ' . $payload . ' -> ' . $percent . ' %',
+            KL_NOTIFY
+        );
+
         $this->SetValue(
             CWIFI_Registers::IDENT_BATTERY_LOW,
             $percent < $this->ReadPropertyInteger('BatteryLowThreshold')
