@@ -89,8 +89,8 @@ Kodierung ist je Register verschieden und muss einzeln bestimmt werden.
 | `A4` | unbekannt, zählt hoch | `#3B11010114` (5 Byte) | ❓ | Erste Bytes ändern sich im Minutentakt, die letzten drei sind bei allen Geräten gleich. Sah nach einer Geräteuhr aus — die Hersteller-App bietet aber gar keine Zeiteinstellung, und die Cloud sendet nie einen Zeit-Rundruf. Deutung offen. |
 | `A5` | Fenster-offen-Erkennung | `#040A`, `#800A` | 🟡 | Werte gesehen, Bedeutung offen — die App überträgt die Einstellung nur verzögert |
 | `A6` | Batteriestand in Prozent | `#5F` = 95 % | ✅ | live, 10 Geräte 05.08.2026; unteres Ende am 03.11.2026: dekodierter Wert 0 % bei leerem Display bestätigt — Rohpayload dabei nicht mitgeschnitten, nur SetValue(0) und Display belegt; nach Batteriewechsel Voll-Dump um 23:06 => 90 % |
-| `A7` | Urlaubsmodus | — | 🟡 | Foren |
-| `A8`–`AE` | Wochenprogramm (7 Tage) | — | ❓ | Foren; Format nicht dekodiert |
+| `A7` | Urlaubsmodus | `#0C1F071A0C10081A32` | ✅ | live, siehe Abschnitt „Urlaub A7" — lesen UND schreiben belegt 05./07.08.2026 |
+| `A8`–`AE` | Wochenprogramm (7 Tage) | — | ✅ | live, siehe Abschnitt „Wochenprogramm A8–AE" — lesen UND schreiben belegt 05./07.08.2026 |
 | `AF` | Antwort auf Datenabruf | `#0014` | 🟡 | live |
 | `B3` | WLAN-Signalstärke | `#-45` | ✅ | live |
 | `BB` | unbekannt | 3-Byte-Payload | ❓ | live 04.08.2026 |
@@ -405,7 +405,9 @@ Damit ist auch **Byte 2 der Registermaske** am Gerät belegt (`#00400000` liefer
 Exakt die im Zeitplan angezeigten Schaltzeiten. Ebenso `AD` (Samstag): `0xBEAC` → 762 → 7620
 min = 127 h = **Sa 07:00** bei 22,0 °C, `0xD524` → 852 → 142 h = **Sa 22:00** bei 18,0 °C.
 
-Das Modul liest den Plan nur. Schreiben wäre ein eigener Brocken mit Bedienoberfläche.
+Veraltet: Das Modul schreibt seit `SetScheduleDay()` (07.08.2026, siehe oben) auch — nur ohne
+eigene Bedienoberfläche im Formular, sondern als Skriptaufruf `CWIFI_SetScheduleDay($id,
+$Wochentag, "HH:MM=Temp;…")`.
 
 ### Urlaub A7 ✅
 
@@ -651,5 +653,7 @@ niemand die fremde Tabelle für gesichert hält, nur weil sie älter ist.
 - [Renesas DA16200 AT-Kommandos (UM-WI-003)](https://www.renesas.com/en/software-tool/da16200-wi-fi-command-set) — der WLAN-Chip der Geräte; die Client-ID beginnt mit `da16x`. Die Diagnoseregister `B6` (beginnt mit `00` = Schnittstelle WLAN0, wie bei `AT+NWIP`), `BA` und `BF` (`[WPA2-PSK-CCMP][ESS]` ist das Ausgabeformat von `AT+WFSCAN`) sehen nach durchgereichten Antworten dieses Chips aus.
 - [comet_wifi_integration (Home Assistant, GitHub)](https://github.com/marcinkordas/comet_wifi_integration)
 
-Die Register `A2`, `A3`, `A5`, `A7`, `A8`–`AE` stammen ausschließlich aus diesen Quellen
-(Stand 2023) und sind hier bewusst als 🟡/❓ geführt, bis sie am eigenen Gerät bestätigt sind.
+Die Register `A2`, `A3`, `A5`, `A7`, `A8`–`AE` stammten ursprünglich ausschließlich aus
+diesen Quellen (Stand 2023). Inzwischen am eigenen Gerät bestätigt: `A2`, `A3`, `A7`,
+`A8`–`AE` (siehe jeweiliger Abschnitt oben). Nur `A5` steht weiterhin auf 🟡, bis die
+Lüftungserkennung selbst gegengeprüft ist.
