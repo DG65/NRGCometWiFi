@@ -7,7 +7,7 @@
 [![Check Style](https://github.com/DG65/NRGCometWiFi/actions/workflows/check-style.yml/badge.svg)](https://github.com/DG65/NRGCometWiFi/actions/workflows/check-style.yml)
 [![PayPal](https://img.shields.io/badge/PayPal-Me-blue?logo=paypal)](https://paypal.me/DietmarGureth)
 
-Bindet **Eurotronic Comet WiFi** Heizkörperthermostate in IP-Symcon ein — ohne Umweg über die
+Bindet **Eurotronic Comet WiFi** Heizkörperthermostate in Symcon ein — ohne Umweg über die
 Hersteller-Cloud, aber ohne die Hersteller-App zu verlieren.
 
 Teil des **NRG-Stack**.
@@ -82,7 +82,7 @@ sonst zeigt die DNS-Umleitung die Bridge auf sich selbst zurück:
 `mqtt.eurotronic.io`, `mqtt1`, `mqtt2` und `mqtt3` auf die IP des eigenen Brokers. Danach die
 Thermostate einmal stromlos machen, damit sie den Namen neu auflösen.
 
-## Einrichtung in IP-Symcon
+## Einrichtung in Symcon
 
 1. **MQTT Client** (Kernmodul) anlegen, auf den eigenen Broker zeigen lassen, mit denselben
    Zugangsdaten. Die Client-ID darf **nicht** mit `da16x02…` beginnen, sonst wirft der Broker
