@@ -6,7 +6,10 @@
     "aliases": [
         "Comet WiFi Raumkachel",
         "NRG-Stack Comet WiFi Raumkachel",
-        "Thermostat einzeln"
+        "Thermostat einzeln",
+        "Comet WiFi Room Tile",
+        "NRG-Stack Comet WiFi Room Tile",
+        "Single thermostat"
     ],
     "url": "https://github.com/DG65/NRGCometWiFi",
     "parentRequirements": [],

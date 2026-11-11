@@ -19,6 +19,10 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/ips-stub.php';
 
+// Deutsch ist die Referenz (alle fünf locale.json sind gleich, das prüft test-sprachen.php);
+// die englischen Quelltexte prüft test-sprachen.php.
+IPSTestState::useLocale(__DIR__ . '/../CometWiFiThermostat');
+
 $failed = 0;
 $passed = 0;
 
@@ -458,6 +462,8 @@ foreach ($module as $praefix => $info) {
 }
 
 check('Es wurden ueberhaupt PopupButtons geprueft', $popups > 0, true);
+
+check('Jeder übersetzte Text steht in locale.json', array_keys(IPSTestState::$missing), []);
 
 /* ------------------------------------------------------------------ Ergebnis */
 

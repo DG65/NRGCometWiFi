@@ -16,6 +16,9 @@ declare(strict_types=1);
 require_once __DIR__ . '/ips-stub.php';
 require_once __DIR__ . '/../CometWiFiRoomTile/module.php';
 
+// Deutsch ist die Referenz; die englischen Quelltexte prüft test-sprachen.php.
+IPSTestState::useLocale(__DIR__ . '/../CometWiFiRoomTile');
+
 $failed = 0;
 $passed = 0;
 
@@ -150,10 +153,10 @@ check('Gelöschtes Gerät ergibt leere Nutzlast', json_decode(IPSTestState::$vis
 
 IPSTestState::reset();
 addThermostat(50, 'Bad', ['Temperature' => 20.0, 'Setpoint' => 28.5, 'Reachable' => true]);
-check('Oberer Endanschlag heißt An', payloadOf(makeTile(['DeviceID' => 50]))['endstop'], 'An');
+check('Oberer Endanschlag ist „on“', payloadOf(makeTile(['DeviceID' => 50]))['endstop'], 'on');
 
 SetValue(IPS_GetObjectIDByIdent('Setpoint', 50), 7.5);
-check('Unterer Endanschlag heißt Aus', payloadOf(makeTile(['DeviceID' => 50]))['endstop'], 'Aus');
+check('Unterer Endanschlag ist „off“', payloadOf(makeTile(['DeviceID' => 50]))['endstop'], 'off');
 
 SetValue(IPS_GetObjectIDByIdent('Setpoint', 50), 22.0);
 $payload = payloadOf(makeTile(['DeviceID' => 50]));
@@ -340,6 +343,8 @@ $leer = makeTile(['DeviceID' => 0]);
 $text = $leer->RequestUpdate();
 checkTrue('Ohne Geraet kein Haken', str_starts_with($text, '⚠️'));
 checkTrue('… und sagt, was zu tun ist', str_contains($text, 'Thermostat'));
+
+check('Jeder übersetzte Text steht in locale.json', array_keys(IPSTestState::$missing), []);
 
 /* ------------------------------------------------------------------ Ergebnis */
 

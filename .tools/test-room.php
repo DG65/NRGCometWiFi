@@ -337,6 +337,8 @@ checkTrue('Das Raummodul haelt keine eigene Kopie',
 checkTrue('Die Raumkachel haelt keine eigene Kopie',
     !is_file(__DIR__ . '/../CometWiFiRoomTile/module.html'));
 
+check('Jeder übersetzte Text steht in locale.json', array_keys(IPSTestState::$missing), []);
+
 /* ------------------------------------------------------------------ Ergebnis */
 
 

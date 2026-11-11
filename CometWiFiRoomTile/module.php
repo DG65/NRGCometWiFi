@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../.libs/CWIFI_Registers.php';
+require_once __DIR__ . '/../.libs/CWIFI_Text.php';
 
 /**
  * Ein Thermostat, groß dargestellt und bedienbar.
@@ -19,7 +20,7 @@ require_once __DIR__ . '/../.libs/CWIFI_Registers.php';
 class CometWiFiRoomTile extends IPSModule
 {
     /** Fassung des „Was ist Neu"-Panels — nur bei wichtigen Änderungen hochzählen. */
-    private const NEWS_VERSION   = '0.19';
+    private const NEWS_VERSION   = '0.20';
     private const ATTR_SEEN_NEWS = 'SeenNews';
 
     private const DEVICE_MODULE = '{0F552C16-D685-4C9F-86C0-8D89E4BFD158}';
@@ -103,22 +104,22 @@ class CometWiFiRoomTile extends IPSModule
     {
         // Reihenfolge = Anzeigereihenfolge in der aufgezogenen Ansicht.
         $wunsch = [
-            CWIFI_Registers::IDENT_TEMPERATURE  => ['Isttemperatur', 10],
-            CWIFI_Registers::IDENT_SETPOINT     => ['Solltemperatur', 20],
-            CWIFI_Registers::IDENT_MODE         => ['Betriebsart', 30],
-            CWIFI_Registers::IDENT_SCHEDULE     => ['Wochenprogramm', 40],
-            CWIFI_Registers::IDENT_HOLIDAY      => ['Urlaub aktiv', 50],
-            CWIFI_Registers::IDENT_HOLIDAY_FROM => ['Urlaub von', 51],
-            CWIFI_Registers::IDENT_HOLIDAY_TO   => ['Urlaub bis', 52],
-            CWIFI_Registers::IDENT_HOLIDAY_TEMP => ['Urlaubstemperatur', 53],
-            CWIFI_Registers::IDENT_BATTERY      => ['Batteriestand', 60],
-            CWIFI_Registers::IDENT_RSSI         => ['WLAN-Signalstärke', 61],
-            CWIFI_Registers::IDENT_CLOCK        => ['Geräteuhr', 70],
-            CWIFI_Registers::IDENT_CLOCK_DEV    => ['Uhrabweichung', 71],
-            CWIFI_Registers::IDENT_MODEL        => ['Modell', 80],
+            CWIFI_Registers::IDENT_TEMPERATURE  => ['Current temperature', 10],
+            CWIFI_Registers::IDENT_SETPOINT     => ['Target temperature', 20],
+            CWIFI_Registers::IDENT_MODE         => ['Operating mode', 30],
+            CWIFI_Registers::IDENT_SCHEDULE     => ['Weekly schedule', 40],
+            CWIFI_Registers::IDENT_HOLIDAY      => ['Holiday active', 50],
+            CWIFI_Registers::IDENT_HOLIDAY_FROM => ['Holiday from', 51],
+            CWIFI_Registers::IDENT_HOLIDAY_TO   => ['Holiday until', 52],
+            CWIFI_Registers::IDENT_HOLIDAY_TEMP => ['Holiday temperature', 53],
+            CWIFI_Registers::IDENT_BATTERY      => ['Battery level', 60],
+            CWIFI_Registers::IDENT_RSSI         => ['WiFi signal strength', 61],
+            CWIFI_Registers::IDENT_CLOCK        => ['Device clock', 70],
+            CWIFI_Registers::IDENT_CLOCK_DEV    => ['Clock deviation', 71],
+            CWIFI_Registers::IDENT_MODEL        => ['Model', 80],
             CWIFI_Registers::IDENT_FIRMWARE     => ['Firmware', 81],
-            CWIFI_Registers::IDENT_IP           => ['IP-Adresse', 82],
-            CWIFI_Registers::IDENT_GROUP        => ['Gruppe', 83]
+            CWIFI_Registers::IDENT_IP           => ['IP address', 82],
+            CWIFI_Registers::IDENT_GROUP        => ['Group', 83]
         ];
 
         $ziele = [];
@@ -152,7 +153,7 @@ class CometWiFiRoomTile extends IPSModule
                 IPS_SetParent($linkId, $this->InstanceID);
                 IPS_SetLinkTargetID($linkId, $ziel);
             }
-            IPS_SetName($linkId, $name);
+            IPS_SetName($linkId, $this->Translate($name));
             IPS_SetPosition($linkId, $position);
         }
     }
@@ -277,7 +278,7 @@ class CometWiFiRoomTile extends IPSModule
     {
         $device = $this->device();
         if ($device <= 0) {
-            return '⚠️  Kein Thermostat zugeordnet — bitte oben eine Geräteinstanz auswählen.';
+            return $this->Translate('⚠️  No thermostat assigned — please select a device instance above.');
         }
 
         // Über SendAction, nicht über CWIFI_RequestUpdate: Das liefert seit 0.19.0
@@ -286,11 +287,12 @@ class CometWiFiRoomTile extends IPSModule
         $this->UpdateVisualizationValue($this->buildPayload());
 
         if (!$ok) {
-            return '⚠️  Nicht gesendet. Prüfen Sie am Thermostat MAC-Adresse, MQTT-Benutzer '
-                . 'und ob der übergeordnete MQTT-Client aktiv ist.';
+            return $this->Translate('⚠️  Not sent. Check the MAC address and the MQTT user on the thermostat and whether the parent MQTT client is active.');
         }
-        return '✅  Temperaturen angefordert (' . date('H:i:s') . ' Uhr). Die Werte '
-            . 'erscheinen, sobald das Gerät antwortet — es schläft und meldet sich nicht sofort.';
+        return sprintf(
+            $this->Translate('✅  Temperatures requested (%s). The values appear as soon as the device answers — it sleeps and does not respond immediately.'),
+            date('H:i:s')
+        );
     }
 
 
@@ -304,7 +306,7 @@ class CometWiFiRoomTile extends IPSModule
     private function callDevice(string $funktion, int $instanceId, ...$argumente): bool
     {
         if (!function_exists($funktion)) {
-            $this->SendDebug('Kachel', 'Gerätemodul nicht geladen: ' . $funktion . ' fehlt', 0);
+            $this->SendDebug('Tile', 'Device module not loaded: ' . $funktion . ' is missing', 0);
             return false;
         }
         return (bool) $funktion($instanceId, ...$argumente);
@@ -331,8 +333,9 @@ class CometWiFiRoomTile extends IPSModule
     private function buildPayload(): string
     {
         $device = $this->device();
+        $t = $this->t();
         if ($device <= 0) {
-            return json_encode(['ok' => false]);
+            return json_encode(['ok' => false, 'texts' => CWIFI_Text::roomTileTexts($t)]);
         }
 
         $temp      = $this->valueOf($device, CWIFI_Registers::IDENT_TEMPERATURE);
@@ -347,6 +350,7 @@ class CometWiFiRoomTile extends IPSModule
 
         return json_encode([
             'ok'         => true,
+            'texts'      => CWIFI_Text::roomTileTexts($t),
             // Wird nicht als Überschrift gezeichnet — Symcon setzt den Instanznamen bereits
             // über die Kachel. Dient nur als Hinweistext beim Überfahren des Rings.
             'name'       => IPS_GetName($device),
@@ -370,7 +374,7 @@ class CometWiFiRoomTile extends IPSModule
             // Vorlage nicht raten muss.
             'mixed'      => false,
             'members'    => null,
-            'lastText'   => $last > 0 ? $this->ago($last) : null,
+            'lastText'   => $last > 0 ? CWIFI_Text::ago(time() - $last, $t, true) : null,
             'control'    => $this->ReadPropertyBoolean('AllowControl'),
             'details'    => $this->ReadPropertyBoolean('ShowDetails'),
             'minTemp'    => CWIFI_Registers::SETPOINT_OFF,
@@ -381,10 +385,10 @@ class CometWiFiRoomTile extends IPSModule
     private function endstopLabel(float $setpoint): ?string
     {
         if (abs($setpoint - CWIFI_Registers::SETPOINT_OFF) < 0.01) {
-            return 'Aus';
+            return 'off';
         }
         if (abs($setpoint - CWIFI_Registers::SETPOINT_ON) < 0.01) {
-            return 'An';
+            return 'on';
         }
         return null;
     }
@@ -404,27 +408,16 @@ class CometWiFiRoomTile extends IPSModule
         return (float) $setpoint > (float) $temp + 0.2;
     }
 
-    private function ago(int $timestamp): string
+    private function t(): callable
     {
-        $sekunden = time() - $timestamp;
-        if ($sekunden < 90) {
-            return 'gerade eben';
-        }
-        if ($sekunden < 5400) {
-            return 'vor ' . (int) round($sekunden / 60) . ' min';
-        }
-        if ($sekunden < 86400) {
-            $stunden = (int) round($sekunden / 3600);
-            return 'vor ' . $stunden . ($stunden === 1 ? ' Stunde' : ' Stunden');
-        }
-        $tage = (int) round($sekunden / 86400);
-        return 'vor ' . $tage . ($tage === 1 ? ' Tag' : ' Tagen');
+        return CWIFI_Text::translator(fn (string $text): string => $this->Translate($text));
     }
 
     /* ================================================================== Formular */
 
     public function GetConfigurationForm()
     {
+        // Die Konsole übersetzt caption/label/Optionen selbst (Store-Review, SUITE.md Punkt 25).
         $form = json_decode(file_get_contents(__DIR__ . '/form.json'), true);
 
         $banner = $this->newsBanner();
@@ -434,8 +427,8 @@ class CometWiFiRoomTile extends IPSModule
 
         $device = $this->device();
         $text   = $device > 0
-            ? '✅  Zugeordnet: ' . IPS_GetName($device)
-            : '⚠️  Noch kein Thermostat ausgewählt — die Kachel bleibt leer.';
+            ? sprintf($this->Translate('✅  Assigned: %s'), IPS_GetName($device))
+            : $this->Translate('⚠️  No thermostat selected yet — the tile stays empty.');
 
         foreach ($form['elements'] as &$element) {
             foreach ($element['items'] ?? [] as &$item) {
@@ -468,16 +461,15 @@ class CometWiFiRoomTile extends IPSModule
         return [
             'type'     => 'ExpansionPanel',
             'name'     => 'NewsPanel',
-            'caption'  => '🆕  Neu in Version ' . self::NEWS_VERSION,
+            'caption'  => sprintf($this->Translate('🆕  New in version %s'), self::NEWS_VERSION),
             'expanded' => true,
             'items'    => [
-                ['type' => 'Label', 'caption' => '• **„Jetzt aktualisieren" meldet sich.** Mit Uhrzeit und dem ausdrücklichen Hinweis, dass die Werte erst erscheinen, sobald das schlafende Gerät antwortet.'],
-                ['type' => 'Label', 'caption' => '• Ist kein Thermostat zugeordnet, steht das jetzt da — statt dass der Knopf wortlos nichts tut.'],
-                ['type' => 'Label', 'caption' => '• ⚠️ **Für eigene Skripte:** `CWIFIR_RequestUpdate` liefert jetzt Text statt `true`/`false`.'],
+                ['type' => 'Label', 'caption' => $this->Translate('• **Now available in German and English.** All texts follow the Symcon language setting; German remains the reference.')],
+                ['type' => 'Label', 'caption' => $this->Translate('• Nothing changes for existing instances: settings, identifiers and functions stay as they are — only the displayed texts depend on the language.')],
 
                 [
                     'type'    => 'Button',
-                    'caption' => 'Verstanden – nicht mehr anzeigen',
+                    'caption' => $this->Translate('Understood – do not show again'),
                     'onClick' => 'CWIFIR_AckNews($id);'
                 ]
             ]

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../.libs/CWIFI_Topics.php';
 require_once __DIR__ . '/../.libs/CWIFI_Registers.php';
+require_once __DIR__ . '/../.libs/CWIFI_Text.php';
 require_once __DIR__ . '/../.libs/CWIFI_MQTT.php';
 
 /**
@@ -21,7 +22,7 @@ class CometWiFiConfigurator extends IPSModule
     /** GUID des Geräte-Moduls — muss zur module.json des Thermostats passen. */
     private const GUID_THERMOSTAT = '{0F552C16-D685-4C9F-86C0-8D89E4BFD158}';
 
-    private const NEWS_VERSION = '0.19';
+    private const NEWS_VERSION = '0.20';
 
     private const ATTR_SEEN_NEWS = 'SeenNews';
     private const ATTR_LAST_DISCOVERY = 'LastDiscoveryTs';
@@ -69,7 +70,7 @@ class CometWiFiConfigurator extends IPSModule
 
         // Anders als beim Gerät bewusst OHNE MAC: Wir wollen alle Geräte dieses Kontos sehen.
         $this->SetReceiveDataFilter(CWIFI_Topics::receiveFilter($user));
-        $this->SendDebug('Empfangsfilter', 'auf Kontokennung ' . $user, 0);
+        $this->SendDebug('Receive filter', 'for account ID ' . $user, 0);
 
         // Gesammeltes wird im Arbeitsspeicher gehalten und nur gelegentlich weggeschrieben —
         // ein Attributschreiben je Nachricht wäre bei mehreren Geräten ein Dauerfeuer.
@@ -126,7 +127,7 @@ class CometWiFiConfigurator extends IPSModule
         $isNew = !isset($devices[$mac]);
         if ($isNew) {
             $devices[$mac] = ['FirstSeen' => $now, 'Registers' => []];
-            $this->SendDebug('Neues Gerät', CWIFI_Topics::formatMac($mac), 0);
+            $this->SendDebug('New device', CWIFI_Topics::formatMac($mac), 0);
         }
         $devices[$mac]['LastSeen'] = $now;
         // Nicht nur beim ersten Fund: Die Kopfzeile soll sagen, wann zuletzt ÜBERHAUPT
@@ -185,6 +186,7 @@ class CometWiFiConfigurator extends IPSModule
 
     public function GetConfigurationForm()
     {
+        // Die Konsole übersetzt caption/label/Optionen selbst (Store-Review, SUITE.md Punkt 25).
         $form = json_decode(file_get_contents(__DIR__ . '/form.json'), true);
 
         $this->flushDevices();
@@ -232,15 +234,18 @@ class CometWiFiConfigurator extends IPSModule
         $zuletzt = $this->ReadAttributeInteger(self::ATTR_LAST_DISCOVERY);
 
         if ($zuletzt === 0) {
-            return 'ℹ️  Noch kein Thermostat gehört — die Geräte melden sich von selbst.';
+            return $this->Translate('ℹ️  No thermostat heard yet — the devices report in on their own.');
         }
         $zeit = date('H:i:s', $zuletzt);
 
         if ($anzahl === 0) {
-            return '⚠️  0 Thermostate in der Liste (zuletzt ' . $zeit . ' Uhr).';
+            return sprintf($this->Translate('⚠️  0 thermostats in the list (last at %s).'), $zeit);
         }
-        return sprintf('✅  %d %s gefunden (zuletzt %s Uhr).',
-            $anzahl, $anzahl === 1 ? 'Thermostat' : 'Thermostate', $zeit);
+        return sprintf(
+            $this->Translate($anzahl === 1 ? '✅  %d thermostat found (last at %s).' : '✅  %d thermostats found (last at %s).'),
+            $anzahl,
+            $zeit
+        );
     }
 
     /** Baut die Zeilen der Fundliste. */
@@ -250,6 +255,7 @@ class CometWiFiConfigurator extends IPSModule
         $user    = trim($this->ReadPropertyString('MQTTUser'));
         $prefix  = $this->ReadPropertyString('TopicPrefix');
         $cutoff  = time() - max(1, $this->ReadPropertyInteger('RetentionHours')) * 3600;
+        $dateFormat = $this->Translate('Y-m-d H:i');
 
         $rows = [];
         foreach ($devices as $mac => $data) {
@@ -267,7 +273,7 @@ class CometWiFiConfigurator extends IPSModule
                 'SetpointText'    => $this->formatNumber($data, CWIFI_Registers::IDENT_SETPOINT, ' °C', 1),
                 'BatteryText'     => $this->formatNumber($data, CWIFI_Registers::IDENT_BATTERY, ' %', 0),
                 'RSSIText'        => $this->formatNumber($data, CWIFI_Registers::IDENT_RSSI, ' dBm', 0),
-                'LastSeenText'    => date('d.m.Y H:i', (int) ($data['LastSeen'] ?? 0)),
+                'LastSeenText'    => date($dateFormat, (int) ($data['LastSeen'] ?? 0)),
                 'instanceID'      => $instanceId,
                 'create'          => [
                     'moduleID'      => self::GUID_THERMOSTAT,
@@ -328,16 +334,19 @@ class CometWiFiConfigurator extends IPSModule
 
         $this->SetBuffer(self::BUFFER_DEVICES, '{}');
         $this->WriteAttributeString(self::ATTR_DEVICES, '{}');
-        $this->SendDebug('Fundliste', 'geleert', 0);
+        $this->SendDebug('Device list', 'cleared', 0);
         $this->refreshStatus();
         $this->refreshOpenForm();
 
         if ($vorher === 0) {
-            return 'ℹ️  Die Liste war bereits leer.';
+            return $this->Translate('ℹ️  The list was already empty.');
         }
-        return '✅  ' . $vorher . ' ' . ($vorher === 1 ? 'Eintrag' : 'Einträge')
-            . ' verworfen. Angelegte Instanzen bleiben unberührt; die Geräte erscheinen '
-            . 'wieder, sobald sie das nächste Mal senden.';
+        return sprintf(
+            $this->Translate($vorher === 1
+                ? '✅  %d entry discarded. Instances that have been created are not affected; the devices reappear as soon as they next send something.'
+                : '✅  %d entries discarded. Instances that have been created are not affected; the devices reappear as soon as they next send something.'),
+            $vorher
+        );
     }
 
     /** Schreibt den Arbeitsstand ins Attribut (Timer, überlebt den Neustart). */
@@ -440,16 +449,15 @@ class CometWiFiConfigurator extends IPSModule
         return [
             'type'     => 'ExpansionPanel',
             'name'     => 'NewsPanel',
-            'caption'  => '🆕  Neu in Version ' . self::NEWS_VERSION,
+            'caption'  => sprintf($this->Translate('🆕  New in version %s'), self::NEWS_VERSION),
             'expanded' => true,
             'items'    => [
-                ['type' => 'Label', 'caption' => '• **Die Kopfzeile bleibt im offenen Formular aktuell.** Bisher fror sie beim Öffnen ein und nannte trotzdem eine Uhrzeit — sie behauptete also eine Aktualität, die sie nicht hatte. Kopfzeile und Fundliste werden jetzt gemeinsam nachgezogen.'],
-                ['type' => 'Label', 'caption' => '• **„Liste leeren" meldet, wie viele Einträge verworfen wurden** — und dass angelegte Instanzen unberührt bleiben.'],
-                ['type' => 'Label', 'caption' => '• ⚠️ **Für eigene Skripte:** `CWIFIC_ClearDiscovery` liefert jetzt Text statt gar nichts.'],
+                ['type' => 'Label', 'caption' => $this->Translate('• **Now available in German and English.** All texts follow the Symcon language setting; German remains the reference.')],
+                ['type' => 'Label', 'caption' => $this->Translate('• Nothing changes for existing instances: settings, identifiers and functions stay as they are — only the displayed texts depend on the language.')],
 
                 [
                     'type'    => 'Button',
-                    'caption' => 'Verstanden – nicht mehr anzeigen',
+                    'caption' => $this->Translate('Understood – do not show again'),
                     'onClick' => 'CWIFIC_AckNews($id);'
                 ]
             ]

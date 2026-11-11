@@ -3,20 +3,20 @@
         {
             "type": "ExpansionPanel",
             "name": "DocsPanel",
-            "caption": "📖  Dokumentation & Hilfe",
+            "caption": "📖  Documentation & help",
             "expanded": false,
             "items": [
                 {
                     "type": "Label",
-                    "caption": "Diese Kachel zeigt alle Comet-WiFi-Thermostate auf einen Blick. Sie sucht sich die Geräte selbst — neue Thermostate erscheinen ohne weiteres Zutun, gelöschte verschwinden."
+                    "caption": "This tile shows all Comet WiFi thermostats at a glance. It finds the devices on its own — new thermostats appear without further action, deleted ones disappear."
                 },
                 {
                     "type": "Label",
-                    "caption": "Die Kachel liest ausschließlich die Variablen der Geräteinstanzen und steuert über deren Funktionen. Sie hat keine eigene MQTT-Verbindung; ein Fehler hier kann die Anbindung der Geräte nicht beeinträchtigen."
+                    "caption": "The tile only reads the variables of the device instances and controls through their functions. It has no MQTT connection of its own; a fault here cannot affect the connection of the devices."
                 },
                 {
                     "type": "Label",
-                    "caption": "„Aus\" und „An\" sind die Endanschläge des Geräts (Ventil zu bzw. auf) und werden benannt statt als Temperatur angezeigt."
+                    "caption": "\"Off\" and \"On\" are the device's end stops (valve closed or open) and are named rather than shown as a temperature."
                 }
             ]
         },
@@ -27,21 +27,21 @@
         },
         {
             "type": "ExpansionPanel",
-            "caption": "🎛️  Anzeige",
+            "caption": "🎛️  Display",
             "expanded": true,
             "items": [
                 {
                     "type": "Select",
                     "name": "SortMode",
-                    "caption": "Reihenfolge",
+                    "caption": "Order",
                     "width": "260px",
                     "options": [
                         {
-                            "caption": "Nach Name",
+                            "caption": "By name",
                             "value": "name"
                         },
                         {
-                            "caption": "Nach Isttemperatur (wärmster zuerst)",
+                            "caption": "By current temperature (warmest first)",
                             "value": "temperature"
                         }
                     ]
@@ -49,26 +49,26 @@
                 {
                     "type": "CheckBox",
                     "name": "ShowBattery",
-                    "caption": "Batteriestand anzeigen"
+                    "caption": "Show battery level"
                 },
                 {
                     "type": "CheckBox",
                     "name": "ShowSignal",
-                    "caption": "WLAN-Signalstärke anzeigen"
+                    "caption": "Show Wi-Fi signal strength"
                 },
                 {
                     "type": "CheckBox",
                     "name": "ShowOffline",
-                    "caption": "Nicht erreichbare Geräte anzeigen"
+                    "caption": "Show unreachable devices"
                 },
                 {
                     "type": "Label",
-                    "caption": "Ausgeblendete Geräte fallen nicht auf, wenn sie ausfallen — deshalb sind sie ab Werk sichtbar."
+                    "caption": "Hidden devices go unnoticed when they fail — that is why they are visible by default."
                 },
                 {
                     "type": "NumberSpinner",
                     "name": "BatteryWarnBelow",
-                    "caption": "Batterie hervorheben unter … %",
+                    "caption": "Highlight battery below … %",
                     "suffix": "%",
                     "minimum": 0,
                     "maximum": 100,
@@ -77,7 +77,7 @@
                 {
                     "type": "NumberSpinner",
                     "name": "ClockWarnMinutes",
-                    "caption": "Geräteuhr melden ab Abweichung",
+                    "caption": "Report device clock from a deviation of",
                     "suffix": "min",
                     "minimum": 0,
                     "maximum": 720,
@@ -85,48 +85,48 @@
                 },
                 {
                     "type": "Label",
-                    "caption": "Das Wochenprogramm läuft im Thermostat. Geht dessen Uhr falsch, verschiebt sich jeder Schaltpunkt um dieselbe Spanne. 0 schaltet den Hinweis ab."
+                    "caption": "The weekly schedule runs in the thermostat. If its clock is wrong, every switching point is shifted by the same amount. 0 switches the warning off."
                 }
             ]
         },
         {
             "type": "ExpansionPanel",
-            "caption": "🎚️  Bedienung",
+            "caption": "🎚️  Operation",
             "expanded": true,
             "items": [
                 {
                     "type": "CheckBox",
                     "name": "AllowControl",
-                    "caption": "Solltemperatur in der Kachel verstellbar"
+                    "caption": "Target temperature adjustable in the tile"
                 },
                 {
                     "type": "Label",
-                    "caption": "Verstellt wird in Halbgrad-Schritten über die Geräteinstanz. Damit gilt auch hier die Umschaltung auf Handbetrieb, sofern dort eingeschaltet — sonst überschriebe das Wochenprogramm den Wert beim nächsten Schaltpunkt."
+                    "caption": "Adjustment is done in half-degree steps via the device instance. This means the switch to manual mode also applies here, if switched on there — otherwise the weekly schedule would overwrite the value at the next switching point."
                 }
             ]
         },
         {
             "type": "ExpansionPanel",
-            "caption": "🔧  Wartung",
+            "caption": "🔧  Maintenance",
             "expanded": false,
             "items": [
                 {
                     "type": "Label",
-                    "caption": "Nach einem Modul-Update übernimmt Symcon die Einstellungen einer Instanz nicht immer von selbst. Sonst hilft nur, im Formular etwas zu ändern und wieder zurückzustellen — nur dann wird „Übernehmen“ überhaupt anklickbar. Dieser Knopf spart das."
+                    "caption": "After a module update, Symcon does not always apply an instance's settings by itself. The only other way is to change something in the form and change it back — only then does \"Apply\" become clickable at all. This button saves you that."
                 },
                 {
                     "type": "Label",
-                    "caption": "⚠️  Wirkt auf die gespeicherten Einstellungen. Was Sie oben geändert, aber noch nicht übernommen haben, geht dabei verloren."
+                    "caption": "⚠️  Acts on the saved settings. Anything you changed above but have not applied yet is lost."
                 },
                 {
                     "type": "Label",
-                    "caption": "Für die Geräte ist das unbedenklich: Das Übernehmen sendet nichts und weckt damit keine Batterie."
+                    "caption": "This is harmless for the devices: applying sends nothing and therefore does not wake any battery."
                 },
                 {
                     "type": "Button",
-                    "caption": "🔄  Übernehmen erzwingen (ohne Formularänderung)",
-                    "confirm": "Die gespeicherten Einstellungen dieser Instanz jetzt neu übernehmen?",
-                    "onClick": "IPS_ApplyChanges($id); echo '✅  Einstellungen übernommen (' . date('H:i:s') . ' Uhr).';"
+                    "caption": "🔄  Force apply (without a form change)",
+                    "confirm": "Apply this instance's saved settings again now?",
+                    "onClick": "IPS_ApplyChanges($id); echo '✅  ApplyChanges() ' . date('H:i:s');"
                 }
             ]
         }
@@ -136,7 +136,7 @@
         {
             "code": 201,
             "icon": "inactive",
-            "caption": "Noch kein Comet-WiFi-Thermostat vorhanden – die Kachel bleibt leer, bis eine Geräteinstanz angelegt ist."
+            "caption": "No Comet WiFi thermostat yet – the tile stays empty until a device instance has been created."
         }
     ]
 }

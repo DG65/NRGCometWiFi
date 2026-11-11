@@ -2,6 +2,30 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.20.0] – Zweisprachig: Deutsch und Englisch
+
+### Hinzugefügt
+- **Alle sichtbaren Texte in Deutsch und Englisch** (Auftrag Dietmar 05.11.2026, SUITE.md
+  Konventionen Punkt 9): Formulare, Meldungen, Variablen-/Linknamen, Kacheln, News-Panels,
+  `README.en.md`. Quelltexte stehen englisch in Code und `form.json`, die deutsche Fassung in
+  `.libs/locale.json` (`php .tools/locale-bauen.php` kopiert sie in alle fünf Modulordner).
+  Das deutsche Formular ist Byte für Byte das bisherige.
+- Kacheln (Übersicht, Raumkachel, Raum) bekommen ihre Texte übersetzt mit der Nutzlast
+  (`texts`); der Browser übersetzt nichts. Ein Wechsel der Symcon-Sprache wird erkannt.
+  Symcon wird je Text höchstens einmal je Prozess gefragt (`.libs/CWIFI_Text.php`,
+  SUITE.md Stolperstein 24).
+- Englische Alias-Namen in den `module.json` für die Modulsuche.
+- Prüfstand `.tools/test-sprachen.php` (Tabelle gegen Code, Platzhalter, deutsche Reste im
+  englischen Formular, Ausweichschreibweisen); die übrigen Prüfstände melden jede
+  Translate()-Lücke.
+
+### Geändert
+- Formular-Wartungsknopf „Übernehmen erzwingen“ meldet sprachneutral `ApplyChanges() HH:MM:SS`.
+- Endanschläge der Kacheln heißen in der Nutzlast `on`/`off` statt „An“/„Aus“.
+- Kennungen (Idents, Properties, Funktionsnamen, Formularnamen) unverändert.
+- Wochenprogramm-, Gruppen- und Geräteauskunft-Texte entstehen in der Sprache, die beim
+  Empfang gilt; bereits gespeicherte Werte bleiben bis zur nächsten Meldung in der alten Sprache.
+
 ## [0.19.5] – Batteriewert bleibt nach dem Dekodieren nachvollziehbar
 
 ### Hinzugefügt

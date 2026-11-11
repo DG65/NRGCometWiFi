@@ -5,7 +5,9 @@
     "vendor": "Eurotronic",
     "aliases": [
         "Comet WiFi Konfigurator",
-        "NRG-Stack Comet WiFi Konfigurator"
+        "NRG-Stack Comet WiFi Konfigurator",
+        "Comet WiFi Configurator",
+        "NRG-Stack Comet WiFi Configurator"
     ],
     "parentRequirements": [
         "{043EA491-0325-4ADD-8FC2-A30C8EEB4D3F}"

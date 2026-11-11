@@ -35,7 +35,7 @@ trait CWIFI_MQTT
     private function sendMQTT(string $topic, string $payload, int $qos = 0, bool $retain = false): bool
     {
         if (!$this->HasActiveParent()) {
-            $this->reportSendFailure($topic, 'keine aktive MQTT-Instanz darüber');
+            $this->reportSendFailure($topic, 'no active MQTT instance above');
             return false;
         }
 
@@ -53,7 +53,7 @@ trait CWIFI_MQTT
 
         $result = $this->SendDataToParent($json);
         if ($result === false) {
-            $this->reportSendFailure($topic, 'die übergeordnete MQTT-Instanz hat das Paket abgelehnt');
+            $this->reportSendFailure($topic, 'the parent MQTT instance rejected the packet');
             return false;
         }
         return true;
@@ -69,8 +69,8 @@ trait CWIFI_MQTT
      */
     private function reportSendFailure(string $topic, string $reason): void
     {
-        $message = 'Senden fehlgeschlagen (' . $topic . '): ' . $reason;
-        $this->SendDebug('sendMQTT Fehler', $message, 0);
+        $message = sprintf($this->Translate('Sending failed (%s): %s'), $topic, $this->Translate($reason));
+        $this->SendDebug('sendMQTT error', $message, 0);
         $this->LogMessage($message, KL_ERROR);
     }
 

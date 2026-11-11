@@ -11,6 +11,9 @@ declare(strict_types=1);
 require_once __DIR__ . '/ips-stub.php';
 require_once __DIR__ . '/../CometWiFiConfigurator/module.php';
 
+// Deutsch ist die Referenz; die englischen Quelltexte prüft test-sprachen.php.
+IPSTestState::useLocale(__DIR__ . '/../CometWiFiConfigurator');
+
 $failed = 0;
 $passed = 0;
 
@@ -408,6 +411,8 @@ checkTrue('Kopfzeile nennt dieselbe Anzahl',
 $cfg = makeConfigurator();
 deliver($cfg, '02/' . USER . '/' . MAC_A . '/S/A0', '#2C');
 checkTrue('Kommando frischt das Formular nicht auf', $cfg->formFieldUpdates === []);
+
+check('Jeder übersetzte Text steht in locale.json', array_keys(IPSTestState::$missing), []);
 
 /* ------------------------------------------------------------------ Ergebnis */
 

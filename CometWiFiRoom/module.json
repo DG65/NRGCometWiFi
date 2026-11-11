@@ -6,7 +6,10 @@
     "aliases": [
         "Comet WiFi Raum",
         "NRG-Stack Comet WiFi Raum",
-        "Thermostatgruppe"
+        "Thermostatgruppe",
+        "Comet WiFi Room",
+        "NRG-Stack Comet WiFi Room",
+        "Thermostat group"
     ],
     "url": "https://github.com/DG65/NRGCometWiFi",
     "parentRequirements": [],

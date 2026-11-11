@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../.libs/CWIFI_Topics.php';
 require_once __DIR__ . '/../.libs/CWIFI_Registers.php';
+require_once __DIR__ . '/../.libs/CWIFI_Text.php';
 require_once __DIR__ . '/../.libs/CWIFI_MQTT.php';
 
 /**
@@ -20,7 +21,7 @@ class CometWiFiThermostat extends IPSModule
     use CWIFI_MQTT;
 
     /** Inhaltsversion des „Neu in Version"-Panels — nicht die Modulversion. */
-    private const NEWS_VERSION = '0.19';
+    private const NEWS_VERSION = '0.20';
 
     private const ATTR_SEEN_NEWS  = 'SeenNews';
     private const ATTR_HINT_GONE  = 'ReviewHintDismissed';
@@ -114,7 +115,7 @@ class CometWiFiThermostat extends IPSModule
 
         $base = CWIFI_Topics::base($this->ReadPropertyString('TopicPrefix'), $user, $mac);
         $this->SetReceiveDataFilter(CWIFI_Topics::receiveFilter($mac));
-        $this->SendDebug('Empfangsfilter', 'auf MAC ' . $mac . ', erwartetes Topic ' . $base . '/…', 0);
+        $this->SendDebug('Receive filter', 'for MAC ' . $mac . ', expected topic ' . $base . '/…', 0);
 
         $this->applyTimers($mac);
 
@@ -160,12 +161,12 @@ class CometWiFiThermostat extends IPSModule
                 // zurückgespiegelte eigene Publish oder ein Befehl aus der Hersteller-App.
                 // Als Zustand gewertet würde der eigene Echo einen Wert bestätigen, den das
                 // Gerät möglicherweise nie gesehen hat.
-                $this->SendDebug('Kommando gesehen', $register . ' = ' . $payload, 0);
+                $this->SendDebug('Command seen', $register . ' = ' . $payload, 0);
                 break;
 
             default:
                 // G/ (Gruppensync) und alles Weitere: nur beobachten.
-                $this->SendDebug('Sonstiges Topic', $direction . '/' . $register . ' = ' . $payload, 0);
+                $this->SendDebug('Other topic', $direction . '/' . $register . ' = ' . $payload, 0);
                 break;
         }
 
@@ -182,13 +183,13 @@ class CometWiFiThermostat extends IPSModule
             if ($payload === CWIFI_Registers::PAYLOAD_COMM_LOSS) {
                 $this->SetValue(CWIFI_Registers::IDENT_REACHABLE, false);
                 $this->SetStatus(204);
-                $this->SendDebug('Verbindung', 'Gerät hat sich abgemeldet (COMM-LOSS)', 0);
+                $this->SendDebug('Connection', 'Device has logged off (COMM-LOSS)', 0);
                 $this->scheduleProbe();
                 return;
             }
             if ($payload === CWIFI_Registers::PAYLOAD_COMM_TEST) {
                 $this->markAlive();
-                $this->SendDebug('Verbindung', 'Verbindungstest des Geräts', 0);
+                $this->SendDebug('Connection', 'Connection test from the device', 0);
                 return;
             }
         }
@@ -246,7 +247,7 @@ class CometWiFiThermostat extends IPSModule
             $this->ReadPropertyInteger('BatteryDecode')
         );
         if ($value === null) {
-            $this->SendDebug('Unlesbar', $register . ' = ' . $payload, 0);
+            $this->SendDebug('Unreadable', $register . ' = ' . $payload, 0);
             return;
         }
 
@@ -265,7 +266,7 @@ class CometWiFiThermostat extends IPSModule
     {
         $options = CWIFI_Registers::decodeOptions($payload);
         if ($options === null) {
-            $this->SendDebug('Optionen unlesbar', $payload, 0);
+            $this->SendDebug('Options unreadable', $payload, 0);
             return;
         }
         $this->SetValue(CWIFI_Registers::IDENT_MODE, (bool) ($options & CWIFI_Registers::OPT_MANUAL));
@@ -306,10 +307,13 @@ class CometWiFiThermostat extends IPSModule
             $days = [];
         }
         $points = CWIFI_Registers::decodeSchedule($payload, $weekday);
-        $days[$weekday] = CWIFI_Registers::scheduleToText($points);
+        $days[$weekday] = CWIFI_Registers::scheduleToText($points, fn (string $text): string => $this->Translate($text));
         $this->SetBuffer(self::BUFFER_SCHEDULE, json_encode($days));
 
-        $namen = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'];
+        $namen = array_map(
+            fn (string $name): string => $this->Translate($name),
+            ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+        );
         $zeilen = [];
         foreach ($namen as $i => $name) {
             $zeilen[] = $name . ': ' . ($days[$i] ?? '–');
@@ -356,7 +360,7 @@ class CometWiFiThermostat extends IPSModule
     {
         $clock = CWIFI_Registers::decodeClock($payload);
         if ($clock === null) {
-            $this->SendDebug('Geräteuhr', 'nicht lesbar: ' . $payload, 0);
+            $this->SendDebug('Device clock', 'not readable: ' . $payload, 0);
             $this->handleUnknownRegister(CWIFI_Registers::REG_CLOCK, $payload);
             return;
         }
@@ -390,8 +394,8 @@ class CometWiFiThermostat extends IPSModule
 
         if ($this->clockOffLimits()) {
             $this->SendDebug(
-                'Geräteuhr',
-                sprintf('%02d:%02d — %+d min gegenüber Symcon. Das Wochenprogramm schaltet entsprechend versetzt.',
+                'Device clock',
+                sprintf('%02d:%02d — %+d min compared with Symcon. The weekly schedule switches correspondingly offset.',
                     $clock['hour'], $clock['minute'], $clock['deviation']),
                 0
             );
@@ -419,12 +423,12 @@ class CometWiFiThermostat extends IPSModule
 
         $eigene = CWIFI_Topics::normalizeMac($this->ReadPropertyString('MAC'));
         if ($kopf === $eigene) {
-            return 'Gruppenkopf';
+            return $this->Translate('Group head');
         }
 
         foreach (IPS_GetInstanceListByModuleID(self::MODULE_GUID) as $id) {
             if (CWIFI_Topics::normalizeMac((string) IPS_GetProperty($id, 'MAC')) === $kopf) {
-                return 'Gruppe mit ' . IPS_GetName($id);
+                return sprintf($this->Translate('Group with %s'), IPS_GetName($id));
             }
         }
         return $text;
@@ -442,14 +446,14 @@ class CometWiFiThermostat extends IPSModule
     {
         [$ident, $quelle] = CWIFI_Registers::INFO_REGISTERS[$register];
 
-        $text = CWIFI_Registers::decodeInfo($register, $payload);
+        $text = CWIFI_Registers::decodeInfo($register, $payload, fn (string $text): string => $this->Translate($text));
         if ($register === CWIFI_Registers::REG_GROUP && $text !== null) {
             $text = $this->namedGroup($payload, $text);
         }
         if ($text === null) {
             // Lässt sich das Register wider Erwarten nicht lesen, geht es in den Rohpfad,
             // statt eine leere oder verstümmelte Auskunft anzuzeigen.
-            $this->SendDebug('Geräteauskunft', $register . ' nicht lesbar: ' . $payload, 0);
+            $this->SendDebug('Device information', $register . ' not readable: ' . $payload, 0);
             $this->handleUnknownRegister($register, $payload);
             return;
         }
@@ -472,7 +476,7 @@ class CometWiFiThermostat extends IPSModule
         $reg = strtoupper($register);
 
         if ($this->ReadPropertyBoolean('DebugUnknown')) {
-            $this->SendDebug('Unbekanntes Register', $reg . ' = ' . $payload, 0);
+            $this->SendDebug('Unknown register', $reg . ' = ' . $payload, 0);
         }
         if (!$this->ReadPropertyBoolean('RawRegisters')) {
             return;
@@ -567,8 +571,8 @@ class CometWiFiThermostat extends IPSModule
         }
         if (abs(floatval($wanted) - $reported) > 0.01) {
             $this->SendDebug(
-                'Sollwert nicht übernommen',
-                sprintf('gesendet %.1f °C, gemeldet %.1f °C', floatval($wanted), $reported),
+                'Setpoint not applied',
+                sprintf('sent %.1f °C, reported %.1f °C', floatval($wanted), $reported),
                 0
             );
         }
@@ -584,7 +588,7 @@ class CometWiFiThermostat extends IPSModule
         // ist: genau das fehlte, als am 03.11.2026 ein Sprung 60 % → 0 % nicht mehr
         // nachvollzogen werden konnte.
         $this->LogMessage(
-            'Batteriewert A6: Payload ' . $payload . ' -> ' . $percent . ' %',
+            sprintf($this->Translate('Battery value A6: payload %s -> %d %%'), $payload, $percent),
             KL_NOTIFY
         );
 
@@ -597,9 +601,9 @@ class CometWiFiThermostat extends IPSModule
         if ($this->ReadPropertyInteger('BatteryDecode') === CWIFI_Registers::BATTERY_DECIMAL
             && CWIFI_Registers::provesHexBattery($payload)) {
             $this->SendDebug(
-                'Batterie-Kodierung',
-                'Payload ' . $payload . ' enthält A–F und kann keine Dezimalzahl sein. '
-                . 'Einstellung „Batteriewert lesen als" auf Hexadezimal umstellen.',
+                'Battery encoding',
+                'Payload ' . $payload . ' contains A–F and cannot be a decimal number. '
+                . 'Switch the setting "Read battery value as" to hexadecimal.',
                 0
             );
         }
@@ -734,7 +738,7 @@ class CometWiFiThermostat extends IPSModule
     public function SetHoliday(int $From, int $Until, float $Temperature): bool
     {
         if ($Until <= $From) {
-            $this->SendDebug('SetHoliday', 'Ende liegt nicht nach dem Beginn', 0);
+            $this->SendDebug('SetHoliday', 'End is not after the start', 0);
             return false;
         }
         $topic = $this->topicFor(CWIFI_Registers::REG_HOLIDAY);
@@ -769,7 +773,7 @@ class CometWiFiThermostat extends IPSModule
      */
     public function SetClock(): string
     {
-        return $this->actionReport($this->sendClock(), 'Uhrzeit an das Gerät gesendet');
+        return $this->actionReport($this->sendClock(), 'Time sent to the device');
     }
 
     /** Kern von SetClock() — maschinell, ohne Anzeigetext. */
@@ -789,7 +793,7 @@ class CometWiFiThermostat extends IPSModule
         if (!$this->sendMQTT($topic, $payload)) {
             return false;
         }
-        $this->SendDebug('Geräteuhr stellen', $payload . ' -> ' . $topic, 0);
+        $this->SendDebug('Setting device clock', $payload . ' -> ' . $topic, 0);
 
         // A4 liegt in der A0-A7-Maske, ein gezielter Nachzieher genügt.
         $this->sendRequest(CWIFI_Registers::requestFields(CWIFI_Registers::REG_CLOCK));
@@ -804,7 +808,7 @@ class CometWiFiThermostat extends IPSModule
      */
     public function RequestSchedule(): string
     {
-        return $this->actionReport($this->sendSchedule(), 'Wochenprogramm und Urlaub angefordert');
+        return $this->actionReport($this->sendSchedule(), 'Weekly schedule and holiday requested');
     }
 
     /** Kern von RequestSchedule() — maschinell, ohne Anzeigetext. */
@@ -843,7 +847,7 @@ class CometWiFiThermostat extends IPSModule
         foreach (array_filter(array_map('trim', explode(';', $Points))) as $eintrag) {
             $teile = explode('=', $eintrag);
             if (count($teile) !== 2) {
-                $this->SendDebug('Wochenprogramm', 'Unverständlich: ' . $eintrag, 0);
+                $this->SendDebug('Weekly schedule', 'Not understood: ' . $eintrag, 0);
                 return false;
             }
             $liste[] = [
@@ -854,7 +858,7 @@ class CometWiFiThermostat extends IPSModule
 
         $payload = CWIFI_Registers::encodeSchedule($liste, $Weekday);
         if ($payload === null) {
-            $this->SendDebug('Wochenprogramm', 'Abgelehnt — passt nicht auf das Gerät: ' . $Points, 0);
+            $this->SendDebug('Weekly schedule', 'Rejected — does not fit the device: ' . $Points, 0);
             return false;
         }
 
@@ -913,7 +917,7 @@ class CometWiFiThermostat extends IPSModule
         $mac  = CWIFI_Topics::normalizeMac($this->ReadPropertyString('MAC'));
         $user = trim($this->ReadPropertyString('MQTTUser'));
         if ($mac === '' || $user === '') {
-            $this->SendDebug('SetTemperature', 'Instanz unvollständig konfiguriert', 0);
+            $this->SendDebug('SetTemperature', 'Instance not completely configured', 0);
             return false;
         }
 
@@ -957,13 +961,13 @@ class CometWiFiThermostat extends IPSModule
     /** Fordert die aktuellen Temperaturen an — das schonendste Kommando. */
     public function RequestUpdate(): string
     {
-        return $this->actionReport($this->SendAction('Update'), 'Temperaturen angefordert');
+        return $this->actionReport($this->SendAction('Update'), 'Temperatures requested');
     }
 
     /** Fordert sämtliche Register an. Weckt das Gerät spürbar — nie auf einem Timer. */
     public function RequestAllFields(): string
     {
-        return $this->actionReport($this->SendAction('AllFields'), 'Alle Felder angefordert');
+        return $this->actionReport($this->SendAction('AllFields'), 'All fields requested');
     }
 
     /**
@@ -983,7 +987,7 @@ class CometWiFiThermostat extends IPSModule
             case 'Schedule':  return $this->sendSchedule();
             case 'Clock':     return $this->sendClock();
         }
-        $this->SendDebug('SendAction', 'Unbekannte Aktion: ' . $Action, 0);
+        $this->SendDebug('SendAction', 'Unknown action: ' . $Action, 0);
         return false;
     }
 
@@ -997,11 +1001,16 @@ class CometWiFiThermostat extends IPSModule
     private function actionReport(bool $gesendet, string $was): string
     {
         if (!$gesendet) {
-            return '⚠️  ' . $was . ' — nicht gesendet. Prüfen Sie MAC-Adresse, '
-                . 'MQTT-Benutzer und ob der übergeordnete MQTT-Client aktiv ist.';
+            return sprintf(
+                $this->Translate('⚠️  %s — not sent. Check the MAC address, the MQTT user and whether the parent MQTT client is active.'),
+                $this->Translate($was)
+            );
         }
-        return '✅  ' . $was . ' (' . date('H:i:s') . ' Uhr). Die Werte erscheinen, '
-            . 'sobald das Gerät antwortet — es schläft und meldet sich nicht sofort.';
+        return sprintf(
+            $this->Translate('✅  %s (%s). The values appear as soon as the device answers — it sleeps and does not respond immediately.'),
+            $this->Translate($was),
+            date('H:i:s')
+        );
     }
 
     private function sendRequest(string $payload): bool
@@ -1069,10 +1078,10 @@ class CometWiFiThermostat extends IPSModule
         $this->SetTimerInterval('CWIFI_Probe', 0);
 
         if ($this->GetValue(CWIFI_Registers::IDENT_REACHABLE) === true) {
-            $this->SendDebug('Nachfassen', 'Gerät hat sich schon selbst gemeldet', 0);
+            $this->SendDebug('Follow-up', 'Device has already reported on its own', 0);
             return;
         }
-        $this->SendDebug('Nachfassen', 'Frage nach dem Verbindungsabbruch einmal nach', 0);
+        $this->SendDebug('Follow-up', 'Asking once after the connection loss', 0);
         $this->sendRequest(CWIFI_Registers::REQUEST_CURRENT);
     }
 
@@ -1089,10 +1098,10 @@ class CometWiFiThermostat extends IPSModule
             return;
         }
         if (!$this->clockOffLimits()) {
-            $this->SendDebug('Uhr-Nachführung', 'Abweichung im Rahmen, nichts zu tun', 0);
+            $this->SendDebug('Clock adjustment', 'Deviation within limits, nothing to do', 0);
             return;
         }
-        $this->SendDebug('Uhr-Nachführung', 'Abweichung zu groß, Uhr wird gestellt', 0);
+        $this->SendDebug('Clock adjustment', 'Deviation too large, setting the clock', 0);
         $this->sendClock();
     }
 
@@ -1137,8 +1146,8 @@ class CometWiFiThermostat extends IPSModule
             $offset   = crc32($mac) % $interval;
             $this->SetTimerInterval('CWIFI_Poll', $interval * 1000);
             $this->SendDebug(
-                'Abfragetakt',
-                sprintf('alle %d min, Versatz %d s', $minutes, $offset),
+                'Polling interval',
+                sprintf('every %d min, offset %d s', $minutes, $offset),
                 0
             );
         }
@@ -1156,8 +1165,8 @@ class CometWiFiThermostat extends IPSModule
             $intervall = $tage * 86400;
             $this->SetTimerInterval('CWIFI_ClockSync', $intervall * 1000);
             $this->SendDebug(
-                'Uhr-Nachführung',
-                sprintf('alle %d Tage, Versatz %d s', $tage, crc32($mac) % $intervall),
+                'Clock adjustment',
+                sprintf('every %d days, offset %d s', $tage, crc32($mac) % $intervall),
                 0
             );
         }
@@ -1415,6 +1424,7 @@ class CometWiFiThermostat extends IPSModule
 
     public function GetConfigurationForm()
     {
+        // Die Konsole übersetzt caption/label/Optionen selbst (Store-Review, SUITE.md Punkt 25).
         $form = json_decode(file_get_contents(__DIR__ . '/form.json'), true);
 
         $this->fillVersionLabel($form);
@@ -1505,17 +1515,15 @@ class CometWiFiThermostat extends IPSModule
         return [
             'type'     => 'ExpansionPanel',
             'name'     => 'NewsPanel',
-            'caption'  => '🆕  Neu in Version ' . self::NEWS_VERSION,
+            'caption'  => sprintf($this->Translate('🆕  New in version %s'), self::NEWS_VERSION),
             'expanded' => true,
             'items'    => [
-                ['type' => 'Label', 'caption' => '• **Jeder Knopf meldet jetzt, was er getan hat.** Bisher blieben „Jetzt aktualisieren", „Alle Felder anfordern", „Uhr stellen" und „Wochenprogramm abrufen" stumm — von einem kaputten Knopf war das nicht zu unterscheiden, und jeder unnötige zweite Klick weckt ein Batteriegerät.'],
-                ['type' => 'Label', 'caption' => '• Die Rückmeldung nennt die Uhrzeit und sagt ausdrücklich, dass die Werte erst erscheinen, **sobald das Gerät antwortet**. Gesendet ist nicht beantwortet: Diese Thermostate schlafen.'],
-                ['type' => 'Label', 'caption' => '• Schlägt etwas fehl, steht jetzt dabei, wo zu suchen ist (MAC-Adresse, MQTT-Benutzer, übergeordneter MQTT-Client) — statt einer stummen Nichtreaktion.'],
-                ['type' => 'Label', 'caption' => '• ⚠️ **Für eigene Skripte:** `CWIFI_RequestUpdate`, `CWIFI_RequestAllFields`, `CWIFI_SetClock` und `CWIFI_RequestSchedule` liefern jetzt einen Text statt `true`/`false`. Wer den Rückgabewert auswertet, nutzt dafür ab sofort `CWIFI_SendAction($id, \'Update\'|\'AllFields\'|\'Schedule\'|\'Clock\')` — die liefert weiterhin `true`/`false`.'],
+                ['type' => 'Label', 'caption' => $this->Translate('• **Now available in German and English.** All texts follow the Symcon language setting; German remains the reference.')],
+                ['type' => 'Label', 'caption' => $this->Translate('• Nothing changes for existing instances: settings, identifiers and functions stay as they are — only the displayed texts depend on the language.')],
 
                 [
                     'type'    => 'Button',
-                    'caption' => 'Verstanden – nicht mehr anzeigen',
+                    'caption' => $this->Translate('Understood – do not show again'),
                     'onClick' => 'CWIFI_AckNews($id);'
                 ]
             ]

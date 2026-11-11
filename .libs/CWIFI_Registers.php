@@ -206,8 +206,9 @@ class CWIFI_Registers
      * unverändert, statt eine halbgare Zeichenkette anzuzeigen. Nichts hier ist geraten:
      * Jede Zuordnung stammt aus einem Voll-Dump und ist in `.docs/protokoll.md` belegt.
      */
-    public static function decodeInfo(string $register, string $payload): ?string
+    public static function decodeInfo(string $register, string $payload, ?callable $t = null): ?string
     {
+        $t = $t ?? static fn (string $text): string => $text;
         $body = ltrim($payload, '#');
         if ($body === '') {
             return null;
@@ -219,9 +220,9 @@ class CWIFI_Registers
                 $kopf = strtoupper(substr($body, 0, 1));
                 $mac  = substr($body, 1);
                 if ($kopf === 'U' || trim($mac, '0') === '') {
-                    return 'Einzelgerät';
+                    return $t('Single device');
                 }
-                return 'Gruppe ' . self::formatMac($mac);
+                return sprintf($t('Group %s'), self::formatMac($mac));
 
             case self::REG_MODEL:
             case self::REG_FIRMWARE:
@@ -663,17 +664,18 @@ class CWIFI_Registers
     }
 
     /** Einen Wochentag als lesbaren Text. */
-    public static function scheduleToText(?array $points): string
+    public static function scheduleToText(?array $points, ?callable $t = null): string
     {
+        $t = $t ?? static fn (string $text): string => $text;
         if ($points === null) {
             return '–';
         }
         if ($points === []) {
-            return 'keine Schaltzeiten';
+            return $t('no switching times');
         }
         $parts = [];
         foreach ($points as $p) {
-            $parts[] = $p['time'] . ' → ' . number_format($p['temperature'], 1, ',', '') . ' °C';
+            $parts[] = $p['time'] . ' → ' . number_format($p['temperature'], 1, $t('.'), '') . ' °C';
         }
         return implode(' · ', $parts);
     }

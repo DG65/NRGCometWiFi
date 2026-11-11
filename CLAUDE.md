@@ -200,11 +200,11 @@ ansehen.** Stehen die auf 200, liegt es nie am Modul.
 
 Vollständig in `SUITE.md` im Repo-Root, hier nur die für dieses Repo relevanten:
 
-- **Alles Nutzersichtbare auf Deutsch** — Formulare, Meldungen, Variablennamen, README.
+- **Alles Nutzersichtbare zweisprachig (Deutsch ist die Referenz, siehe Abschnitt „Zweisprachig“)** —
+  Formulare, Meldungen, Variablennamen, README/README.en.
   Ausgenommen: Idents, Property-, Klassen- und Methodennamen (das ist API und wird nie
   umbenannt — ein umbenannter Ident erzeugt eine neue Variable und wirft die Historie weg).
-  `Translate()`-Quellstrings im Code bleiben englisch, Übersetzung in `locale.json`.
-  `form.json` wird direkt deutsch geschrieben.
+  Quelltexte in Code **und** `form.json` sind englisch, Deutsch steht in `.libs/locale.json`.
 - **Presentation statt Variablenprofile.** Wie HeishaMon. Eine Variable kann nur eines von
   beidem — deshalb werden die gemeinsamen `NRG.*`-Profile hier bewusst **nicht** registriert
   (Scope-Klärung in `SUITE.md`).
@@ -278,6 +278,20 @@ Vollständig in `SUITE.md` im Repo-Root, hier nur die für dieses Repo relevante
   aber als „bei Ihnen möglicherweise anders" gekennzeichnet sein. Ebenso die IP-Bereiche und
   MAC-Adressen: die gehören in `.docs/protokoll.md` als Beispiel, nicht ins Formular.
 
+## Zweisprachig Deutsch/Englisch (0.20.0, 06.11.2026)
+
+- **Quelltexte englisch** (Code und alle `form.json`), Deutsch ausschließlich in `.libs/locale.json`;
+  `php .tools/locale-bauen.php` kopiert sie in die fünf Modulordner (nie dort von Hand ändern, der Prüfstand vergleicht).
+- **Formulare übersetzt die Konsole selbst** (Store-Review, SUITE.md Punkt 25) — kein eigener Übersetzungsdurchlauf in
+  `GetConfigurationForm()`. Selbst übersetzt werden Meldungen, Statuszeilen mit Werten, Variablen-/Linknamen, News-Panels, Kacheln.
+- **Kacheln** (`.libs/CWIFI_RoomTile.html`, `CometWiFiTile/module.html`) tragen keinen Text: PHP liefert ihn mit der Nutzlast
+  (`CWIFI_Text::roomTileTexts()` / `overviewTexts()`), Endanschläge als Token `on`/`off`. Logik nie an Anzeigetext hängen.
+- Bibliotheksfunktionen ohne `$this` (`decodeInfo`, `scheduleToText`) bekommen einen Übersetzer als Parameter.
+- Neue Texte: englisch in Code/`form.json`, deutsch in `.libs/locale.json`, `locale-bauen.php`, `php .tools/test-sprachen.php`.
+- Dezimalzeichen und Datumsformat sind Tabelleneinträge (`.` → `,`, `Y-m-d H:i` → `d.m.Y H:i`).
+- Offen: live in beiden Sprachen ansehen und Laufzeit messen (erst nach Push); ApplyChanges von Raum/Raumkachel gleicht
+  Geräteinstanzen ab (Store-Checkliste 27, besser nach KR_READY).
+
 ## Prüfstände
 
 ```
@@ -287,7 +301,9 @@ php .tools/test-configurator.php   # Erkennung, Instanz-Zuordnung, Zeitsync     
 php .tools/test-tile.php           # Kachel-Nutzlast: Ist/Soll, Namen, Ausfälle    (32)
 php .tools/test-roomtile.php       # Raumkachel: Zuordnung, Ring, Verknüpfungen    (59)
 php .tools/test-room.php           # Raum: Zusammenfassung und Kachel              (56)
-php .tools/test-forms.php          # Formularaufrufe aller Module gegen die Klassen (200)
+php .tools/test-forms.php          # Formularaufrufe aller Module gegen die Klassen (201)
+php .tools/test-sprachen.php       # Zweisprachigkeit: Tabelle, Platzhalter, deutsche Reste
+php .tools/test-presentations.php  # erlaubte Darstellungsschlüssel
 ```
 
 `IPSTestState::useLocale('<Modulverzeichnis>')` schaltet `Translate()` auf die echte

@@ -100,14 +100,19 @@
     var CR_START = 140, CR_SWEEP = 260;          // Lücke von 100° unten, wie bei einer Tankuhr
     var CR_BOGEN = CR_UMFANG * CR_SWEEP / 360;
 
+    /* Alle Texte kommen übersetzt mit der Nutzlast (CR.texts); der Browser übersetzt nichts. */
+    function crT(key) {
+        return (CR.texts && CR.texts[key]) || '';
+    }
+
     function crFmt(v) {
         if (v === null || v === undefined) { return '–'; }
-        return v.toFixed(1).replace('.', ',');
+        return v.toFixed(1).replace('.', crT('decimal') || '.');
     }
 
     /* Aus und An sind Endanschläge des Ventils, keine Temperaturen. */
     function crSollText(d) {
-        if (d.endstop) { return d.endstop; }
+        if (d.endstop) { return d.endstop === 'on' ? crT('on') : crT('off'); }
         if (d.setpoint === null) { return '–'; }
         return crFmt(d.setpoint) + ' °C';
     }
@@ -131,7 +136,7 @@
         if (w > CR.maxTemp) { w = CR.maxTemp; }
         if (w === CR.setpoint) { return; }
         CR.setpoint = w;                                  // sofort anzeigen
-        CR.endstop  = (w === CR.maxTemp) ? 'An' : (w === CR.minTemp ? 'Aus' : null);
+        CR.endstop  = (w === CR.maxTemp) ? 'on' : (w === CR.minTemp ? 'off' : null);
         crZeichne();
         requestAction('setpoint', w);
     }
@@ -162,8 +167,12 @@
         wrap.innerHTML = '';
 
         if (!CR.ok) {
-            wrap.innerHTML = '<div class="cr-empty">Kein Thermostat ausgewählt.<br>'
-                + 'In den Einstellungen der Instanz eines auswählen.</div>';
+            var leer = document.createElement('div');
+            leer.className = 'cr-empty';
+            leer.appendChild(document.createTextNode(crT('none1')));
+            leer.appendChild(document.createElement('br'));
+            leer.appendChild(document.createTextNode(crT('none2')));
+            wrap.appendChild(leer);
             return;
         }
         wrap.className = 'cr-wrap' + (CR.reachable ? '' : ' offline');
@@ -172,17 +181,16 @@
         var head = document.createElement('div');
         head.className = 'cr-head';
 
-        if (!CR.reachable)    { head.appendChild(crChip('nicht erreichbar', 'off')); }
-        if (CR.holiday)       { head.appendChild(crChip('Urlaub')); }
-        if (CR.keylock === 1) { head.appendChild(crChip('gesperrt')); }
-        if (CR.keylock === 2) { head.appendChild(crChip('gesperrt +')); }
-        if (CR.clockOff)      { head.appendChild(crChip('Uhr ' + (CR.clockDev > 0 ? '+' : '') + CR.clockDev + ' min', 'warn')); }
+        if (!CR.reachable)    { head.appendChild(crChip(crT('unreachable'), 'off')); }
+        if (CR.holiday)       { head.appendChild(crChip(crT('holiday'))); }
+        if (CR.keylock === 1) { head.appendChild(crChip(crT('locked'))); }
+        if (CR.keylock === 2) { head.appendChild(crChip(crT('lockedPlus'))); }
+        if (CR.clockOff)      { head.appendChild(crChip(crT('clock').replace('%s', (CR.clockDev > 0 ? '+' : '') + CR.clockDev), 'warn')); }
         /* Nur bei Räumen: Die Mitglieder haben unterschiedliche Sollwerte. Das darf nicht
            stillschweigend hinter dem angezeigten Wert verschwinden. */
         if (CR.mixed) {
-            var m = crChip('Sollwerte uneinheitlich', 'warn');
-            m.title = 'Die Thermostate dieses Raums stehen auf verschiedenen Sollwerten. '
-                + 'Angezeigt wird der höchste. Ein Tipp auf den Ring gleicht sie an.';
+            var m = crChip(crT('mixed'), 'warn');
+            m.title = crT('mixedTitle');
             head.appendChild(m);
         }
 
@@ -191,7 +199,7 @@
 
         /* ---------------------------------------------------------------- Ring */
         var anteil = crAnteil(CR);
-        var zu     = CR.endstop === 'Aus';
+        var zu     = CR.endstop === 'off';
 
         var dial = document.createElement('div');
         dial.title = CR.name;              // beim Überfahren, falls die Kachel ohne Rahmen steht
@@ -233,7 +241,7 @@
         mitte.className = 'cr-center';
         var lbl = document.createElement('div');
         lbl.className = 'lbl';
-        lbl.textContent = 'Ist';
+        lbl.textContent = crT('actual');
         mitte.appendChild(lbl);
         var is = document.createElement('div');
         is.className = 'is';
@@ -241,9 +249,12 @@
         mitte.appendChild(is);
         var soll = document.createElement('div');
         soll.className = 'soll';
-        soll.innerHTML = 'Soll <b>' + crSollText(CR) + '</b>';
-        soll.title = CR.endstop === 'An' ? 'Endanschlag: Ventil ganz auf'
-                   : (CR.endstop === 'Aus' ? 'Endanschlag: Ventil ganz zu' : 'Solltemperatur');
+        soll.textContent = crT('target') + ' ';
+        var sollWert = document.createElement('b');
+        sollWert.textContent = crSollText(CR);
+        soll.appendChild(sollWert);
+        soll.title = CR.endstop === 'on' ? crT('endOn')
+                   : (CR.endstop === 'off' ? crT('endOff') : crT('targetTitle'));
         mitte.appendChild(soll);
         dial.appendChild(mitte);
         wrap.appendChild(dial);
@@ -253,7 +264,7 @@
         /* ------------------------------------------------------------ Feinstufen */
         var bar = document.createElement('div');
         bar.className = 'cr-bar';
-        [['−', -0.5, 'Halbes Grad kühler'], ['+', 0.5, 'Halbes Grad wärmer']].forEach(function (e) {
+        [['−', -0.5, crT('cooler')], ['+', 0.5, crT('warmer')]].forEach(function (e) {
             var b = document.createElement('button');
             b.textContent = e[0];
             b.title = e[2];
@@ -268,27 +279,25 @@
         quick.className = 'cr-quick';
 
         var aus = document.createElement('button');
-        aus.textContent = 'Aus';
-        aus.title = 'Ventil ganz zu';
-        aus.className = CR.endstop === 'Aus' ? 'aktiv' : '';
+        aus.textContent = crT('off');
+        aus.title = crT('valveClosed');
+        aus.className = CR.endstop === 'off' ? 'aktiv' : '';
         aus.disabled = !CR.reachable;
         aus.onclick = function () { crSetze(CR.minTemp); };
         quick.appendChild(aus);
 
         var an = document.createElement('button');
-        an.textContent = 'An';
-        an.title = 'Ventil ganz auf';
-        an.className = CR.endstop === 'An' ? 'aktiv' : '';
+        an.textContent = crT('on');
+        an.title = crT('valveOpen');
+        an.className = CR.endstop === 'on' ? 'aktiv' : '';
         an.disabled = !CR.reachable;
         an.onclick = function () { crSetze(CR.maxTemp); };
         quick.appendChild(an);
 
         var modus = document.createElement('button');
-        modus.textContent = CR.manual ? 'Handbetrieb' : 'Zeitplan';
+        modus.textContent = CR.manual ? crT('manual') : crT('schedule');
         modus.className = CR.manual ? 'aktiv' : '';
-        modus.title = CR.manual
-            ? 'Der Zeitplan ist aus — der Sollwert bleibt stehen. Klicken schaltet ihn wieder ein.'
-            : 'Das Wochenprogramm im Gerät regelt und überschreibt gesetzte Sollwerte.';
+        modus.title = CR.manual ? crT('manualTitle') : crT('scheduleTitle');
         modus.disabled = !CR.reachable;
         modus.onclick = function () { requestAction('mode', !CR.manual); };
         quick.appendChild(modus);
@@ -315,18 +324,18 @@
         }
         if (CR.offset !== null && CR.offset !== 0) {
             var off = document.createElement('span');
-            off.textContent = 'Offset ' + (CR.offset > 0 ? '+' : '') + crFmt(CR.offset) + ' K';
+            off.textContent = crT('offset') + ' ' + (CR.offset > 0 ? '+' : '') + crFmt(CR.offset) + ' K';
             meta.appendChild(off);
         }
         if (CR.members !== null && CR.members !== undefined) {
             var mit = document.createElement('span');
-            mit.textContent = CR.members + (CR.members === 1 ? ' Thermostat' : ' Thermostate');
+            mit.textContent = crT(CR.members === 1 ? 'thermostat1' : 'thermostatN').replace('%d', CR.members);
             meta.appendChild(mit);
         }
         if (CR.lastText) {
             var last = document.createElement('span');
             last.textContent = CR.lastText;
-            last.title = 'Letzte Meldung des Geräts';
+            last.title = crT('lastTitle');
             meta.appendChild(last);
         }
         wrap.appendChild(meta);

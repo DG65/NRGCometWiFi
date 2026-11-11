@@ -2,24 +2,24 @@
     "elements": [
         {
             "type": "ExpansionPanel",
-            "caption": "📖  Dokumentation & Hilfe",
+            "caption": "📖  Documentation & help",
             "expanded": false,
             "items": [
                 {
                     "type": "Label",
-                    "caption": "Diese Kachel zeigt EIN Thermostat groß und bedienbar. Für die Übersicht aller Geräte gibt es die „Comet WiFi Kachel“ — beide lassen sich nebeneinander verwenden."
+                    "caption": "This tile shows ONE thermostat large and operable. For an overview of all devices there is the \"Comet WiFi Tile\" — both can be used side by side."
                 },
                 {
                     "type": "Label",
-                    "caption": "Der Ring ist die Bedienfläche: Ein Tipp darauf setzt den Sollwert, die Knöpfe darunter stellen in Halbgrad-Schritten nach."
+                    "caption": "The dial is the control surface: a tap on it sets the setpoint, the buttons below adjust it in half-degree steps."
                 },
                 {
                     "type": "Label",
-                    "caption": "Gesteuert wird über die Geräteinstanz, nicht an ihr vorbei. Damit gilt auch von hier aus die dort eingestellte Umschaltung auf Handbetrieb — ohne sie überschreibt das Wochenprogramm im Gerät den Sollwert beim nächsten Schaltpunkt."
+                    "caption": "Control goes through the device instance, not around it. This means the switch to manual mode configured there also applies from here — without it, the weekly schedule in the device overwrites the setpoint at the next switching point."
                 },
                 {
                     "type": "Label",
-                    "caption": "„Aus“ und „An“ sind die Endanschläge des Ventils (ganz zu bzw. ganz auf) und werden benannt statt als Temperatur angezeigt."
+                    "caption": "\"Off\" and \"On\" are the valve's end stops (fully closed or fully open) and are named rather than shown as a temperature."
                 }
             ]
         },
@@ -31,7 +31,7 @@
                 {
                     "type": "SelectInstance",
                     "name": "DeviceID",
-                    "caption": "Gerät",
+                    "caption": "Device",
                     "validModules": [
                         "{0F552C16-D685-4C9F-86C0-8D89E4BFD158}"
                     ],
@@ -44,29 +44,29 @@
                 },
                 {
                     "type": "Label",
-                    "caption": "Die Überschrift der Kachel ist der Name dieser Instanz — benenne sie also nach dem Raum. Die Kachel selbst zeigt keinen zweiten Namen, das wäre dieselbe Angabe doppelt."
+                    "caption": "The tile's title is the name of this instance — so name it after the room. The tile itself does not show a second name, that would be the same information twice."
                 }
             ]
         },
         {
             "type": "ExpansionPanel",
-            "caption": "🎚️  Bedienung und Anzeige",
+            "caption": "🎚️  Operation and display",
             "expanded": true,
             "items": [
                 {
                     "type": "CheckBox",
                     "name": "AllowControl",
-                    "caption": "Bedienbar (Ring, Knöpfe, Betriebsart)"
+                    "caption": "Operable (dial, buttons, operating mode)"
                 },
                 {
                     "type": "CheckBox",
                     "name": "ShowDetails",
-                    "caption": "Fußzeile mit Batterie, Signal und letzter Meldung"
+                    "caption": "Footer with battery, signal and last message"
                 },
                 {
                     "type": "NumberSpinner",
                     "name": "BatteryWarnBelow",
-                    "caption": "Batterie hervorheben unter … %",
+                    "caption": "Highlight battery below … %",
                     "suffix": "%",
                     "minimum": 0,
                     "maximum": 100,
@@ -75,7 +75,7 @@
                 {
                     "type": "NumberSpinner",
                     "name": "ClockWarnMinutes",
-                    "caption": "Geräteuhr melden ab Abweichung",
+                    "caption": "Report device clock from a deviation of",
                     "suffix": "min",
                     "minimum": 0,
                     "maximum": 720,
@@ -83,41 +83,41 @@
                 },
                 {
                     "type": "Label",
-                    "caption": "Das Wochenprogramm läuft im Thermostat. Geht dessen Uhr falsch, verschiebt sich jeder Schaltpunkt um dieselbe Spanne. 0 schaltet den Hinweis ab."
+                    "caption": "The weekly schedule runs in the thermostat. If its clock is wrong, every switching point is shifted by the same amount. 0 switches the warning off."
                 },
                 {
                     "type": "CheckBox",
                     "name": "DetailLinks",
-                    "caption": "Aufgezogene Ansicht mit Wochenprogramm, Urlaub und Geräteauskunft füllen"
+                    "caption": "Fill the expanded view with weekly schedule, holiday and device information"
                 },
                 {
                     "type": "Label",
-                    "caption": "Das Aufziehen einer Kachel (Doppelpfeil) zeigt die Kinder der Instanz, nicht die Kachel selbst. Deshalb legt das Modul Verknüpfungen auf die Variablen des Thermostats an — samt der Aktionsauswahl (aktualisieren, Programm abrufen, Uhr stellen, alle Felder)."
+                    "caption": "Expanding a tile (double arrow) shows the instance's children, not the tile itself. That is why the module creates links to the thermostat's variables — including the action selection (refresh, fetch schedule, set clock, all fields)."
                 }
             ]
         },
         {
             "type": "ExpansionPanel",
-            "caption": "🔧  Wartung",
+            "caption": "🔧  Maintenance",
             "expanded": false,
             "items": [
                 {
                     "type": "Label",
-                    "caption": "Nach einem Modul-Update übernimmt Symcon die Einstellungen einer Instanz nicht immer von selbst. Sonst hilft nur, im Formular etwas zu ändern und wieder zurückzustellen — nur dann wird „Übernehmen“ überhaupt anklickbar. Dieser Knopf spart das."
+                    "caption": "After a module update, Symcon does not always apply an instance's settings by itself. The only other way is to change something in the form and change it back — only then does \"Apply\" become clickable at all. This button saves you that."
                 },
                 {
                     "type": "Label",
-                    "caption": "⚠️  Wirkt auf die gespeicherten Einstellungen. Was Sie oben geändert, aber noch nicht übernommen haben, geht dabei verloren."
+                    "caption": "⚠️  Acts on the saved settings. Anything you changed above but have not applied yet is lost."
                 },
                 {
                     "type": "Label",
-                    "caption": "Für die Geräte ist das unbedenklich: Das Übernehmen sendet nichts und weckt damit keine Batterie."
+                    "caption": "This is harmless for the devices: applying sends nothing and therefore does not wake any battery."
                 },
                 {
                     "type": "Button",
-                    "caption": "🔄  Übernehmen erzwingen (ohne Formularänderung)",
-                    "confirm": "Die gespeicherten Einstellungen dieser Instanz jetzt neu übernehmen?",
-                    "onClick": "IPS_ApplyChanges($id); echo '✅  Einstellungen übernommen (' . date('H:i:s') . ' Uhr).';"
+                    "caption": "🔄  Force apply (without a form change)",
+                    "confirm": "Apply this instance's saved settings again now?",
+                    "onClick": "IPS_ApplyChanges($id); echo '✅  ApplyChanges() ' . date('H:i:s');"
                 }
             ]
         }
@@ -125,7 +125,7 @@
     "actions": [
         {
             "type": "Button",
-            "caption": "🔄  Jetzt aktualisieren",
+            "caption": "🔄  Refresh now",
             "onClick": "echo CWIFIR_RequestUpdate($id);"
         }
     ],
@@ -133,7 +133,7 @@
         {
             "code": 201,
             "icon": "inactive",
-            "caption": "Kein Thermostat ausgewählt – die Kachel bleibt leer, bis eines zugeordnet ist."
+            "caption": "No thermostat selected – the tile stays empty until one is assigned."
         }
     ]
 }

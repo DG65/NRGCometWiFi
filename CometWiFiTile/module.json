@@ -6,7 +6,10 @@
     "aliases": [
         "Comet WiFi Kachel",
         "NRG-Stack Comet WiFi Kachel",
-        "Heizungsübersicht"
+        "Heizungsübersicht",
+        "Comet WiFi Tile",
+        "NRG-Stack Comet WiFi Tile",
+        "Heating overview"
     ],
     "url": "https://github.com/DG65/NRGCometWiFi",
     "parentRequirements": [],

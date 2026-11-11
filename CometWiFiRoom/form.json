@@ -2,32 +2,32 @@
     "elements": [
         {
             "type": "ExpansionPanel",
-            "caption": "📖  Dokumentation & Hilfe",
+            "caption": "📖  Documentation & help",
             "expanded": false,
             "items": [
                 {
                     "type": "Label",
-                    "caption": "Diese Instanz fasst mehrere Thermostate zu einem Raum zusammen: ein Sollwert, eine Betriebsart, ein Batteriewert. Gesetzt wird an jedem Mitglied einzeln — dadurch funktioniert das auch für Thermostate, die in der Hersteller-App gar nicht gekoppelt sind."
+                    "caption": "This instance combines several thermostats into one room: one setpoint, one operating mode, one battery value. Values are set on each member individually — so this also works for thermostats that are not coupled in the manufacturer's app at all."
                 },
                 {
                     "type": "Label",
-                    "caption": "Die Geräte kennen zwar eigene Gruppen, aber deren Datenformat ist nicht belegt. Der Weg über die einzelnen Geräteinstanzen ist nachgewiesen und gilt auch dort, wo die Umschaltung auf Handbetrieb eingestellt ist."
+                    "caption": "The devices do have groups of their own, but their data format is not confirmed. The route via the individual device instances is proven and also applies where switching to manual mode is configured."
                 },
                 {
                     "type": "Label",
-                    "caption": "Sind sich die Mitglieder beim Sollwert nicht einig, zeigt der Raum den höchsten Wert und setzt „Mitglieder uneinheitlich“. Ein Mittelwert wäre falsch: 20 und 24 ergeben keinen Raum mit 22, sondern einen Raum mit zwei verschiedenen Vorgaben."
+                    "caption": "If the members do not agree on the setpoint, the room shows the highest value and sets \"Members disagree\". An average would be wrong: 20 and 24 do not make a room at 22, but a room with two different targets."
                 }
             ]
         },
         {
             "type": "ExpansionPanel",
-            "caption": "🏠  Mitglieder",
+            "caption": "🏠  Members",
             "expanded": true,
             "items": [
                 {
                     "type": "List",
                     "name": "Members",
-                    "caption": "Thermostate dieses Raums",
+                    "caption": "Thermostats of this room",
                     "rowCount": 6,
                     "add": true,
                     "delete": true,
@@ -53,39 +53,39 @@
                 },
                 {
                     "type": "Button",
-                    "caption": "➕  Geräte derselben Gerätegruppe ergänzen",
+                    "caption": "➕  Add devices from the same device group",
                     "onClick": "echo CWIFIG_AddGroupMembers($id);"
                 },
                 {
                     "type": "Label",
-                    "caption": "Ergänzt alle Thermostate, die laut Gerät zur selben Gruppe gehören wie die bereits gewählten. Der Vorschlag muss noch mit „Übernehmen“ bestätigt werden."
+                    "caption": "Adds all thermostats that, according to the device, belong to the same group as the ones already selected. The suggestion still has to be confirmed with \"Apply\"."
                 }
             ]
         },
         {
             "type": "ExpansionPanel",
-            "caption": "🌡️  Werte und Bereich",
+            "caption": "🌡️  Values and range",
             "expanded": true,
             "items": [
                 {
                     "type": "Select",
                     "name": "Aggregation",
-                    "caption": "Isttemperatur des Raums",
+                    "caption": "Current temperature of the room",
                     "width": "320px",
                     "options": [
                         {
-                            "caption": "Mittel aller Thermostate",
+                            "caption": "Mean of all thermostats",
                             "value": "average"
                         },
                         {
-                            "caption": "Kälteste Stelle (Kleinstwert)",
+                            "caption": "Coldest spot (minimum value)",
                             "value": "minimum"
                         }
                     ]
                 },
                 {
                     "type": "Label",
-                    "caption": "Der Kleinstwert ist für die Heizung die ehrlichere Zahl — er ist die kälteste Ecke des Raums."
+                    "caption": "For heating, the minimum value is the more honest figure — it is the coldest corner of the room."
                 },
                 {
                     "type": "NumberSpinner",
@@ -109,12 +109,12 @@
                 },
                 {
                     "type": "Label",
-                    "caption": "Die Skala des Geräts läuft von „Aus“ (7,5) über 8,0–28,0 °C bis „An“ (28,5). Die Endanschläge sind keine Temperaturen, sondern Ventil ganz zu bzw. ganz auf."
+                    "caption": "The device's scale runs from \"Off\" (7.5) through 8.0–28.0 °C up to \"On\" (28.5). The end stops are not temperatures but valve fully closed or fully open."
                 },
                 {
                     "type": "NumberSpinner",
                     "name": "BatteryWarnBelow",
-                    "caption": "Batterie melden unter … %",
+                    "caption": "Report battery below … %",
                     "suffix": "%",
                     "minimum": 0,
                     "maximum": 100,
@@ -123,7 +123,7 @@
                 {
                     "type": "NumberSpinner",
                     "name": "ClockWarnMinutes",
-                    "caption": "Geräteuhr melden ab Abweichung",
+                    "caption": "Report device clock from a deviation of",
                     "suffix": "min",
                     "minimum": 0,
                     "maximum": 720,
@@ -131,53 +131,53 @@
                 },
                 {
                     "type": "Label",
-                    "caption": "Gemeldet wird die größte Abweichung unter den Mitgliedern. Das Wochenprogramm läuft im Thermostat — geht dessen Uhr falsch, verschiebt sich jeder Schaltpunkt um dieselbe Spanne."
+                    "caption": "The largest deviation among the members is reported. The weekly schedule runs in the thermostat — if its clock is wrong, every switching point is shifted by the same amount."
                 }
             ]
         },
         {
             "type": "ExpansionPanel",
-            "caption": "🎚️  Kachel",
+            "caption": "🎚️  Tile",
             "expanded": true,
             "items": [
                 {
                     "type": "Label",
-                    "caption": "Diese Instanz zeichnet dieselbe Kachel wie die Raumkachel eines einzelnen Thermostats — Ring, Feinstufen, Schnellwahl und Betriebsart. Ein Raum soll sich bedienen lassen wie ein Gerät."
+                    "caption": "This instance draws the same tile as the room tile of a single thermostat — dial, fine steps, quick select and operating mode. A room should be operated like a single device."
                 },
                 {
                     "type": "CheckBox",
                     "name": "AllowControl",
-                    "caption": "Bedienbar (Ring, Knöpfe, Betriebsart)"
+                    "caption": "Operable (dial, buttons, operating mode)"
                 },
                 {
                     "type": "CheckBox",
                     "name": "ShowDetails",
-                    "caption": "Fußzeile mit Batterie, Mitgliederzahl und letzter Meldung"
+                    "caption": "Footer with battery, number of members and last message"
                 }
             ]
         },
         {
             "type": "ExpansionPanel",
-            "caption": "🔧  Wartung",
+            "caption": "🔧  Maintenance",
             "expanded": false,
             "items": [
                 {
                     "type": "Label",
-                    "caption": "Nach einem Modul-Update übernimmt Symcon die Einstellungen einer Instanz nicht immer von selbst. Sonst hilft nur, im Formular etwas zu ändern und wieder zurückzustellen — nur dann wird „Übernehmen“ überhaupt anklickbar. Dieser Knopf spart das."
+                    "caption": "After a module update, Symcon does not always apply an instance's settings by itself. The only other way is to change something in the form and change it back — only then does \"Apply\" become clickable at all. This button saves you that."
                 },
                 {
                     "type": "Label",
-                    "caption": "⚠️  Wirkt auf die gespeicherten Einstellungen. Was Sie oben geändert, aber noch nicht übernommen haben, geht dabei verloren."
+                    "caption": "⚠️  Acts on the saved settings. Anything you changed above but have not applied yet is lost."
                 },
                 {
                     "type": "Label",
-                    "caption": "Für die Geräte ist das unbedenklich: Das Übernehmen sendet nichts und weckt damit keine Batterie."
+                    "caption": "This is harmless for the devices: applying sends nothing and therefore does not wake any battery."
                 },
                 {
                     "type": "Button",
-                    "caption": "🔄  Übernehmen erzwingen (ohne Formularänderung)",
-                    "confirm": "Die gespeicherten Einstellungen dieser Instanz jetzt neu übernehmen?",
-                    "onClick": "IPS_ApplyChanges($id); echo '✅  Einstellungen übernommen (' . date('H:i:s') . ' Uhr).';"
+                    "caption": "🔄  Force apply (without a form change)",
+                    "confirm": "Apply this instance's saved settings again now?",
+                    "onClick": "IPS_ApplyChanges($id); echo '✅  ApplyChanges() ' . date('H:i:s');"
                 }
             ]
         }
@@ -185,7 +185,7 @@
     "actions": [
         {
             "type": "Button",
-            "caption": "🔄  Alle Mitglieder abfragen",
+            "caption": "🔄  Query all members",
             "onClick": "echo CWIFIG_RequestUpdate($id);"
         }
     ],
@@ -193,7 +193,7 @@
         {
             "code": 201,
             "icon": "inactive",
-            "caption": "Kein Thermostat zugeordnet – der Raum bleibt ohne Werte, bis mindestens eines eingetragen ist."
+            "caption": "No thermostat assigned – the room stays without values until at least one is entered."
         }
     ]
 }

@@ -16,6 +16,9 @@ declare(strict_types=1);
 require_once __DIR__ . '/ips-stub.php';
 require_once __DIR__ . '/../CometWiFiTile/module.php';
 
+// Deutsch ist die Referenz; die englischen Quelltexte prüft test-sprachen.php.
+IPSTestState::useLocale(__DIR__ . '/../CometWiFiTile');
+
 $failed = 0;
 $passed = 0;
 
@@ -147,8 +150,8 @@ addThermostat(52, 'Thermostat Windfang', [
 ]);
 
 $payload = payloadOf(makeTile());
-check('Oberer Endanschlag heißt An', roomNamed($payload, 'Thermostat Esszimmer')['endstop'], 'An');
-check('Unterer Endanschlag heißt Aus', roomNamed($payload, 'Thermostat Windfang')['endstop'], 'Aus');
+check('Oberer Endanschlag ist „on“', roomNamed($payload, 'Thermostat Esszimmer')['endstop'], 'on');
+check('Unterer Endanschlag ist „off“', roomNamed($payload, 'Thermostat Windfang')['endstop'], 'off');
 // Der Zahlenwert bleibt trotzdem in der Nutzlast — die Bedienung rechnet darauf weiter.
 checkNum('Endanschlag behält seinen Zahlenwert', roomNamed($payload, 'Thermostat Esszimmer')['setpoint'], 28.5);
 
@@ -238,6 +241,8 @@ $payload = json_decode(IPSTestState::$visualization, true);
 check('Ohne Geräte keine Räume', count($payload['rooms']), 0);
 check('Ohne Geräte kein Mittelwert', $payload['average'], null);
 check('Ohne Geräte Status 201', $tile->GetStatus(), 201);
+
+check('Jeder übersetzte Text steht in locale.json', array_keys(IPSTestState::$missing), []);
 
 /* ============================================================ Ergebnis */
 

@@ -349,7 +349,12 @@ check('Sieben Register fuer sieben Tage', count(CWIFI_Registers::SCHEDULE_REGIST
 check('Montag ist A8', CWIFI_Registers::SCHEDULE_REGISTERS[0], 'A8');
 check('Sonntag ist AE', CWIFI_Registers::SCHEDULE_REGISTERS[6], 'AE');
 
-check('Text fuer einen Tag', CWIFI_Registers::scheduleToText($sa), '07:00 → 22,0 °C · 22:00 → 18,0 °C');
+$deutsch = json_decode((string) file_get_contents(__DIR__ . '/../.libs/locale.json'), true)['translations']['de'];
+$uebersetzer = static fn (string $text): string => $deutsch[$text] ?? $text;
+check('Text fuer einen Tag', CWIFI_Registers::scheduleToText($sa, $uebersetzer), '07:00 → 22,0 °C · 22:00 → 18,0 °C');
+check('Text fuer einen Tag (englische Quelltexte)', CWIFI_Registers::scheduleToText($sa), '07:00 → 22.0 °C · 22:00 → 18.0 °C');
+check('Tag ohne Schaltzeiten', CWIFI_Registers::scheduleToText([], $uebersetzer), 'keine Schaltzeiten');
+check('Tag ohne Schaltzeiten (englisch)', CWIFI_Registers::scheduleToText([]), 'no switching times');
 check('Text ohne Daten', CWIFI_Registers::scheduleToText(null), '–');
 
 
@@ -372,12 +377,12 @@ check('BA ergibt den Zugangspunkt',
 check('BF ergibt die Verschluesselung',
     CWIFI_Registers::decodeInfo('BF', '#5B575041322D50534B2D43434D505D5B4553535D'), '[WPA2-PSK-CCMP][ESS]');
 check('B0 ohne Gruppe',
-    CWIFI_Registers::decodeInfo('B0', '#U000000000000'), 'Einzelgerät');
+    CWIFI_Registers::decodeInfo('B0', '#U000000000000', $uebersetzer), 'Einzelgerät');
 check('B0 mit Gruppenkopf',
-    CWIFI_Registers::decodeInfo('B0', '#SD43D395E3C2E'), 'Gruppe D4:3D:39:5E:3C:2E');
+    CWIFI_Registers::decodeInfo('B0', '#SD43D395E3C2E', $uebersetzer), 'Gruppe D4:3D:39:5E:3C:2E');
 // 'S' mit lauter Nullen ist keine Gruppe, sondern dieselbe Aussage wie 'U'.
 check('B0 mit S aber ohne MAC gilt als Einzelgeraet',
-    CWIFI_Registers::decodeInfo('B0', '#S000000000000'), 'Einzelgerät');
+    CWIFI_Registers::decodeInfo('B0', '#S000000000000', $uebersetzer), 'Einzelgerät');
 
 /* Unlesbares muss null ergeben und darf nicht als Buchstabensalat durchgehen —
    sonst stuende in der Instanz eine Auskunft, die keine ist. */

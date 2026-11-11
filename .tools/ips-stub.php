@@ -55,6 +55,18 @@ class IPSTestState
     /** Übersetzungstabelle des geprüften Moduls, oder null zum Durchreichen. */
     public static ?array $locale = null;
 
+    /** Texte, die Translate() bei geladener locale.json nicht fand — jeder ist eine Lücke. */
+    public static array $missing = [];
+
+    /** Wie oft Translate() aufgerufen wurde — Symcon liest dabei jedes Mal die locale.json. */
+    public static int $translateCalls = 0;
+
+    /** Übersetzer für Bibliotheksfunktionen, die kein $this->Translate() haben. */
+    public static function translator(): callable
+    {
+        return static fn (string $text): string => self::$locale[$text] ?? $text;
+    }
+
     /** Lädt die locale.json eines Moduls, damit Translate() wirklich übersetzt. */
     public static function useLocale(string $modulVerzeichnis, string $sprache = 'de'): void
     {
@@ -532,8 +544,12 @@ abstract class IPSModule
      */
     protected function Translate(string $text): string
     {
+        IPSTestState::$translateCalls++;
         if (IPSTestState::$locale === null) {
             return $text;
+        }
+        if (!isset(IPSTestState::$locale[$text]) && preg_match('/\pL/u', $text)) {
+            IPSTestState::$missing[$text] = true;
         }
         return IPSTestState::$locale[$text] ?? $text;
     }

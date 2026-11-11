@@ -112,24 +112,29 @@
 <script>
     var CW = { rooms: [], control: false, minTemp: 7.5, maxTemp: 28.5 };
 
+    /* Alle Texte kommen übersetzt mit der Nutzlast (CW.texts); der Browser übersetzt nichts. */
+    function cwT(key) {
+        return (CW.texts && CW.texts[key]) || '';
+    }
+
     function cwFmt(value, digits) {
         if (value === null || value === undefined) { return '–'; }
-        return value.toFixed(digits === undefined ? 1 : digits).replace('.', ',');
+        return value.toFixed(digits === undefined ? 1 : digits).replace('.', cwT('decimal') || '.');
     }
 
     /* Aus und An sind Endanschläge des Geräts, keine Temperaturen — sie werden benannt
        statt als 7,5 bzw. 28,5 °C angezeigt. */
     function cwSetpointText(room) {
-        if (room.endstop) { return room.endstop; }
+        if (room.endstop) { return room.endstop === 'on' ? cwT('on') : cwT('off'); }
         if (room.setpoint === null) { return '–'; }
         return cwFmt(room.setpoint) + ' °C';
     }
 
     /* Wer „An" liest, soll erfahren koennen, was das Geraet dabei tut. */
     function cwSetpointHint(room) {
-        if (room.endstop === 'An')  { return 'Endanschlag: Ventil ganz auf (28,5)'; }
-        if (room.endstop === 'Aus') { return 'Endanschlag: Ventil ganz zu (7,5)'; }
-        return 'Solltemperatur';
+        if (room.endstop === 'on')  { return cwT('endOn').replace('%s', cwFmt(CW.maxTemp)); }
+        if (room.endstop === 'off') { return cwT('endOff').replace('%s', cwFmt(CW.minTemp)); }
+        return cwT('targetTitle');
     }
 
     function cwStep(room, delta) {
@@ -153,8 +158,10 @@
         grid.innerHTML = '';
 
         if (!CW.rooms.length) {
-            grid.innerHTML = '<div class="cw-empty">Keine Thermostate gefunden. '
-                + 'Sobald eine Geräteinstanz angelegt ist, erscheint sie hier automatisch.</div>';
+            var leer = document.createElement('div');
+            leer.className = 'cw-empty';
+            leer.textContent = cwT('empty');
+            grid.appendChild(leer);
             return;
         }
 
@@ -168,8 +175,8 @@
         var note = document.createElement('div');
         note.className = 'note' + (CW.issues > 0 ? ' warn' : '');
         note.textContent = CW.issues > 0
-            ? CW.issues + (CW.issues === 1 ? ' Gerät braucht Aufmerksamkeit' : ' Geräte brauchen Aufmerksamkeit')
-            : CW.rooms.length + ' Räume';
+            ? cwT(CW.issues === 1 ? 'issue1' : 'issueN').replace('%d', CW.issues)
+            : cwT(CW.rooms.length === 1 ? 'room1' : 'roomN').replace('%d', CW.rooms.length);
         head.appendChild(note);
 
         CW.rooms.forEach(function (room) {
@@ -184,10 +191,10 @@
 
             var temp = document.createElement('div');
             temp.className = 'cw-temp';
-            temp.title = 'Gemessene Raumtemperatur';
+            temp.title = cwT('tempTitle');
             var istLbl = document.createElement('span');
             istLbl.className = 'lbl';
-            istLbl.textContent = 'Ist';
+            istLbl.textContent = cwT('actual');
             temp.appendChild(istLbl);
             var is = document.createElement('span');
             is.className = 'is';
@@ -208,7 +215,7 @@
                 sollRow.title = cwSetpointHint(room);
                 var sollLbl = document.createElement('span');
                 sollLbl.className = 'lbl';
-                sollLbl.textContent = 'Soll';
+                sollLbl.textContent = cwT('target');
                 sollRow.appendChild(sollLbl);
                 var sollVal = document.createElement('b');
                 sollVal.textContent = cwSetpointText(room);
@@ -223,12 +230,12 @@
 
                 var barLbl = document.createElement('span');
                 barLbl.className = 'lbl';
-                barLbl.textContent = 'Soll';
+                barLbl.textContent = cwT('target');
                 bar.appendChild(barLbl);
 
                 var minus = document.createElement('button');
                 minus.textContent = '−';
-                minus.title = 'Halbes Grad kühler';
+                minus.title = cwT('cooler');
                 minus.disabled = !room.reachable;
                 minus.onclick = function () { cwStep(room, -0.5); };
                 bar.appendChild(minus);
@@ -240,7 +247,7 @@
 
                 var plus = document.createElement('button');
                 plus.textContent = '+';
-                plus.title = 'Halbes Grad wärmer';
+                plus.title = cwT('warmer');
                 plus.disabled = !room.reachable;
                 plus.onclick = function () { cwStep(room, 0.5); };
                 bar.appendChild(plus);
@@ -254,13 +261,13 @@
             if (!room.reachable) {
                 var off = document.createElement('span');
                 off.className = 'off';
-                off.textContent = 'nicht erreichbar';
+                off.textContent = cwT('unreachable');
                 meta.appendChild(off);
             } else if (room.manual) {
                 var man = document.createElement('span');
                 man.className = 'man';
-                man.textContent = 'Handbetrieb';
-                man.title = 'Der Zeitplan ist ausgeschaltet — der Sollwert bleibt stehen.';
+                man.textContent = cwT('manual');
+                man.title = cwT('manualTitle');
                 meta.appendChild(man);
             }
 
@@ -281,15 +288,14 @@
                 var clk = document.createElement('span');
                 clk.className = 'clock';
                 clk.textContent = '🕒 ' + (room.clockDev > 0 ? '+' : '') + room.clockDev + ' min';
-                clk.title = 'Die Uhr des Geräts geht falsch — das Wochenprogramm im Gerät '
-                    + 'schaltet um diese Spanne versetzt.';
+                clk.title = cwT('clockTitle');
                 meta.appendChild(clk);
             }
 
             if (room.lastText) {
                 var last = document.createElement('span');
                 last.textContent = room.lastText;
-                last.title = 'Letzte Meldung des Geräts';
+                last.title = cwT('lastTitle');
                 meta.appendChild(last);
             }
 

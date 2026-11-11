@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../.libs/CWIFI_Registers.php';
+require_once __DIR__ . '/../.libs/CWIFI_Text.php';
 require_once __DIR__ . '/../.libs/CWIFI_Topics.php';
 
 /**
@@ -25,7 +26,7 @@ require_once __DIR__ . '/../.libs/CWIFI_Topics.php';
 class CometWiFiRoom extends IPSModule
 {
     /** Fassung des „Was ist Neu"-Panels — nur bei wichtigen Änderungen hochzählen. */
-    private const NEWS_VERSION   = '0.19';
+    private const NEWS_VERSION   = '0.20';
     private const ATTR_SEEN_NEWS = 'SeenNews';
 
     private const DEVICE_MODULE = '{0F552C16-D685-4C9F-86C0-8D89E4BFD158}';
@@ -182,8 +183,9 @@ class CometWiFiRoom extends IPSModule
     private function buildPayload(): string
     {
         $mitglieder = $this->members();
+        $t = $this->t();
         if ($mitglieder === []) {
-            return json_encode(['ok' => false]);
+            return json_encode(['ok' => false, 'texts' => CWIFI_Text::roomTileTexts($t)]);
         }
 
         $temp     = $this->GetValue(self::IDENT_TEMPERATURE);
@@ -210,6 +212,7 @@ class CometWiFiRoom extends IPSModule
 
         return json_encode([
             'ok'         => true,
+            'texts'      => CWIFI_Text::roomTileTexts($t),
             'name'       => IPS_GetName($this->InstanceID),
             'temp'       => is_numeric($temp) && $temp > 0 ? round((float) $temp, 1) : null,
             'setpoint'   => is_numeric($setpoint) ? round((float) $setpoint, 1) : null,
@@ -241,7 +244,7 @@ class CometWiFiRoom extends IPSModule
             'ip'          => null,
             'group'       => null,
             'clock'       => null,
-            'lastText'   => $juengste > 0 ? $this->ago($juengste) : null,
+            'lastText'   => $juengste > 0 ? CWIFI_Text::ago(time() - $juengste, $t, true) : null,
             'control'    => $this->ReadPropertyBoolean('AllowControl'),
             'details'    => $this->ReadPropertyBoolean('ShowDetails'),
             'minTemp'    => $this->ReadPropertyFloat('SetpointMin'),
@@ -252,29 +255,17 @@ class CometWiFiRoom extends IPSModule
     private function endstopLabel(float $setpoint): ?string
     {
         if (abs($setpoint - CWIFI_Registers::SETPOINT_OFF) < 0.01) {
-            return 'Aus';
+            return 'off';
         }
         if (abs($setpoint - CWIFI_Registers::SETPOINT_ON) < 0.01) {
-            return 'An';
+            return 'on';
         }
         return null;
     }
 
-    private function ago(int $timestamp): string
+    private function t(): callable
     {
-        $sekunden = time() - $timestamp;
-        if ($sekunden < 90) {
-            return 'gerade eben';
-        }
-        if ($sekunden < 5400) {
-            return 'vor ' . (int) round($sekunden / 60) . ' min';
-        }
-        if ($sekunden < 86400) {
-            $stunden = (int) round($sekunden / 3600);
-            return 'vor ' . $stunden . ($stunden === 1 ? ' Stunde' : ' Stunden');
-        }
-        $tage = (int) round($sekunden / 86400);
-        return 'vor ' . $tage . ($tage === 1 ? ' Tag' : ' Tagen');
+        return CWIFI_Text::translator(fn (string $text): string => $this->Translate($text));
     }
 
     /* ================================================================== Bedienung */
@@ -301,7 +292,7 @@ class CometWiFiRoom extends IPSModule
         foreach ($mitglieder as $instanceId) {
             if (!$this->callDevice('CWIFI_SetTemperature', $instanceId, $wert)) {
                 $alle = false;
-                $this->SendDebug('Raum', 'Mitglied ' . $instanceId . ' hat den Sollwert nicht angenommen', 0);
+                $this->SendDebug('Room', 'Member ' . $instanceId . ' did not accept the setpoint', 0);
             }
         }
 
@@ -332,7 +323,7 @@ class CometWiFiRoom extends IPSModule
     /** Fordert bei allen Mitgliedern frische Werte an. */
     public function RequestUpdate(): string
     {
-        return $this->memberReport('Update', 'Temperaturen angefordert');
+        return $this->memberReport('Update', 'Temperatures requested');
     }
 
     /**
@@ -343,19 +334,19 @@ class CometWiFiRoom extends IPSModule
      */
     public function RequestAllFields(): string
     {
-        return $this->memberReport('AllFields', 'Alle Felder angefordert');
+        return $this->memberReport('AllFields', 'All fields requested');
     }
 
     /** Holt Wochenprogramm und Urlaub aller Mitglieder. */
     public function RequestSchedule(): string
     {
-        return $this->memberReport('Schedule', 'Wochenprogramm und Urlaub angefordert');
+        return $this->memberReport('Schedule', 'Weekly schedule and holiday requested');
     }
 
     /** Stellt die Uhr aller Mitglieder auf die Symcon-Zeit. */
     public function SetClock(): string
     {
-        return $this->memberReport('Clock', 'Uhrzeit gesendet');
+        return $this->memberReport('Clock', 'Time sent');
     }
 
     /**
@@ -390,19 +381,39 @@ class CometWiFiRoom extends IPSModule
     {
         [$ok, $gesamt] = $this->allMembers($aktion);
 
+        $was = $this->Translate($was);
         if ($gesamt === 0) {
-            return '⚠️  Kein Mitglied ausgewählt — bitte zuerst Thermostate zuordnen.';
+            return $this->Translate('⚠️  No member selected — please assign thermostats first.');
         }
         if ($ok === 0) {
-            return '⚠️  ' . $was . ': an keinem der ' . $gesamt . ' Geräte gelungen. '
-                . 'Prüfen Sie MAC-Adresse, MQTT-Benutzer und den übergeordneten MQTT-Client.';
+            return sprintf(
+                $this->Translate('⚠️  %s: did not succeed on any of the %d devices. Check the MAC address, the MQTT user and the parent MQTT client.'),
+                $was,
+                $gesamt
+            );
         }
         if ($ok < $gesamt) {
-            return '⚠️  ' . $was . ' an ' . $ok . ' von ' . $gesamt . ' Geräten ('
-                . date('H:i:s') . ' Uhr). Die übrigen sind nicht erreichbar konfiguriert.';
+            return sprintf(
+                $this->Translate('⚠️  %s on %d of %d devices (%s). The others are configured as unreachable.'),
+                $was,
+                $ok,
+                $gesamt,
+                date('H:i:s')
+            );
         }
-        return '✅  ' . $was . ' an ' . ($gesamt === 1 ? 'das Gerät' : 'alle ' . $gesamt . ' Geräte')
-            . ' (' . date('H:i:s') . ' Uhr). Die Werte erscheinen, sobald die Geräte antworten.';
+        if ($gesamt === 1) {
+            return sprintf(
+                $this->Translate('✅  %s on the device (%s). The values appear as soon as the device answers.'),
+                $was,
+                date('H:i:s')
+            );
+        }
+        return sprintf(
+            $this->Translate('✅  %s on all %d devices (%s). The values appear as soon as the devices answer.'),
+            $was,
+            $gesamt,
+            date('H:i:s')
+        );
     }
 
     /**
@@ -416,8 +427,7 @@ class CometWiFiRoom extends IPSModule
     {
         $vorhanden = $this->members();
         if ($vorhanden === []) {
-            return '⚠️  Erst ein Thermostat zuordnen, dann ergänzen — der Raum weiß sonst '
-                . 'nicht, nach welcher Gerätegruppe er suchen soll.';
+            return $this->Translate('⚠️  Assign a thermostat first, then add — otherwise the room does not know which device group to look for.');
         }
 
         // Gruppenköpfe der bereits gewählten Geräte einsammeln.
@@ -429,9 +439,7 @@ class CometWiFiRoom extends IPSModule
             }
         }
         if ($koepfe === []) {
-            return '⚠️  Die zugeordneten Geräte gehören zu keiner Gerätegruppe. Die '
-                . 'Gruppenzugehörigkeit steht in Register B0 — sie erscheint erst, wenn das '
-                . 'Gerät sie gemeldet hat („Alle Felder anfordern" am Thermostat).';
+            return $this->Translate('⚠️  The assigned devices do not belong to any device group. Group membership is in register B0 — it only appears once the device has reported it ("Request all fields" on the thermostat).');
         }
 
         $neu = [];
@@ -446,8 +454,7 @@ class CometWiFiRoom extends IPSModule
         }
 
         if ($neu === []) {
-            return 'ℹ️  Nichts zu ergänzen — alle Geräte dieser Gerätegruppe sind bereits '
-                . 'zugeordnet.';
+            return $this->Translate('ℹ️  Nothing to add — all devices of this device group are already assigned.');
         }
 
         // Keine Selbstpersistenz im Formular — die Liste wird nur vorgeschlagen, übernehmen
@@ -460,11 +467,14 @@ class CometWiFiRoom extends IPSModule
         $this->UpdateFormField(
             'MembersHint',
             'caption',
-            '➕  Vorschlag steht in der Liste — noch mit „Übernehmen" bestätigen.'
+            $this->Translate('➕  Suggestion is in the list — still confirm it with "Apply".')
         );
-        return '✅  ' . count($neu) . ' ' . (count($neu) === 1 ? 'Gerät' : 'Geräte')
-            . ' derselben Gerätegruppe ergänzt. Die Liste ist nur vorgeschlagen — mit '
-            . '„Übernehmen" bestätigen, sonst geht der Vorschlag verloren.';
+        return sprintf(
+            $this->Translate(count($neu) === 1
+                ? '✅  %d device of the same device group added. The list is only a suggestion — confirm with "Apply", otherwise the suggestion is lost.'
+                : '✅  %d devices of the same device group added. The list is only a suggestion — confirm with "Apply", otherwise the suggestion is lost.'),
+            count($neu)
+        );
     }
 
     /**
@@ -478,7 +488,7 @@ class CometWiFiRoom extends IPSModule
     private function callDevice(string $funktion, int $instanceId, ...$argumente): bool
     {
         if (!function_exists($funktion)) {
-            $this->SendDebug('Raum', 'Gerätemodul nicht geladen: ' . $funktion . ' fehlt', 0);
+            $this->SendDebug('Room', 'Device module not loaded: ' . $funktion . ' is missing', 0);
             return false;
         }
         return (bool) $funktion($instanceId, ...$argumente);
@@ -522,17 +532,27 @@ class CometWiFiRoom extends IPSModule
         /* Die gedeutete Variable trägt den Namen des Kopfgeräts, nicht dessen MAC. „Gruppenkopf"
            heißt: das Gerät ist selbst der Kopf, also zählt seine eigene MAC. */
         $text = $this->valueOf($instanceId, CWIFI_Registers::IDENT_GROUP);
-        if (!is_string($text) || $text === '' || $text === 'Einzelgerät') {
+        // Die Variable trägt Anzeigetext der Sprache, in der sie geschrieben wurde: englischer
+        // Quelltext und die aktuelle Übersetzung gelten beide.
+        if (!is_string($text) || $text === ''
+            || in_array($text, ['Single device', $this->Translate('Single device')], true)) {
             return '';
         }
-        if ($text === 'Gruppenkopf') {
+        if (in_array($text, ['Group head', $this->Translate('Group head')], true)) {
             return CWIFI_Topics::normalizeMac((string) @IPS_GetProperty($instanceId, 'MAC'));
         }
         if (preg_match('/([0-9A-Fa-f]{2}(?::[0-9A-Fa-f]{2}){5})/', $text, $treffer)) {
             return CWIFI_Topics::normalizeMac($treffer[1]);
         }
-        // „Gruppe mit <Name>" — den Namen auf eine Instanz zurückführen.
-        $name = trim(str_replace('Gruppe mit ', '', $text));
+        // „Group with <name>" — den Namen auf eine Instanz zurückführen.
+        $name = $text;
+        foreach (['Group with %s', $this->Translate('Group with %s')] as $muster) {
+            $vorsatz = substr($muster, 0, (int) strpos($muster, '%s'));
+            if ($vorsatz !== '' && strpos($text, $vorsatz) === 0) {
+                $name = trim(substr($text, strlen($vorsatz)));
+                break;
+            }
+        }
         foreach (IPS_GetInstanceListByModuleID(self::DEVICE_MODULE) as $id) {
             if (IPS_GetName($id) === $name) {
                 return CWIFI_Topics::normalizeMac((string) @IPS_GetProperty($id, 'MAC'));
@@ -716,6 +736,7 @@ class CometWiFiRoom extends IPSModule
 
     public function GetConfigurationForm()
     {
+        // Die Konsole übersetzt caption/label/Optionen selbst (Store-Review, SUITE.md Punkt 25).
         $form = json_decode(file_get_contents(__DIR__ . '/form.json'), true);
 
         $banner = $this->newsBanner();
@@ -726,8 +747,8 @@ class CometWiFiRoom extends IPSModule
         $mitglieder = $this->members();
         $namen = array_map(fn ($id) => IPS_GetName($id), $mitglieder);
         $text = $mitglieder === []
-            ? '⚠️  Noch kein Thermostat zugeordnet — der Raum bleibt ohne Werte.'
-            : '✅  ' . count($mitglieder) . ' Thermostat(e): ' . implode(', ', $namen);
+            ? $this->Translate('⚠️  No thermostat assigned yet — the room stays without values.')
+            : sprintf($this->Translate('✅  %d thermostat(s): %s'), count($mitglieder), implode(', ', $namen));
 
         foreach ($form['elements'] as &$element) {
             foreach ($element['items'] ?? [] as &$item) {
@@ -760,16 +781,15 @@ class CometWiFiRoom extends IPSModule
         return [
             'type'     => 'ExpansionPanel',
             'name'     => 'NewsPanel',
-            'caption'  => '🆕  Neu in Version ' . self::NEWS_VERSION,
+            'caption'  => sprintf($this->Translate('🆕  New in version %s'), self::NEWS_VERSION),
             'expanded' => true,
             'items'    => [
-                ['type' => 'Label', 'caption' => '• **Die Knöpfe melden jetzt Zahlen.** „An 4 von 5 Geräten gesendet" ist die einzige ehrliche Auskunft über ein halb geglücktes Sammelkommando — und genau der Fall, den man sehen will.'],
-                ['type' => 'Label', 'caption' => '• „Geräte derselben Gerätegruppe ergänzen" sagt jetzt auch, **warum** nichts passiert ist: kein Thermostat zugeordnet, keine Gruppenzugehörigkeit bekannt, oder schlicht nichts mehr zu ergänzen. Bisher blieb der Knopf in allen drei Fällen stumm.'],
-                ['type' => 'Label', 'caption' => '• ⚠️ **Für eigene Skripte:** `CWIFIG_RequestUpdate`, `CWIFIG_RequestAllFields`, `CWIFIG_RequestSchedule`, `CWIFIG_SetClock` und `CWIFIG_AddGroupMembers` liefern jetzt Text statt `true`/`false` bzw. einer Anzahl.'],
+                ['type' => 'Label', 'caption' => $this->Translate('• **Now available in German and English.** All texts follow the Symcon language setting; German remains the reference.')],
+                ['type' => 'Label', 'caption' => $this->Translate('• Nothing changes for existing instances: settings, identifiers and functions stay as they are — only the displayed texts depend on the language.')],
 
                 [
                     'type'    => 'Button',
-                    'caption' => 'Verstanden – nicht mehr anzeigen',
+                    'caption' => $this->Translate('Understood – do not show again'),
                     'onClick' => 'CWIFIG_AckNews($id);'
                 ]
             ]

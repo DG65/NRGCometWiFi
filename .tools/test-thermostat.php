@@ -118,6 +118,9 @@ check('Batterie-Warnung aus', $device->GetValue('BatteryLow'), false);
 deliver($device, BASE . '/V/A6', '#0A');
 check('Batterie aus #0A (hex) = 10', $device->GetValue('Battery'), 10);
 check('Batterie-Warnung an unter 20 %', $device->GetValue('BatteryLow'), true);
+// A6 hat keine Rohwert-Variable; ohne diese Zeile wäre der empfangene Payload nach dem Dekodieren weg.
+check('Batteriewert wird samt Payload ins Protokoll geschrieben',
+    end(IPSTestState::$logMessages), 'Batteriewert A6: Payload #0A -> 10 %');
 
 checkTrue('Letzte Meldung wurde gesetzt', $device->GetValue('LastUpdate') > 0);
 check('Erreichbar nach Datenempfang', $device->GetValue('Reachable'), true);
@@ -850,6 +853,8 @@ checkTrue('Unbekannte Aktion schlaegt fehl, statt still zu senden',
 IPSTestState::$sentPackets = [];
 $device->SendAction('Quatsch');
 check('… und sendet dabei nichts', count(IPSTestState::$sentPackets), 0);
+
+check('Jeder übersetzte Text steht in locale.json', array_keys(IPSTestState::$missing), []);
 
 /* ------------------------------------------------------------------ Ergebnis */
 

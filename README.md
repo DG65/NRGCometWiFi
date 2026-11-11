@@ -1,7 +1,7 @@
 # NRG-Stack CometWiFi
 
 ![Symcon](https://img.shields.io/badge/Symcon-PHPModul-blue)
-![Modul Version](https://img.shields.io/badge/Modul_Version-0.19.5-blue)
+![Modul Version](https://img.shields.io/badge/Modul_Version-0.20.0-blue)
 ![Symcon Version](https://img.shields.io/badge/Symcon_Version-9.0%2B-blue)
 ![License](https://img.shields.io/badge/License-PolyForm_Noncommercial_1.0.0-lightgrey)
 [![Check Style](https://github.com/DG65/NRGCometWiFi/actions/workflows/check-style.yml/badge.svg)](https://github.com/DG65/NRGCometWiFi/actions/workflows/check-style.yml)
@@ -10,7 +10,7 @@
 Bindet **Eurotronic Comet WiFi** Heizkörperthermostate in Symcon ein — ohne Umweg über die
 Hersteller-Cloud, aber ohne die Hersteller-App zu verlieren.
 
-Teil des **NRG-Stack**.
+Teil des **NRG-Stack**. Zweisprachig: Deutsch und Englisch ([English README](README.en.md)).
 
 > ⚠️ **Reines Reverse Engineering.** Eurotronic dokumentiert das Protokoll nicht. Dieses Modul
 > stützt sich auf eigene Mitschnitten und Foren-Wissen. Ein Firmware-Update des Herstellers
@@ -111,20 +111,27 @@ Dieses Modul geht deshalb defensiv vor:
 Der Batteriestand wird als Variable geführt — wer ihn archiviert, sieht nach einigen Wochen
 selbst, ob die eigene Einstellung vertretbar ist.
 
-## Was das Modul (noch) nicht kann
+## Was entschlüsselt ist — und was nicht
 
-Nur Register, deren Bedeutung **belegt** ist, werden als Variable geführt. Für alles andere
-gibt es auf Wunsch Rohvariablen, aber keine erfundene Deutung:
+Nur Register, deren Bedeutung **am Gerät belegt** ist, werden als Variable geführt. Für alles
+andere gibt es auf Wunsch Rohvariablen, aber keine erfundene Deutung.
 
-- **Wochenprogramm** (`A8`–`AE`) — Format nicht dekodiert
-- **Fenster-offen-Erkennung** (`A5`), **Urlaubsmodus** (`A7`) — nur teilweise verstanden
-- **Tastensperre / Sommerzeit / Displaydrehung** (`A3`) — Bitzuordnung nicht reproduzierbar;
-  ein falsch gesetztes Bit würde die Tasten eines Geräts sperren
-- **Temperatur-Offset** (`A2`) — Vorzeichenkodierung ungeprüft
+**Belegt:** Ist- und Solltemperatur, Batteriestand, Signalstärke, die Optionen (Betriebsart,
+Tastensperre, automatische Sommerzeit, Displaydrehung), Temperatur-Offset, Wochenprogramm,
+Urlaub, Geräteuhr und Geräteauskunft (Modell, Firmware, IP-Adresse, WLAN, Gruppe).
+
+**Offen:**
+
+- **Fenster-offen-Erkennung** (`A5`) — Werte gesehen, Bedeutung nicht geklärt
+- **Temperatur-Offset** (`A2`) — negative Werte ungeprüft
 - **Ventilstellung** — existiert bei diesem Modell offenbar nicht
 
+Das Wochenprogramm und den Urlaub ruft ein Knopf im Formular ab; **ändern** lassen sie sich nur
+per Skript (`CWIFI_SetScheduleDay`, `CWIFI_SetHoliday`, `CWIFI_ClearHoliday`), nicht im Formular.
+
 Wer die Rohdatenerfassung einschaltet und ein paar Wochen archiviert, liefert genau das
-Material, mit dem sich diese Register nachträglich entschlüsseln lassen.
+Material, mit dem sich die offenen Register nachträglich entschlüsseln lassen. Den Stand im
+Einzelnen führt [`.docs/protokoll.md`](.docs/protokoll.md).
 
 ## Bekannte Einschränkungen
 

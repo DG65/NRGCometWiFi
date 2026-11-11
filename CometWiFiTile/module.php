@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../.libs/CWIFI_Registers.php';
+require_once __DIR__ . '/../.libs/CWIFI_Text.php';
 
 /**
  * Raumübersicht aller Comet-WiFi-Thermostate als Kachel.
@@ -30,7 +31,7 @@ class CometWiFiTile extends IPSModule
         CWIFI_Registers::IDENT_CLOCK_DEV
     ];
 
-    private const NEWS_VERSION = '0.19';
+    private const NEWS_VERSION = '0.20';
     private const ATTR_SEEN_NEWS = 'SeenNews';
 
     /* ================================================================== Lebenszyklus */
@@ -149,7 +150,7 @@ class CometWiFiTile extends IPSModule
     private function callDevice(string $funktion, int $instanceId, ...$argumente): bool
     {
         if (!function_exists($funktion)) {
-            $this->SendDebug('Kachel', 'Gerätemodul nicht geladen: ' . $funktion . ' fehlt', 0);
+            $this->SendDebug('Tile', 'Device module not loaded: ' . $funktion . ' is missing', 0);
             return false;
         }
         return (bool) $funktion($instanceId, ...$argumente);
@@ -187,6 +188,7 @@ class CometWiFiTile extends IPSModule
 
     private function buildPayload(): string
     {
+        $t           = $this->t();
         $showOffline = $this->ReadPropertyBoolean('ShowOffline');
         $warnBelow   = $this->ReadPropertyInteger('BatteryWarnBelow');
         $clockWarn   = $this->ReadPropertyInteger('ClockWarnMinutes');
@@ -237,13 +239,14 @@ class CometWiFiTile extends IPSModule
                 'reachable'  => $reachable,
                 'manual'     => (bool) $this->valueOf($id, CWIFI_Registers::IDENT_MODE),
                 'last'       => $last,
-                'lastText'   => $last > 0 ? $this->relativeTime($last) : null
+                'lastText'   => $last > 0 ? CWIFI_Text::ago(time() - $last, $t, false) : null
             ];
         }
 
         $this->shortenNames($rooms);
 
         return json_encode([
+            'texts'    => CWIFI_Text::overviewTexts($t),
             'rooms'    => $rooms,
             'average'  => $counted > 0 ? round($sumTemp / $counted, 1) : null,
             'issues'   => $issues,
@@ -297,44 +300,37 @@ class CometWiFiTile extends IPSModule
     private function endstopLabel(float $setpoint): ?string
     {
         if ($setpoint <= CWIFI_Registers::SETPOINT_OFF) {
-            return 'Aus';
+            return 'off';
         }
         if ($setpoint >= CWIFI_Registers::SETPOINT_ON) {
-            return 'An';
+            return 'on';
         }
         return null;
     }
 
-    /** „vor 3 Minuten" statt eines Zeitstempels — auf einer Kachel besser lesbar. */
-    private function relativeTime(int $timestamp): string
+    private function t(): callable
     {
-        $diff = time() - $timestamp;
-        if ($diff < 90) {
-            return 'gerade eben';
-        }
-        if ($diff < 3600) {
-            return 'vor ' . intdiv($diff, 60) . ' min';
-        }
-        if ($diff < 86400) {
-            $h = intdiv($diff, 3600);
-            return 'vor ' . $h . ' ' . ($h === 1 ? 'Stunde' : 'Stunden');
-        }
-        $d = intdiv($diff, 86400);
-        return 'vor ' . $d . ' ' . ($d === 1 ? 'Tag' : 'Tagen');
+        return CWIFI_Text::translator(fn (string $text): string => $this->Translate($text));
     }
 
     /* ==================================================================== Formular */
 
     public function GetConfigurationForm()
     {
+        // Die Konsole übersetzt caption/label/Optionen selbst (Store-Review, SUITE.md Punkt 25).
         $form = json_decode(file_get_contents(__DIR__ . '/form.json'), true);
 
         $count = count(IPS_GetInstanceListByModuleID(self::DEVICE_MODULE));
         foreach ($form['elements'] as &$element) {
             if (($element['name'] ?? '') === 'FoundLabel') {
                 $element['caption'] = $count === 0
-                    ? '⚠️  Es wurde noch kein Comet-WiFi-Thermostat gefunden. Die Kachel bleibt leer, bis mindestens eine Geräteinstanz angelegt ist.'
-                    : '✅  ' . $count . ' Thermostat' . ($count === 1 ? '' : 'e') . ' gefunden. Neue Geräte erscheinen automatisch.';
+                    ? $this->Translate('⚠️  No Comet WiFi thermostat has been found yet. The tile stays empty until at least one device instance has been created.')
+                    : sprintf(
+                        $this->Translate($count === 1
+                            ? '✅  %d thermostat found. New devices appear automatically.'
+                            : '✅  %d thermostats found. New devices appear automatically.'),
+                        $count
+                    );
             }
         }
         unset($element);
@@ -354,15 +350,15 @@ class CometWiFiTile extends IPSModule
         return [
             'type'     => 'ExpansionPanel',
             'name'     => 'NewsPanel',
-            'caption'  => '🆕  Neu in Version ' . self::NEWS_VERSION,
+            'caption'  => sprintf($this->Translate('🆕  New in version %s'), self::NEWS_VERSION),
             'expanded' => true,
             'items'    => [
-                ['type' => 'Label', 'caption' => '• Keine Änderung an dieser Kachel — die Versionsnummer läuft im Verbund mit.'],
-                ['type' => 'Label', 'caption' => '• Neu in den übrigen Modulen: **Jeder Knopf meldet jetzt sichtbar, was er getan hat.**'],
+                ['type' => 'Label', 'caption' => $this->Translate('• **Now available in German and English.** All texts follow the Symcon language setting; German remains the reference.')],
+                ['type' => 'Label', 'caption' => $this->Translate('• Nothing changes for existing instances: settings, identifiers and functions stay as they are — only the displayed texts depend on the language.')],
 
                 [
                     'type'    => 'Button',
-                    'caption' => 'Verstanden – nicht mehr anzeigen',
+                    'caption' => $this->Translate('Understood – do not show again'),
                     'onClick' => 'CWIFIT_AckNews($id);'
                 ]
             ]

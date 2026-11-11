@@ -3,7 +3,7 @@
         {
             "type": "ExpansionPanel",
             "name": "DocsPanel",
-            "caption": "📖  Dokumentation & Hilfe",
+            "caption": "📖  Documentation & help",
             "expanded": false,
             "items": [
                 {
@@ -13,26 +13,26 @@
                 },
                 {
                     "type": "Label",
-                    "caption": "Diese Instanz hört den Datenverkehr aller Comet-WiFi-Thermostate mit und sammelt, welche Geräte sich melden. Aus der Liste unten lässt sich je Gerät eine Instanz anlegen."
+                    "caption": "This instance listens to the traffic of all Comet WiFi thermostats and collects which devices report in. From the list below you can create an instance for each device."
                 },
                 {
                     "type": "Label",
-                    "caption": "⏳  Geräte erscheinen erst, wenn sie von sich aus senden — das kann Minuten bis Stunden dauern. Der Konfigurator fragt bewusst nichts aktiv ab, um die Batterien zu schonen. Wer nicht warten möchte, macht das betreffende Thermostat kurz stromlos (Batterie heraus und wieder hinein); danach meldet es sich sofort."
+                    "caption": "⏳  Devices only appear once they send something on their own — this can take minutes to hours. The configurator deliberately queries nothing, to spare the batteries. If you do not want to wait, briefly cut the power to the thermostat in question (take the battery out and put it back in); it reports in immediately afterwards."
                 },
                 {
                     "type": "Label",
-                    "caption": "Die Zuordnung zu bereits angelegten Instanzen erfolgt über die MAC-Adresse, nicht über den Namen. Umbenannte Instanzen werden also weiterhin korrekt erkannt."
+                    "caption": "Matching to instances that already exist is done via the MAC address, not the name. Renamed instances are therefore still recognised correctly."
                 }
             ]
         },
         {
             "type": "ExpansionPanel",
-            "caption": "🔌  Verbindung",
+            "caption": "🔌  Connection",
             "expanded": true,
             "items": [
                 {
                     "type": "Label",
-                    "caption": "Diese Instanz muss unter einem MQTT Client (oder MQTT Server) hängen, der mit dem Broker der Thermostate verbunden ist."
+                    "caption": "This instance must be placed under an MQTT Client (or MQTT Server) that is connected to the thermostats' broker."
                 },
                 {
                     "type": "RowLayout",
@@ -40,23 +40,23 @@
                         {
                             "type": "ValidationTextBox",
                             "name": "MQTTUser",
-                            "caption": "MQTT-Benutzer",
+                            "caption": "MQTT user",
                             "width": "260px"
                         },
                         {
                             "type": "PopupButton",
-                            "caption": "Was ist der MQTT-Benutzer?",
+                            "caption": "What is the MQTT user?",
                             "width": "460px",
                             "popup": {
-                                "caption": "Was ist der MQTT-Benutzer?",
+                                "caption": "What is the MQTT user?",
                                 "items": [
                                     {
                                         "type": "Label",
-                                        "caption": "Die achtstellige Kontokennung, die alle Comet-WiFi-Geräte eines Kontos gemeinsam benutzen. Sie ist bei jedem Nutzer anders — es gibt keine sinnvolle Vorbelegung."
+                                        "caption": "The eight-character account identifier shared by all Comet WiFi devices of one account. It is different for every user — there is no sensible default."
                                     },
                                     {
                                         "type": "Label",
-                                        "caption": "Auslesbar aus dem MQTT-Verbindungsaufbau eines Geräts (Port 1883 ist unverschlüsselt), siehe README."
+                                        "caption": "It can be read from a device's MQTT connection setup (port 1883 is unencrypted), see the README."
                                     }
                                 ]
                             }
@@ -66,13 +66,13 @@
                 {
                     "type": "ValidationTextBox",
                     "name": "TopicPrefix",
-                    "caption": "Topic-Präfix",
+                    "caption": "Topic prefix",
                     "width": "260px"
                 },
                 {
                     "type": "NumberSpinner",
                     "name": "RetentionHours",
-                    "caption": "Geräte aus der Liste entfernen nach … Stunden ohne Meldung",
+                    "caption": "Remove devices from the list after … hours without a message",
                     "minimum": 1,
                     "maximum": 8760,
                     "width": "300px"
@@ -81,26 +81,26 @@
         },
         {
             "type": "ExpansionPanel",
-            "caption": "🕐  Zeitsynchronisation (optional)",
+            "caption": "🕐  Time synchronisation (optional)",
             "expanded": false,
             "items": [
                 {
                     "type": "Label",
-                    "caption": "Die Thermostate beziehen ihre Uhrzeit normalerweise über die Hersteller-Cloud. Ohne sie driften die Uhren und das Wochenprogramm läuft zur falschen Zeit."
+                    "caption": "The thermostats normally get their time from the manufacturer's cloud. Without it the clocks drift and the weekly schedule runs at the wrong time."
                 },
                 {
                     "type": "Label",
-                    "caption": "⚠️  Diese Funktion wirkt auf ALLE Comet-WiFi-Geräte im Netz, nicht nur auf die hier angelegten — der Zeitkanal ist ein Rundruf. Nur einschalten, wenn die Verbindung zur Hersteller-Cloud dauerhaft entfällt."
+                    "caption": "⚠️  This function affects ALL Comet WiFi devices on the network, not only the ones created here — the time channel is a broadcast. Only switch it on if the connection to the manufacturer's cloud is permanently gone."
                 },
                 {
                     "type": "CheckBox",
                     "name": "ProvideTimeSync",
-                    "caption": "Uhrzeit selbst senden"
+                    "caption": "Send the time myself"
                 },
                 {
                     "type": "NumberSpinner",
                     "name": "TimeSyncHours",
-                    "caption": "Alle … Stunden",
+                    "caption": "Every … hours",
                     "minimum": 1,
                     "maximum": 168,
                     "width": "200px"
@@ -109,26 +109,26 @@
         },
         {
             "type": "ExpansionPanel",
-            "caption": "🔧  Wartung",
+            "caption": "🔧  Maintenance",
             "expanded": false,
             "items": [
                 {
                     "type": "Label",
-                    "caption": "Nach einem Modul-Update übernimmt Symcon die Einstellungen einer Instanz nicht immer von selbst. Sonst hilft nur, im Formular etwas zu ändern und wieder zurückzustellen — nur dann wird „Übernehmen“ überhaupt anklickbar. Dieser Knopf spart das."
+                    "caption": "After a module update, Symcon does not always apply an instance's settings by itself. The only other way is to change something in the form and change it back — only then does \"Apply\" become clickable at all. This button saves you that."
                 },
                 {
                     "type": "Label",
-                    "caption": "⚠️  Wirkt auf die gespeicherten Einstellungen. Was Sie oben geändert, aber noch nicht übernommen haben, geht dabei verloren."
+                    "caption": "⚠️  Acts on the saved settings. Anything you changed above but have not applied yet is lost."
                 },
                 {
                     "type": "Label",
-                    "caption": "Für die Geräte ist das unbedenklich: Das Übernehmen sendet nichts und weckt damit keine Batterie."
+                    "caption": "This is harmless for the devices: applying sends nothing and therefore does not wake any battery."
                 },
                 {
                     "type": "Button",
-                    "caption": "🔄  Übernehmen erzwingen (ohne Formularänderung)",
-                    "confirm": "Die gespeicherten Einstellungen dieser Instanz jetzt neu übernehmen?",
-                    "onClick": "IPS_ApplyChanges($id); echo '✅  Einstellungen übernommen (' . date('H:i:s') . ' Uhr).';"
+                    "caption": "🔄  Force apply (without a form change)",
+                    "confirm": "Apply this instance's saved settings again now?",
+                    "onClick": "IPS_ApplyChanges($id); echo '✅  ApplyChanges() ' . date('H:i:s');"
                 }
             ]
         }
@@ -141,31 +141,31 @@
         },
         {
             "type": "ExpansionPanel",
-            "caption": "🔍  Wie die Erkennung arbeitet",
+            "caption": "🔍  How discovery works",
             "expanded": false,
             "items": [
                 {
                     "type": "Label",
-                    "caption": "Dieser Konfigurator hört nur mit und sendet grundsätzlich nichts — deshalb gibt es hier bewusst keinen Knopf „Geräte jetzt suchen“: Jede Abfrage würde ein Batteriegerät wecken."
+                    "caption": "This configurator only listens and sends nothing at all — that is why there is deliberately no \"Search for devices now\" button: every query would wake a battery-powered device."
                 },
                 {
                     "type": "Label",
-                    "caption": "„Zuletzt“ in der Zeile oben ist deshalb der Zeitpunkt der letzten Gerätemeldung, nicht der einer Suche."
+                    "caption": "\"Last\" in the line above is therefore the time of the last device message, not of a search."
                 },
                 {
                     "type": "Label",
-                    "caption": "Erkannt wird jedes Gerät, dessen Meldungen zum eingestellten MQTT-Benutzer und Topic-Präfix passen. Die Zuordnung zu bereits angelegten Instanzen läuft über die MAC-Adresse und den gemeinsamen Broker — ausdrücklich nicht über den Namen."
+                    "caption": "Every device whose messages match the configured MQTT user and topic prefix is detected. Matching to instances that already exist works via the MAC address and the shared broker — explicitly not via the name."
                 },
                 {
                     "type": "Label",
-                    "caption": "Einträge verschwinden wieder, wenn sich ein Gerät länger als eingestellt nicht gemeldet hat."
+                    "caption": "Entries disappear again when a device has not reported for longer than the configured time."
                 }
             ]
         },
         {
             "type": "Configurator",
             "name": "Devices",
-            "caption": "Gefundene Comet-WiFi-Thermostate",
+            "caption": "Comet WiFi thermostats found",
             "rowCount": 15,
             "delete": false,
             "sort": {
@@ -174,22 +174,22 @@
             },
             "columns": [
                 {
-                    "caption": "MAC-Adresse",
+                    "caption": "MAC address",
                     "name": "MACFormatted",
                     "width": "180px"
                 },
                 {
-                    "caption": "Isttemperatur",
+                    "caption": "Current temperature",
                     "name": "TemperatureText",
                     "width": "130px"
                 },
                 {
-                    "caption": "Solltemperatur",
+                    "caption": "Target temperature",
                     "name": "SetpointText",
                     "width": "140px"
                 },
                 {
-                    "caption": "Batterie",
+                    "caption": "Battery",
                     "name": "BatteryText",
                     "width": "110px"
                 },
@@ -199,12 +199,12 @@
                     "width": "110px"
                 },
                 {
-                    "caption": "Zuletzt gesehen",
+                    "caption": "Last seen",
                     "name": "LastSeenText",
                     "width": "170px"
                 },
                 {
-                    "caption": "Client-ID",
+                    "caption": "Client ID",
                     "name": "ClientID",
                     "width": "230px",
                     "visible": false
@@ -220,8 +220,8 @@
         },
         {
             "type": "Button",
-            "caption": "🗑️  Liste leeren",
-            "confirm": "Die gesammelten Fundstellen werden verworfen. Bereits angelegte Instanzen bleiben unberührt. Fortfahren?",
+            "caption": "🗑️  Clear list",
+            "confirm": "The collected findings are discarded. Instances that have already been created are not affected. Continue?",
             "onClick": "echo CWIFIC_ClearDiscovery($id);"
         }
     ],
@@ -229,17 +229,17 @@
         {
             "code": 201,
             "icon": "error",
-            "caption": "MQTT-Benutzer fehlt – ohne ihn lässt sich nicht erkennen, welche Nachrichten zu den Thermostaten gehören."
+            "caption": "MQTT user is missing – without it there is no way to tell which messages belong to the thermostats."
         },
         {
             "code": 202,
             "icon": "error",
-            "caption": "Keine aktive MQTT-Instanz darüber – bitte MQTT Client einrichten und verbinden."
+            "caption": "No active MQTT instance above – please set up an MQTT Client and connect it."
         },
         {
             "code": 203,
             "icon": "inactive",
-            "caption": "Noch keine Thermostate gesehen – die Geräte melden sich von selbst, das kann dauern."
+            "caption": "No thermostats seen yet – the devices report in on their own, this can take a while."
         }
     ]
 }
