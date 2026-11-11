@@ -20,6 +20,9 @@ define('KL_NOTIFY', 1);
 define('KL_MESSAGE', 0);
 define('IS_INACTIVE', 104);
 define('VM_UPDATE', 10603);
+define('IPS_KERNELMESSAGE', 10100);
+define('KR_INIT', 10102);
+define('KR_READY', 10103);
 
 define('VARIABLETYPE_BOOLEAN', 0);
 define('VARIABLETYPE_INTEGER', 1);
@@ -58,6 +61,9 @@ class IPSTestState
     /** Texte, die Translate() bei geladener locale.json nicht fand — jeder ist eine Lücke. */
     public static array $missing = [];
 
+    /** Laufstufe des Kerns: KR_READY, oder KR_INIT beim Hochfahren. */
+    public static int $runlevel = KR_READY;
+
     /** Wie oft Translate() aufgerufen wurde — Symcon liest dabei jedes Mal die locale.json. */
     public static int $translateCalls = 0;
 
@@ -89,6 +95,7 @@ class IPSTestState
         self::$visualization     = null;
         self::$registeredMessages = [];
         self::$links = [];
+        self::$runlevel = KR_READY;
         // $locale bleibt bewusst stehen: Sie beschreibt das Modul, nicht den Prüffall.
     }
 
@@ -124,6 +131,11 @@ function IPS_GetLibrary(string $guid): array
 function IPS_LogMessage(string $sender, string $message): void
 {
     IPSTestState::$logMessages[] = $sender . ': ' . $message;
+}
+
+function IPS_GetKernelRunlevel(): int
+{
+    return IPSTestState::$runlevel;
 }
 
 function IPS_GetInstanceListByModuleID(string $guid): array
@@ -258,6 +270,9 @@ function IPS_InstanceExists(int $id): bool
 
 function IPS_GetName(int $id): string
 {
+    if (isset(IPSTestState::$links[$id])) {
+        return IPSTestState::$links[$id]['name'];
+    }
     return IPSTestState::$instances[$id]['Name'] ?? ('Instanz ' . $id);
 }
 

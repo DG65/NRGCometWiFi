@@ -337,6 +337,21 @@ checkTrue('Das Raummodul haelt keine eigene Kopie',
 checkTrue('Die Raumkachel haelt keine eigene Kopie',
     !is_file(__DIR__ . '/../CometWiFiRoomTile/module.html'));
 
+/* Store-Checkliste 27: ApplyChanges vor KR_READY darf die Mitglieder nicht abgleichen (das
+   Gerätemodul ist beim Neuladen womöglich noch nicht da); die Kernmeldung bringt es nach. */
+IPSTestState::reset();
+addThermostat(50, 'Wohnzimmer Links', ['Temperature' => 21.0, 'Setpoint' => 22.0, 'Battery' => 80, 'Reachable' => true, 'Mode' => true]);
+$room = makeRoom([50]);
+check('Raum mit Mitglied ist aktiv', $room->GetStatus(), IS_ACTIVE);
+IPSTestState::$visualization = null;
+IPSTestState::$runlevel = KR_INIT;
+$room->ApplyChanges();
+check('Vor KR_READY wird die Kachel nicht neu gezeichnet', IPSTestState::$visualization, null);
+IPSTestState::$runlevel = KR_READY;
+$room->MessageSink(0, 0, IPS_KERNELMESSAGE, [KR_READY]);
+checkTrue('Nach KR_READY wird die Kachel gezeichnet', IPSTestState::$visualization !== null);
+check('Nach KR_READY ist der Raum aktiv', $room->GetStatus(), IS_ACTIVE);
+
 check('Jeder übersetzte Text steht in locale.json', array_keys(IPSTestState::$missing), []);
 
 /* ------------------------------------------------------------------ Ergebnis */

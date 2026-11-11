@@ -64,7 +64,21 @@ class CometWiFiRoomTile extends IPSModule
     {
         parent::ApplyChanges();
         $this->SetVisualizationType(1);
+        $this->maintainActionChoice();
 
+        // Der Abgleich mit der Geräteinstanz gehört nicht in ApplyChanges: Beim Neuladen ist das
+        // Gerätemodul womöglich noch nicht geladen, und syncLinks() räumte dann alle
+        // Verknüpfungen ab (Store-Checkliste 27). Deshalb erst bei KR_READY.
+        $this->RegisterMessage(0, IPS_KERNELMESSAGE);
+        if (IPS_GetKernelRunlevel() !== KR_READY) {
+            return;
+        }
+        $this->attachDevice();
+    }
+
+    /** Alles, was die Geräteinstanz braucht: Nachrichten, Verknüpfungen, Status, Kachel. */
+    private function attachDevice(): void
+    {
         foreach ($this->GetMessageList() as $senderId => $messages) {
             foreach ($messages as $message) {
                 if ($message === VM_UPDATE) {
@@ -84,7 +98,6 @@ class CometWiFiRoomTile extends IPSModule
             }
         }
 
-        $this->maintainActionChoice();
         $this->syncLinks($device);
 
         $this->SetStatus($device > 0 ? IS_ACTIVE : 201);
@@ -147,12 +160,12 @@ class CometWiFiRoomTile extends IPSModule
         }
 
         foreach ($ziele as $ziel => [$name, $position]) {
-            $linkId = $vorhanden[$ziel] ?? 0;
-            if ($linkId === 0) {
-                $linkId = IPS_CreateLink();
-                IPS_SetParent($linkId, $this->InstanceID);
-                IPS_SetLinkTargetID($linkId, $ziel);
+            if (isset($vorhanden[$ziel])) {
+                continue;   // Name und Position gehören dem Nutzer, sobald die Verknüpfung existiert
             }
+            $linkId = IPS_CreateLink();
+            IPS_SetParent($linkId, $this->InstanceID);
+            IPS_SetLinkTargetID($linkId, $ziel);
             IPS_SetName($linkId, $this->Translate($name));
             IPS_SetPosition($linkId, $position);
         }
@@ -198,6 +211,10 @@ class CometWiFiRoomTile extends IPSModule
 
     public function MessageSink($TimeStamp, $SenderID, $Message, $Data)
     {
+        if ($SenderID === 0 && $Message === IPS_KERNELMESSAGE && ($Data[0] ?? 0) === KR_READY) {
+            $this->attachDevice();
+            return;
+        }
         if ($Message === VM_UPDATE) {
             $this->UpdateVisualizationValue($this->buildPayload());
         }

@@ -75,7 +75,20 @@ class CometWiFiRoom extends IPSModule
     {
         parent::ApplyChanges();
         $this->SetVisualizationType(1);
+        $this->maintainVariables();
 
+        // Der Abgleich mit den Mitgliedern gehört nicht in ApplyChanges: Beim Neuladen ist das
+        // Gerätemodul womöglich noch nicht geladen (Store-Checkliste 27). Deshalb erst bei KR_READY.
+        $this->RegisterMessage(0, IPS_KERNELMESSAGE);
+        if (IPS_GetKernelRunlevel() !== KR_READY) {
+            return;
+        }
+        $this->attachMembers();
+    }
+
+    /** Alles, was die Mitglieder braucht: Nachrichten, Status, Raumwerte, Kachel. */
+    private function attachMembers(): void
+    {
         foreach ($this->GetMessageList() as $senderId => $messages) {
             foreach ($messages as $message) {
                 if ($message === VM_UPDATE) {
@@ -83,8 +96,6 @@ class CometWiFiRoom extends IPSModule
                 }
             }
         }
-
-        $this->maintainVariables();
 
         $mitglieder = $this->members();
         foreach ($mitglieder as $instanceId) {
@@ -104,6 +115,10 @@ class CometWiFiRoom extends IPSModule
 
     public function MessageSink($TimeStamp, $SenderID, $Message, $Data)
     {
+        if ($SenderID === 0 && $Message === IPS_KERNELMESSAGE && ($Data[0] ?? 0) === KR_READY) {
+            $this->attachMembers();
+            return;
+        }
         if ($Message === VM_UPDATE) {
             $this->recalculate();
             $this->UpdateVisualizationValue($this->buildPayload());

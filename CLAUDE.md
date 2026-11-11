@@ -289,8 +289,10 @@ Vollständig in `SUITE.md` im Repo-Root, hier nur die für dieses Repo relevante
 - Bibliotheksfunktionen ohne `$this` (`decodeInfo`, `scheduleToText`) bekommen einen Übersetzer als Parameter.
 - Neue Texte: englisch in Code/`form.json`, deutsch in `.libs/locale.json`, `locale-bauen.php`, `php .tools/test-sprachen.php`.
 - Dezimalzeichen und Datumsformat sind Tabelleneinträge (`.` → `,`, `Y-m-d H:i` → `d.m.Y H:i`).
-- Offen: live in beiden Sprachen ansehen und Laufzeit messen (erst nach Push); ApplyChanges von Raum/Raumkachel gleicht
-  Geräteinstanzen ab (Store-Checkliste 27, besser nach KR_READY).
+- **Abgleich mit anderen Instanzen nie in `ApplyChanges()`** (Store-Checkliste 27, 0.20.1): Raum und Raumkachel hängen sich
+  erst bei `KR_READY` an ihre Geräte (`attachMembers()` / `attachDevice()`, ausgelöst im `MessageSink` oder direkt, wenn der Kern
+  schon bereit ist). Der Stub kennt dafür `IPSTestState::$runlevel`. Verknüpfungen: Name und Position nur beim Anlegen setzen.
+- Offen: live in beiden Sprachen ansehen und Laufzeit messen.
 
 ## Prüfstände
 

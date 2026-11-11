@@ -344,6 +344,33 @@ $text = $leer->RequestUpdate();
 checkTrue('Ohne Geraet kein Haken', str_starts_with($text, '⚠️'));
 checkTrue('… und sagt, was zu tun ist', str_contains($text, 'Thermostat'));
 
+/* Store-Checkliste 27: Beim Hochfahren ist das Gerätemodul womöglich noch nicht geladen. Ein
+   ApplyChanges vor KR_READY darf deshalb weder Verknüpfungen abräumen noch den Status ändern;
+   der Abgleich kommt erst mit der Kernmeldung KR_READY. */
+IPSTestState::reset();
+addThermostat(50, 'Wohnzimmer', ['Temperature' => 21.0, 'Setpoint' => 22.0, 'Reachable' => true]);
+$tile = makeTile(['DeviceID' => 50]);
+$linksVorher = IPS_GetChildrenIDs(90);
+checkTrue('Verknüpfungen stehen nach dem normalen Übernehmen', count($linksVorher) >= 2);
+$statusVorher = $tile->GetStatus();
+
+IPSTestState::$runlevel = KR_INIT;
+$tile->ApplyChanges();
+check('Vor KR_READY bleiben die Verknüpfungen stehen', IPS_GetChildrenIDs(90), $linksVorher);
+check('Vor KR_READY ändert sich der Status nicht', $tile->GetStatus(), $statusVorher);
+
+// Gerät "noch nicht geladen": die Kernmeldung bringt den Abgleich nach.
+IPSTestState::$runlevel = KR_READY;
+$tile->MessageSink(0, 0, IPS_KERNELMESSAGE, [KR_READY]);
+check('Nach KR_READY ist die Kachel zugeordnet', $tile->GetStatus(), IS_ACTIVE);
+check('Nach KR_READY gibt es keinen Wildwuchs', count(IPS_GetChildrenIDs(90)), count($linksVorher));
+
+// Namen der Verknüpfungen gehören dem Nutzer, sobald sie existieren.
+$erste = IPS_GetChildrenIDs(90)[0];
+IPS_SetName($erste, 'Mein eigener Name');
+$tile->ApplyChanges();
+check('Ein umbenannter Link behält seinen Namen beim Übernehmen', IPS_GetName($erste), 'Mein eigener Name');
+
 check('Jeder übersetzte Text steht in locale.json', array_keys(IPSTestState::$missing), []);
 
 /* ------------------------------------------------------------------ Ergebnis */

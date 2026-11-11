@@ -2,6 +2,23 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.20.1] – Store-Prüfung: Abgleich erst bei KR_READY, Linknamen bleiben beim Nutzer
+
+### Behoben
+- **Raum und Raumkachel gleichen die Geräteinstanzen nicht mehr in `ApplyChanges()` ab**
+  (Store-Checkliste 27, SUITE.md). Beim Neuladen ist das Gerätemodul womöglich noch nicht
+  geladen; `syncLinks()` der Raumkachel räumte dann alle Verknüpfungen ab und der Status fiel auf
+  „kein Thermostat". Der Abgleich läuft jetzt erst bei der Kernmeldung `KR_READY`
+  (`MessageSink`), oder sofort, wenn der Kern schon bereit ist.
+- **Verknüpfungen der Raumkachel behalten Namen und Position.** `syncLinks()` setzte beides bei
+  jedem Übernehmen neu und überschrieb damit Umbenennungen des Nutzers (Store: nur vorbelegen).
+  Name und Position werden nur noch beim Anlegen gesetzt.
+
+### Prüfstand
+- `test-room.php` und `test-roomtile.php`: Vor `KR_READY` bleiben Verknüpfungen, Status und
+  Kachel unberührt, die Kernmeldung bringt den Abgleich nach, ein umbenannter Link behält seinen
+  Namen. Gegenprobe: mit der alten Logik schlagen vier Prüfungen fehl.
+
 ## [0.20.0] – Zweisprachig: Deutsch und Englisch
 
 ### Hinzugefügt
