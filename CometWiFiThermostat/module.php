@@ -1366,17 +1366,25 @@ class CometWiFiThermostat extends IPSModule
         );
     }
 
-    /** Zweiwertige Darstellung ohne Ampelfarbe — für Betriebsarten statt Zuständen. */
+    /**
+     * Zweiwertige Darstellung ohne Ampelfarbe — für Betriebsarten statt Zuständen.
+     *
+     * Eine Aufzählung statt SWITCH: SWITCH kennt kein CAPTION_ON/CAPTION_OFF (Store-Review
+     * 12.11.2026, SUITE.md 9i); beschriftete zweiwertige Zustände gehören in eine Aufzählung.
+     */
     private function optionPresentation(string $captionFalse, string $captionTrue): array
     {
         return [
-            'PRESENTATION' => VARIABLE_PRESENTATION_SWITCH,
-            'CAPTION_ON'   => $this->Translate($captionTrue),
-            'CAPTION_OFF'  => $this->Translate($captionFalse)
+            'PRESENTATION' => VARIABLE_PRESENTATION_ENUMERATION,
+            'OPTIONS'      => json_encode([
+                $this->enumOption(false, $captionFalse),
+                $this->enumOption(true, $captionTrue)
+            ])
         ];
     }
 
-    private function enumOption(int $value, string $caption): array
+    /** @param int|bool $value Ganzzahl bei Integer-Variablen, bool bei Boolean-Variablen. */
+    private function enumOption($value, string $caption): array
     {
         return [
             'Value'       => $value,

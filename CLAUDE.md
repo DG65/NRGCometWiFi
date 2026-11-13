@@ -292,6 +292,10 @@ Vollständig in `SUITE.md` im Repo-Root, hier nur die für dieses Repo relevante
 - **Abgleich mit anderen Instanzen nie in `ApplyChanges()`** (Store-Checkliste 27, 0.20.1): Raum und Raumkachel hängen sich
   erst bei `KR_READY` an ihre Geräte (`attachMembers()` / `attachDevice()`, ausgelöst im `MessageSink` oder direkt, wenn der Kern
   schon bereit ist). Der Stub kennt dafür `IPSTestState::$runlevel`. Verknüpfungen: Name und Position nur beim Anlegen setzen.
+- **Darstellungen vor dem Einreichen gegen SUITE.md 9i/16/18 prüfen** (0.20.2): `SWITCH` kennt kein `CAPTION_ON`/`CAPTION_OFF`
+  (beschriftete zweiwertige Zustände = Aufzählung mit bool-Werten). Das hat der Store-Review bei 0.20.1 gefunden, obwohl es seit
+  16.09.2026 in SUITE.md steht — vor dem Einreichen SUITE.md Punkt 9 und die Store-Checkliste **vollständig** lesen, nicht nur
+  die Teile, an die man gerade denkt. Beim Review wird das **Anlegen jeder Instanz** probiert; Warnungen dabei sind Ablehnungsgrund.
 - Offen: live in beiden Sprachen ansehen und Laufzeit messen.
 
 ## Prüfstände

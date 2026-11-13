@@ -92,6 +92,13 @@ check('Sollwert nutzt Schieberegler', $device->variables['Setpoint']['presentati
 check('Schrittweite 0,5 K', $device->variables['Setpoint']['presentation']['STEP_SIZE'], 0.5);
 check('Letzte Meldung nutzt Zeitstempel-Profil', $device->variables['LastUpdate']['presentation'], '~UnixTimestamp');
 
+// Store-Review 12.11.2026: SWITCH kennt kein CAPTION_ON/CAPTION_OFF — die Betriebsart ist eine Aufzählung.
+$betriebsart = $device->variables['Mode']['presentation'];
+check('Betriebsart ist eine Aufzählung', $betriebsart['PRESENTATION'], 'ENUMERATION');
+check('Betriebsart hat keine Schalter-Beschriftung', array_intersect(['CAPTION_ON', 'CAPTION_OFF'], array_keys($betriebsart)), []);
+check('Betriebsart: Werte sind bool (Boolean-Variable)',
+    array_column(json_decode($betriebsart['OPTIONS'], true), 'Value'), [false, true]);
+
 // Mehrfaches ApplyChanges darf nichts kaputt machen (Idempotenz von MaintainVariable).
 $device->SetValue('Temperature', 21.5);
 $device->ApplyChanges();

@@ -2,6 +2,20 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.20.2] – Store-Prüfung: Betriebsart als Aufzählung
+
+### Behoben
+- **Beim Anlegen eines Thermostats erschien die Warnung „Parameter CAPTION_OFF is not defined for
+  this presentation“** (Store-Review 12.11.2026, Stable 0.20.1 abgelehnt). Die Betriebsart
+  („Zeitplan“/„Handbetrieb“) nutzte die Darstellung `SWITCH` mit `CAPTION_ON`/`CAPTION_OFF`; die
+  kennt `SWITCH` nicht (SUITE.md 9i, seit 16.09.2026 dokumentiert). Sie ist jetzt eine
+  Aufzählung mit den Werten `false`/`true`; Ident, Typ (bool) und Bedienbarkeit sind unverändert.
+
+### Prüfstand
+- `test-presentations.php`: `CAPTION_ON`/`CAPTION_OFF` in einem Modul ist ein Fehler.
+  `test-thermostat.php`: Die Betriebsart ist eine Aufzählung mit bool-Werten. Gegenprobe: Mit der
+  Fassung 0.20.1 schlägt der Prüfstand an.
+
 ## [0.20.1] – Store-Prüfung: Abgleich erst bei KR_READY, Linknamen bleiben beim Nutzer
 
 ### Behoben

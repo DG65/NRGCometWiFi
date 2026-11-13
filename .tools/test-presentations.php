@@ -150,6 +150,29 @@ foreach ($files as $file) {
 }
 check('Es wurden OPTIONS-Einträge geprüft', $entries >= 5, true);
 
+/* ------------------------------------- SWITCH kennt keine Beschriftung (SUITE.md 9i)
+ * Store-Review 12.11.2026: „Parameter CAPTION_OFF is not defined for this presentation“.
+ * Beschriftete zweiwertige Zustände gehören in eine Aufzählung (ENUMERATION). */
+
+function switchCaptionProblems(string $source): array
+{
+    $problems = [];
+    foreach (['CAPTION_ON', 'CAPTION_OFF'] as $key) {
+        $o = 0;
+        while (($p = strpos($source, "'" . $key . "'", $o)) !== false) {
+            $o = $p + 1;
+            $problems[] = [substr_count($source, "\n", 0, $p) + 1, "Schlüssel '$key' ist bei SWITCH ungültig"];
+        }
+    }
+    return $problems;
+}
+
+foreach ($files as $file) {
+    check(basename(dirname($file)) . ': kein CAPTION_ON/CAPTION_OFF', switchCaptionProblems(file_get_contents($file)), []);
+}
+check('Gegenprobe: CAPTION_OFF wird erkannt',
+    count(switchCaptionProblems("['PRESENTATION' => VARIABLE_PRESENTATION_SWITCH, 'CAPTION_OFF' => 'x']")), 1);
+
 /* ------------------------------------------------- Gegenprobe (Mutationstest) */
 
 $enum = fn(string $e) => "function f() { \$o = [['Value' => 1, 'Caption' => 'x', $e]]; \$p = ['PRESENTATION' => VARIABLE_PRESENTATION_ENUMERATION]; }";
